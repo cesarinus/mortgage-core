@@ -1,108 +1,120 @@
 
 
-# Mortgage CRM — Phase 1 Implementation Plan
-**Version: v1.0 | Scope: Auth + Leads + Contacts + Pipeline**
+# NexGen Capital — Landing Page Plan
+**Using the NexGenSWFL theme (warm orange + charcoal palette)**
 
 ---
 
-## 1. Authentication & Role-Based Access
+## Overview
 
-**User sign-up and login** with email/password via Supabase Auth. After login, users land on their dashboard.
-
-**Three roles:**
-- **Admin** — Full access to everything: manage team members, assign roles, view all leads/deals/contacts, and configure settings
-- **Loan Officer** — Manages their own leads, contacts, and deals; can view shared team data
-- **Processor / Assistant** — Read-only access to assigned deals and contacts; can update document status but cannot create or delete records
-
-Roles are stored securely in a dedicated `user_roles` table with Row-Level Security enforced on all tables.
+Build a public landing page at `/` for **NexGen Capital** (mortgage company). The CRM dashboard moves to `/dashboard`. The landing page uses the same design system as the NexGen Directory project: warm orange primary, cream backgrounds, DM Sans + Inter fonts, dotted grid patterns, floating cards, and orange glow shadows.
 
 ---
 
-## 2. Modern SaaS Layout
+## Theme Changes
 
-- **Sidebar navigation** with collapsible menu: Dashboard, Leads, Contacts, Pipeline, Settings
-- **Top bar** with user avatar, notifications bell, and quick-add button
-- **Dashboard page** showing key metrics: total leads, active deals, deals by stage, and recent activity feed
-- Clean card-based design with a professional color palette
+Update `src/index.css` and `tailwind.config.ts` to match the NexGen Directory design system:
 
----
+- **Colors**: Warm orange primary (`hsl(24 95% 53%)`), cream background (`hsl(40 33% 98%)`), charcoal foreground
+- **Brand tokens**: `--orange`, `--orange-light`, `--orange-dark`, `--charcoal`, `--cream`
+- **Shadows**: `--shadow-card`, `--shadow-card-hover`, `--shadow-orange`
+- **Radius**: `1rem` base
+- **Fonts**: DM Sans + Inter via Google Fonts import
+- **Utility classes**: `.bg-dotted`, `.text-gradient-orange`, `.btn-shadow`, `.card-elevated`, `.trust-badge`, `.feature-pill`, `.orange-blob`, animations (float, fade-up, fade-in, scale-in)
+- **Tailwind config**: Add `orange`, `charcoal`, `cream` color tokens, custom box shadows, font family, extra border-radius values
 
-## 3. Leads Module
-
-**Lead management** for capturing and tracking prospective borrowers:
-
-- **Lead list view** — Searchable, sortable table with columns: Name, Phone, Email, Source, Status, Assigned To, Created Date
-- **Add Lead form** — Manual entry with fields: first name, last name, email, phone, source (referral, web form, walk-in, etc.), notes
-- **Lead detail page** — Full view of lead info, activity timeline, and a button to convert a lead into a Contact + Deal
-- **Lead assignment** — Admins and Loan Officers can assign leads to team members
-- **Public web form** — A standalone, publicly accessible lead capture page that creates new leads in the system automatically (no login required)
+The CRM sidebar theme variables will also shift to the orange palette so the internal app stays cohesive.
 
 ---
 
-## 4. Contacts Module
+## Routing Change
 
-**Contact management** for borrowers, referral partners, and other relationships:
-
-- **Contact list view** — Searchable table with columns: Name, Email, Phone, Type (Borrower / Partner / Other), Linked Deals
-- **Add/Edit Contact form** — Name, email, phone, address, contact type, notes
-- **Contact detail page** — Contact info, linked deals, and activity history
-- **Lead-to-Contact conversion** — When a lead is converted, their info auto-populates a new contact record
-
----
-
-## 5. Deals & Pipeline
-
-**Visual pipeline** to track mortgage deals through your custom stages:
-
-### Pipeline Stages (in order):
-1. New Lead
-2. Contacted
-3. Application Sent
-4. Docs Received
-5. Underwriting
-6. Approved
-7. Clear to Close
-8. Closed
-9. Lost
-
-### Features:
-- **Kanban board view** — Drag-and-drop deal cards across stage columns
-- **Deal list view** — Alternate table view with filtering and sorting
-- **Deal card** — Shows borrower name, loan amount, loan type, and days in current stage
-- **Deal detail page** — Full deal info: borrower contact, loan amount, loan type, property address, stage, assigned loan officer, notes, and timeline of stage changes
-- **Create deal** — From scratch or by converting a lead; links to a contact automatically
-- **Stage change tracking** — Every stage transition is logged with timestamp and user
+| Route | Component | Access |
+|---|---|---|
+| `/` | Landing page (new) | Public |
+| `/lead-form` | Standalone lead form (new) | Public |
+| `/auth` | Login / Signup | Public |
+| `/dashboard` | Dashboard | Protected |
+| `/leads`, `/contacts`, `/pipeline`, `/settings` | CRM modules | Protected |
 
 ---
 
-## 6. Settings Page (Admin Only)
+## Landing Page Sections
 
-- **Team management** — Invite new users, assign/change roles, deactivate accounts
-- **Profile settings** — Update name, email, password
+### 1. Header / Navbar
+- NexGen Capital logo/wordmark (left)
+- Nav links: Services, About, Contact
+- "Get Started" CTA button (orange, right)
+- Mobile hamburger menu
+- Sticky on scroll
+
+### 2. Hero with CTA
+- Trust badge pill: "Southwest Florida's Trusted Mortgage Partner"
+- Headline with gradient orange text: "Your Path to **Homeownership Starts Here**"
+- Subtitle describing services
+- Two CTA buttons: "Apply Now" (orange) + "Learn More" (outline)
+- Feature pills: "Fast Pre-Approvals", "Competitive Rates", "Local Expertise"
+- Floating stat cards (loans funded, average rating) with NexGen float animation
+- Professional hero image
+- Stats bar: Loans Funded, Years Experience, Average Rating, SWFL Local Focus
+
+### 3. Services Overview
+- Section heading with orange accent label
+- Card grid (3-4 cards) for loan types: Conventional, FHA, VA, Refinance
+- Each card: icon, title, short description, "Learn More" link
+- Uses `.card-elevated` and `.card-hover` styles
+
+### 4. About / Why Choose Us
+- Split layout: content left, image/testimonial right
+- Headline: "Why NexGen Capital?"
+- Bullet benefits with checkmark icons (e.g., Licensed professionals, Fast closing, Personalized service, Transparent process)
+- Testimonial card with star rating, quote, and avatar
+
+### 5. Contact / Get Started Form
+- Two-column layout: form left, contact info right
+- Form fields: First Name, Last Name, Email, Phone, Loan Type (select), Message
+- Submit inserts into the `leads` table via Supabase anon policy (uses existing RLS)
+- Success toast on submission
+- Right column: phone, email, office address, business hours
+- Uses `.card-elevated` container with orange corner accent
+
+### 6. Footer
+- NexGen Capital branding
+- Quick links, legal links (Privacy, Terms)
+- NMLS disclaimer / licensing info
+- Social media icon links
+- Copyright
 
 ---
 
-## 7. Database Architecture (Supabase)
+## New Files
 
-All data lives in Supabase PostgreSQL with strict Row-Level Security:
-
-- **profiles** — User display info (linked to auth.users)
-- **user_roles** — Secure role assignments (admin / loan_officer / processor)
-- **leads** — Lead records with source, status, assignment
-- **contacts** — Contact records with type classification
-- **deals** — Deal records with loan details, stage, linked contact
-- **deal_stage_history** — Audit log of every stage change
-- **lead_sources** — Reference table for lead sources
+| File | Purpose |
+|---|---|
+| `src/pages/LandingPage.tsx` | Landing page composition (imports sections) |
+| `src/components/landing/Navbar.tsx` | Sticky top navigation |
+| `src/components/landing/HeroSection.tsx` | Hero with CTA, stats, floating cards |
+| `src/components/landing/ServicesSection.tsx` | Loan type cards grid |
+| `src/components/landing/WhyChooseUsSection.tsx` | Benefits + testimonial |
+| `src/components/landing/ContactFormSection.tsx` | Lead capture form + contact info |
+| `src/components/landing/Footer.tsx` | Site footer |
 
 ---
 
-## Build Order
+## Modified Files
 
-1. **Supabase setup** — Database tables, RLS policies, roles, and helper functions
-2. **Auth flow** — Sign up, login, role-based route protection
-3. **App shell** — Sidebar layout, navigation, dashboard skeleton
-4. **Leads module** — List, create, detail, assignment, public web form
-5. **Contacts module** — List, create, detail, lead conversion
-6. **Pipeline module** — Kanban board, deal detail, stage tracking
-7. **Settings** — Team management, profile
+| File | Change |
+|---|---|
+| `src/index.css` | Replace with NexGen theme (colors, utilities, animations) |
+| `tailwind.config.ts` | Add orange/charcoal/cream tokens, shadows, fonts, radius |
+| `src/App.tsx` | Add `/` route for LandingPage, move Dashboard to `/dashboard` |
+
+---
+
+## Technical Notes
+
+- The contact form submits to the existing `leads` table using the anon RLS policy (requires `first_name` and `last_name`, nullifies `assigned_to` and `created_by`)
+- No database changes needed
+- No new dependencies needed
+- All components are mobile-first, matching the 384px viewport the user is currently on
 
