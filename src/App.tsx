@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AppLayout from "@/components/AppLayout";
+import LandingPage from "@/pages/LandingPage";
 import Auth from "@/pages/Auth";
 import Dashboard from "@/pages/Dashboard";
 import Leads from "@/pages/Leads";
@@ -24,6 +25,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <Routes>
+            <Route path="/" element={<LandingPage />} />
             <Route path="/auth" element={<Auth />} />
             <Route
               element={
@@ -32,7 +34,7 @@ const App = () => (
                 </ProtectedRoute>
               }
             >
-              <Route path="/" element={<Dashboard />} />
+              <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/leads" element={<Leads />} />
               <Route path="/contacts" element={<Contacts />} />
               <Route path="/pipeline" element={<Pipeline />} />
