@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "Anon can create leads via web form" ON public.leads;
