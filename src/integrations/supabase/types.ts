@@ -164,45 +164,69 @@ export type Database = {
       }
       leads: {
         Row: {
+          annual_income: number | null
           assigned_to: string | null
           created_at: string
           created_by: string | null
+          credit_range: string | null
           email: string | null
+          employment_type: string | null
           first_name: string
           id: string
           last_name: string
+          loan_purpose: string | null
           notes: string | null
           phone: string | null
+          property_type: string | null
+          property_value: number | null
+          source: string | null
           source_id: string | null
           status: Database["public"]["Enums"]["lead_status"]
+          timeline: string | null
           updated_at: string
         }
         Insert: {
+          annual_income?: number | null
           assigned_to?: string | null
           created_at?: string
           created_by?: string | null
+          credit_range?: string | null
           email?: string | null
+          employment_type?: string | null
           first_name: string
           id?: string
           last_name: string
+          loan_purpose?: string | null
           notes?: string | null
           phone?: string | null
+          property_type?: string | null
+          property_value?: number | null
+          source?: string | null
           source_id?: string | null
           status?: Database["public"]["Enums"]["lead_status"]
+          timeline?: string | null
           updated_at?: string
         }
         Update: {
+          annual_income?: number | null
           assigned_to?: string | null
           created_at?: string
           created_by?: string | null
+          credit_range?: string | null
           email?: string | null
+          employment_type?: string | null
           first_name?: string
           id?: string
           last_name?: string
+          loan_purpose?: string | null
           notes?: string | null
           phone?: string | null
+          property_type?: string | null
+          property_value?: number | null
+          source?: string | null
           source_id?: string | null
           status?: Database["public"]["Enums"]["lead_status"]
+          timeline?: string | null
           updated_at?: string
         }
         Relationships: [
