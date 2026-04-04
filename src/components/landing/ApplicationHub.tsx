@@ -155,41 +155,45 @@ const ApplicationHub = ({ open, onClose, prefillPurpose }: ApplicationHubProps) 
 
   const handleSubmit = async () => {
     setSubmitting(true);
-    const { error } = await supabase.from("leads").insert({
-      first_name: data.first_name.trim(),
-      last_name: data.last_name.trim(),
-      email: data.email.trim() || null,
-      phone: data.phone.trim() || null,
-      notes: [
-        data.loan_purpose && `Loan Purpose: ${data.loan_purpose}`,
-        data.property_type && `Property Type: ${data.property_type}`,
-        data.property_value && `Property Value: $${data.property_value}`,
-        data.credit_range && `Credit Range: ${data.credit_range}`,
-        data.employment_type && `Employment: ${data.employment_type}`,
-        data.annual_income && `Annual Income: $${data.annual_income}`,
-        data.timeline && `Timeline: ${data.timeline}`,
-      ]
-        .filter(Boolean)
-        .join("\n"),
-      status: "new",
-      source: "application_hub" as any,
-      loan_purpose: data.loan_purpose as any,
-      property_type: data.property_type as any,
-      property_value: data.property_value ? Number(data.property_value) : null as any,
-      credit_range: data.credit_range as any,
-      employment_type: data.employment_type as any,
-      annual_income: data.annual_income ? Number(data.annual_income) : null as any,
-      timeline: data.timeline as any,
-    } as any);
+    try {
+      const res = await supabase.functions.invoke("submit-lead", {
+        body: {
+          first_name: data.first_name.trim(),
+          last_name: data.last_name.trim(),
+          email: data.email.trim() || null,
+          phone: data.phone.trim() || null,
+          loan_purpose: data.loan_purpose,
+          property_type: data.property_type,
+          property_value: data.property_value ? Number(data.property_value) : null,
+          credit_range: data.credit_range,
+          employment_type: data.employment_type,
+          annual_income: data.annual_income ? Number(data.annual_income) : null,
+          timeline: data.timeline,
+          source: "application_hub",
+          notes: [
+            data.loan_purpose && `Loan Purpose: ${data.loan_purpose}`,
+            data.property_type && `Property Type: ${data.property_type}`,
+            data.property_value && `Property Value: $${data.property_value}`,
+            data.credit_range && `Credit Range: ${data.credit_range}`,
+            data.employment_type && `Employment: ${data.employment_type}`,
+            data.annual_income && `Annual Income: $${data.annual_income}`,
+            data.timeline && `Timeline: ${data.timeline}`,
+          ].filter(Boolean).join("\n"),
+        },
+      });
 
-    setSubmitting(false);
+      setSubmitting(false);
 
-    if (error) {
+      if (res.error || res.data?.error) {
+        toast.error(res.data?.error || "Something went wrong. Please try again.");
+      } else {
+        localStorage.removeItem(STORAGE_KEY);
+        setSubmitted(true);
+        toast.success("Application submitted successfully!");
+      }
+    } catch {
+      setSubmitting(false);
       toast.error("Something went wrong. Please try again.");
-    } else {
-      localStorage.removeItem(STORAGE_KEY);
-      setSubmitted(true);
-      toast.success("Application submitted successfully!");
     }
   };
 
