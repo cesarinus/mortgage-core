@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
         "X-Connection-Api-Key": RESEND_API_KEY,
       },
       body: JSON.stringify({
-        from: "NexGen Capital <onboarding@resend.dev>",
+        from: "NexGen Capital <hello@ngcapital.net>",
         to: ["hello@ngcapital.net"],
         reply_to: sanitized.email,
         subject: `[Contact Form] ${sanitized.subject}`,
