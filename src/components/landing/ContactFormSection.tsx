@@ -163,6 +163,7 @@ const ContactFormSection = () => {
           </div>
         </div>
       </div>
+      <EmailContactSheet open={emailSheetOpen} onOpenChange={setEmailSheetOpen} />
     </section>
   );
 };
