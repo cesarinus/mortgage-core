@@ -120,14 +120,14 @@ const ContactFormSection = () => {
                   <Phone className="mt-0.5 h-5 w-5 text-primary" />
                   <div>
                     <p className="text-sm font-medium">Phone</p>
-                    <p className="text-sm text-muted-foreground">(239) 555-0100</p>
+                    <p className="text-sm text-muted-foreground">(239) 645-4580</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <Mail className="mt-0.5 h-5 w-5 text-primary" />
                   <div>
                     <p className="text-sm font-medium">Email</p>
-                    <p className="text-sm text-muted-foreground">info@nexgencapital.com</p>
+                    <p className="text-sm text-muted-foreground">hello@ngcapital.net</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
