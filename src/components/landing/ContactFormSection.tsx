@@ -11,6 +11,7 @@ import { EmailContactSheet } from "./EmailContactSheet";
 const ContactFormSection = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [emailSheetOpen, setEmailSheetOpen] = useState(false);
   const [form, setForm] = useState({
     first_name: "",
     last_name: "",
