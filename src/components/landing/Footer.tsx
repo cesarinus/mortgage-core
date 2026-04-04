@@ -43,7 +43,7 @@ const Footer = () => {
           <div>
             <h4 className="mb-3 font-display text-sm font-semibold uppercase tracking-wider opacity-50">Licensing</h4>
             <p className="text-xs leading-relaxed opacity-50">
-              NexGen Capital is a licensed mortgage lender. NMLS #XXXXXX. Equal Housing Lender. All loans subject to credit approval. Rates and terms subject to change.
+              NexGen Capital is a licensed mortgage lender. NMLS 1766649. Equal Housing Lender. All loans subject to credit approval. Rates and terms subject to change.
             </p>
           </div>
         </div>

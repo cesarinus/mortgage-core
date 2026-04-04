@@ -134,7 +134,7 @@ const ContactFormSection = () => {
                   <MapPin className="mt-0.5 h-5 w-5 text-primary" />
                   <div>
                     <p className="text-sm font-medium">Office</p>
-                    <p className="text-sm text-muted-foreground">Fort Myers, FL</p>
+                    <p className="text-sm text-muted-foreground">Naples, FL</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
