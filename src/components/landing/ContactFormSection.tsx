@@ -6,10 +6,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Phone, Mail, MapPin, Clock, Send } from "lucide-react";
+import { EmailContactSheet } from "./EmailContactSheet";
 
 const ContactFormSection = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [emailSheetOpen, setEmailSheetOpen] = useState(false);
   const [form, setForm] = useState({
     first_name: "",
     last_name: "",
@@ -134,7 +136,12 @@ const ContactFormSection = () => {
                   <Mail className="mt-0.5 h-5 w-5 text-primary" />
                   <div>
                     <p className="text-sm font-medium">Email</p>
-                    <p className="text-sm text-muted-foreground">hello@ngcapital.net</p>
+                    <button
+                      onClick={() => setEmailSheetOpen(true)}
+                      className="text-sm text-primary hover:underline underline-offset-2 cursor-pointer text-left"
+                    >
+                      hello@ngcapital.net
+                    </button>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
@@ -156,6 +163,7 @@ const ContactFormSection = () => {
           </div>
         </div>
       </div>
+      <EmailContactSheet open={emailSheetOpen} onOpenChange={setEmailSheetOpen} />
     </section>
   );
 };
