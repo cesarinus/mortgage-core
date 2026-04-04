@@ -1,12 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Shield, TrendingUp, MapPin } from "lucide-react";
 
-const HeroSection = () => {
-  const scrollToContact = () => {
-    const el = document.getElementById("contact");
-    if (el) el.scrollIntoView({ behavior: "smooth" });
-  };
+interface HeroSectionProps {
+  onApplyNow?: () => void;
+}
 
+const HeroSection = ({ onApplyNow }: HeroSectionProps) => {
   const scrollToServices = () => {
     const el = document.getElementById("services");
     if (el) el.scrollIntoView({ behavior: "smooth" });
@@ -42,7 +41,7 @@ const HeroSection = () => {
 
           {/* CTA buttons */}
           <div className="animate-fade-up mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center" style={{ animationDelay: "0.3s" }}>
-            <Button size="lg" className="btn-shadow w-full sm:w-auto" onClick={scrollToContact}>
+            <Button size="lg" className="btn-shadow w-full sm:w-auto" onClick={onApplyNow}>
               Apply Now <ArrowRight className="ml-1 h-4 w-4" />
             </Button>
             <Button size="lg" variant="outline" className="w-full sm:w-auto" onClick={scrollToServices}>

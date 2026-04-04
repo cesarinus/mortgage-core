@@ -3,7 +3,11 @@ import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 
-const Navbar = () => {
+interface NavbarProps {
+  onGetStarted?: () => void;
+}
+
+const Navbar = ({ onGetStarted }: NavbarProps) => {
   const [isOpen, setIsOpen] = useState(false);
 
   const scrollTo = (id: string) => {
@@ -12,8 +16,15 @@ const Navbar = () => {
     if (el) el.scrollIntoView({ behavior: "smooth" });
   };
 
+  const handleGetStarted = () => {
+    setIsOpen(false);
+    if (onGetStarted) {
+      onGetStarted();
+    }
+  };
+
   return (
-    <nav className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">
+    <nav className="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-md">
       <div className="container mx-auto flex items-center justify-between px-4 py-3 md:px-6">
         <Link to="/" className="flex items-center gap-2">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary font-display text-lg font-bold text-primary-foreground">
@@ -35,9 +46,7 @@ const Navbar = () => {
           <button onClick={() => scrollTo("contact")} className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
             Contact
           </button>
-          <Link to="/auth">
-            <Button className="btn-shadow">Get Started</Button>
-          </Link>
+          <Button className="btn-shadow" onClick={handleGetStarted}>Get Started</Button>
         </div>
 
         {/* Mobile hamburger */}
@@ -59,9 +68,7 @@ const Navbar = () => {
             <button onClick={() => scrollTo("contact")} className="rounded-lg px-3 py-2 text-left text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground">
               Contact
             </button>
-            <Link to="/auth" onClick={() => setIsOpen(false)}>
-              <Button className="btn-shadow w-full">Get Started</Button>
-            </Link>
+            <Button className="btn-shadow w-full" onClick={handleGetStarted}>Get Started</Button>
           </div>
         </div>
       )}
