@@ -27,22 +27,29 @@ const ContactFormSection = () => {
     }
 
     setLoading(true);
-    const { error } = await supabase.from("leads").insert({
-      first_name: form.first_name,
-      last_name: form.last_name,
-      email: form.email || null,
-      phone: form.phone || null,
-      notes: [form.loan_type && `Loan Type: ${form.loan_type}`, form.message].filter(Boolean).join("\n"),
-      status: "new",
-    });
+    try {
+      const res = await supabase.functions.invoke("submit-lead", {
+        body: {
+          first_name: form.first_name,
+          last_name: form.last_name,
+          email: form.email || null,
+          phone: form.phone || null,
+          notes: [form.loan_type && `Loan Type: ${form.loan_type}`, form.message].filter(Boolean).join("\n"),
+          source: "contact_form",
+        },
+      });
 
-    setLoading(false);
+      setLoading(false);
 
-    if (error) {
+      if (res.error || res.data?.error) {
+        toast({ title: res.data?.error || "Something went wrong. Please try again.", variant: "destructive" });
+      } else {
+        toast({ title: "Thank you! We'll be in touch soon." });
+        setForm({ first_name: "", last_name: "", email: "", phone: "", loan_type: "", message: "" });
+      }
+    } catch {
+      setLoading(false);
       toast({ title: "Something went wrong. Please try again.", variant: "destructive" });
-    } else {
-      toast({ title: "Thank you! We'll be in touch soon." });
-      setForm({ first_name: "", last_name: "", email: "", phone: "", loan_type: "", message: "" });
     }
   };
 
