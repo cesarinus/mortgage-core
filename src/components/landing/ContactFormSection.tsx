@@ -136,7 +136,12 @@ const ContactFormSection = () => {
                   <Mail className="mt-0.5 h-5 w-5 text-primary" />
                   <div>
                     <p className="text-sm font-medium">Email</p>
-                    <p className="text-sm text-muted-foreground">hello@ngcapital.net</p>
+                    <button
+                      onClick={() => setEmailSheetOpen(true)}
+                      className="text-sm text-primary hover:underline underline-offset-2 cursor-pointer text-left"
+                    >
+                      hello@ngcapital.net
+                    </button>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
