@@ -42,7 +42,7 @@ const Footer = () => {
             <ul className="space-y-2 text-sm opacity-70">
               <li><button onClick={() => setOpenDoc("privacy")} className="hover:opacity-100 underline-offset-2 hover:underline">Privacy Policy</button></li>
               <li><button onClick={() => setOpenDoc("terms")} className="hover:opacity-100 underline-offset-2 hover:underline">Terms of Service</button></li>
-              <li><span className="cursor-default">NMLS Consumer Access</span></li>
+              <li><a href="https://nmlsconsumeraccess.org/EntityDetails.aspx/COMPANY/1766649" target="_blank" rel="noopener noreferrer" className="hover:opacity-100 underline-offset-2 hover:underline">NMLS Consumer Access</a></li>
             </ul>
           </div>
 
