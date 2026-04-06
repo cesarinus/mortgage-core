@@ -3,6 +3,7 @@ WORKDIR /app
 COPY package.json bun.lock ./
 RUN npm install
 COPY . .
+RUN rm -f vite.config.ts.timestamp-*
 ARG VITE_SUPABASE_URL
 ARG VITE_SUPABASE_PUBLISHABLE_KEY
 ARG VITE_SUPABASE_PROJECT_ID
