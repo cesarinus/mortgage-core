@@ -52,7 +52,7 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         from: "NexGen Capital <onboarding@resend.dev>",
-        to: ["hello@ngcapital.net"],
+        to: ["avantifundings@gmail.com"],
         reply_to: sanitized.email,
         subject: `[Contact Form] ${sanitized.subject}`,
         html: `
