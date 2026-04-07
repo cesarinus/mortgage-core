@@ -1,7 +1,7 @@
 FROM node:20-alpine AS build
 WORKDIR /app
-COPY package.json bun.lock ./
-RUN npm install
+COPY package.json package-lock.json ./
+RUN npm ci
 COPY . .
 RUN rm -f vite.config.ts.timestamp-*
 ARG VITE_SUPABASE_URL
