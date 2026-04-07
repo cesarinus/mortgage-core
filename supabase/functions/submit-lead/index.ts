@@ -1,5 +1,9 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.95.3";
-import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.3/cors";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_RE = /^[\d\s\-()+ ]{7,20}$/;
@@ -12,7 +16,6 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json();
 
-    // --- Validate required fields ---
     const first_name = typeof body.first_name === "string" ? body.first_name.trim().slice(0, 100) : "";
     const last_name = typeof body.last_name === "string" ? body.last_name.trim().slice(0, 100) : "";
 
@@ -23,7 +26,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // --- Validate optional fields ---
     let email: string | null = null;
     if (body.email) {
       const e = String(body.email).trim().slice(0, 255);
@@ -70,10 +72,9 @@ Deno.serve(async (req) => {
     const notes = sanitizeText(body.notes, 2000);
     const source = sanitizeText(body.source, 50) || "website";
 
-    // --- Rate limiting by IP (simple in-memory, resets on cold start) ---
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
     const now = Date.now();
-    const windowMs = 60_000; // 1 min
+    const windowMs = 60_000;
     const maxPerWindow = 5;
     
     if (!globalThis.__rateLimitMap) {
@@ -90,7 +91,6 @@ Deno.serve(async (req) => {
     recent.push(now);
     globalThis.__rateLimitMap.set(ip, recent);
 
-    // --- Insert into DB using service role ---
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!

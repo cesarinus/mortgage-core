@@ -1,4 +1,7 @@
-import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.3/cors";
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/resend";
 
@@ -27,7 +30,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Basic validation
     const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRe.test(String(email).trim())) {
       return new Response(JSON.stringify({ error: "Invalid email address" }), {
