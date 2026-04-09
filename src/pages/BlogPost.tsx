@@ -219,6 +219,7 @@ const BlogPost = () => {
               showTags={true}
               showRecent={true}
               showCategories={true}
+              onCTAClick={trackCTA}
             />
           </div>
         </div>

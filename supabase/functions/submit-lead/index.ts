@@ -71,6 +71,8 @@ Deno.serve(async (req) => {
     const timeline = sanitizeText(body.timeline, 100);
     const notes = sanitizeText(body.notes, 2000);
     const source = sanitizeText(body.source, 50) || "website";
+    const lead_score = sanitizeNumber(body.lead_score, 0, 10000) || 0;
+    const blog_session_id = sanitizeText(body.blog_session_id, 64);
 
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
     const now = Date.now();
@@ -96,7 +98,7 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    const { error } = await supabase.from("leads").insert({
+    const { data: leadData, error } = await supabase.from("leads").insert({
       first_name,
       last_name,
       email,
@@ -110,8 +112,25 @@ Deno.serve(async (req) => {
       timeline,
       notes,
       source,
+      lead_score,
       status: "new",
-    });
+    }).select("id").single();
+
+    if (error) {
+      console.error("DB insert error:", error);
+      return new Response(JSON.stringify({ error: "Failed to submit. Please try again." }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Link blog session to lead if session_id provided
+    if (blog_session_id && leadData?.id) {
+      await supabase
+        .from("blog_sessions")
+        .update({ lead_id: leadData.id })
+        .eq("session_id", blog_session_id);
+    }
 
     if (error) {
       console.error("DB insert error:", error);
