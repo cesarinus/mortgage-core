@@ -1,16 +1,20 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
 import BlogSidebar from "@/components/blog/BlogSidebar";
 import RelatedPosts from "@/components/blog/RelatedPosts";
+import DynamicBlogCTA from "@/components/blog/DynamicBlogCTA";
+import StickyFloatingCTA from "@/components/blog/StickyFloatingCTA";
+import ExitIntentModal from "@/components/blog/ExitIntentModal";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CalendarDays, ArrowLeft, User } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 import { injectInternalLinks } from "@/lib/internalLinking";
 import { useBlogTracking } from "@/hooks/useBlogTracking";
+import { useBlogVariants } from "@/hooks/useBlogVariants";
 
 interface Post {
   id: string;
@@ -37,22 +41,8 @@ interface LinkablePost {
   category: string | null;
 }
 
-interface RelatedPost {
-  id: string;
-  title: string;
-  slug: string;
-  excerpt: string | null;
-  category: string | null;
-  created_at: string;
-}
-
-const stripExternalModules = (html: string): string => {
-  // Remove any data-module divs (competitor/external business embeds)
-  return html.replace(
-    /<div\s+data-module="[^"]*"[^>]*><\/div>/g,
-    ""
-  );
-};
+const stripExternalModules = (html: string): string =>
+  html.replace(/<div\s+data-module="[^"]*"[^>]*><\/div>/g, "");
 
 const BlogPost = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -61,6 +51,24 @@ const BlogPost = () => {
   const [loading, setLoading] = useState(true);
 
   const { trackCTA } = useBlogTracking({ postId: post?.id, enabled: !!post });
+  const { variant, getEffectiveVariant, adjustForLowScroll, trackImpression, trackClick } =
+    useBlogVariants(post?.id);
+
+  // Track impression once variant is assigned
+  useEffect(() => {
+    if (post && variant.id) trackImpression();
+  }, [post, variant.id, trackImpression]);
+
+  // Monitor scroll for dynamic adjustment
+  useEffect(() => {
+    if (!post) return;
+    const handleScroll = () => {
+      const pct = (window.scrollY / (document.documentElement.scrollHeight - window.innerHeight)) * 100;
+      adjustForLowScroll(pct);
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [post, adjustForLowScroll]);
 
   useEffect(() => {
     const fetchPost = async () => {
@@ -74,20 +82,25 @@ const BlogPost = () => {
 
       if (!error && data) {
         setPost(data as Post);
-
-        // Fetch other posts for internal linking
         const { data: others } = await supabase
           .from("blog_posts")
           .select("id, title, slug, keywords, tags, category")
           .eq("status", "published")
           .neq("id", data.id);
-
         if (others) setLinkablePosts(others as LinkablePost[]);
       }
       setLoading(false);
     };
     fetchPost();
   }, [slug]);
+
+  const handleCTAClick = useCallback(
+    (ctaName: string) => {
+      trackCTA(ctaName);
+      trackClick();
+    },
+    [trackCTA, trackClick]
+  );
 
   if (loading) {
     return (
@@ -117,8 +130,13 @@ const BlogPost = () => {
     );
   }
 
+  const effectiveVariant = getEffectiveVariant();
   const cleanContent = stripExternalModules(post.content_html);
   const enrichedContent = injectInternalLinks(cleanContent, linkablePosts, 5);
+
+  // Split content for middle CTA injection
+  const paragraphs = enrichedContent.split(/<\/p>/);
+  const midPoint = Math.floor(paragraphs.length / 2);
 
   return (
     <div className="min-h-screen bg-background">
@@ -131,7 +149,6 @@ const BlogPost = () => {
       <Navbar />
 
       <div className="container mx-auto max-w-6xl px-4 py-8 md:py-12">
-        {/* Back link */}
         <Link
           to="/blog"
           className="mb-6 inline-flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
@@ -139,11 +156,15 @@ const BlogPost = () => {
           <ArrowLeft className="h-4 w-4" /> Back to Blog
         </Link>
 
-        {/* 2-column layout */}
         <div className="mt-4 flex flex-col gap-10 lg:flex-row">
-          {/* Main content */}
           <article className="min-w-0 flex-1">
-            {/* Header */}
+            {/* Top CTA */}
+            {effectiveVariant.cta_position === "top" && (
+              <div className="mb-8">
+                <DynamicBlogCTA variant={effectiveVariant} onCTAClick={handleCTAClick} onVariantClick={trackClick} />
+              </div>
+            )}
+
             <header className="mb-8">
               {post.category && (
                 <Badge variant="secondary" className="mb-3">
@@ -169,25 +190,41 @@ const BlogPost = () => {
               </div>
             </header>
 
-            {/* Featured Image */}
             {post.featured_image && (
               <div className="mb-10 overflow-hidden rounded-2xl">
-                <img
-                  src={post.featured_image}
-                  alt={post.title}
-                  className="w-full object-cover"
-                  loading="lazy"
-                />
+                <img src={post.featured_image} alt={post.title} className="w-full object-cover" loading="lazy" />
               </div>
             )}
 
-            {/* Article content — clean, no external modules */}
-            <div
-              className="prose prose-lg max-w-none prose-p:my-4 prose-headings:mt-8 prose-headings:mb-4"
-              dangerouslySetInnerHTML={{ __html: enrichedContent }}
-            />
+            {/* Article content with optional middle CTA */}
+            {effectiveVariant.cta_position === "middle" && paragraphs.length > 4 ? (
+              <>
+                <div
+                  className="prose prose-lg max-w-none prose-p:my-4 prose-headings:mt-8 prose-headings:mb-4"
+                  dangerouslySetInnerHTML={{ __html: paragraphs.slice(0, midPoint).join("</p>") + "</p>" }}
+                />
+                <div className="my-8">
+                  <DynamicBlogCTA variant={effectiveVariant} onCTAClick={handleCTAClick} onVariantClick={trackClick} />
+                </div>
+                <div
+                  className="prose prose-lg max-w-none prose-p:my-4 prose-headings:mt-8 prose-headings:mb-4"
+                  dangerouslySetInnerHTML={{ __html: paragraphs.slice(midPoint).join("</p>") }}
+                />
+              </>
+            ) : (
+              <div
+                className="prose prose-lg max-w-none prose-p:my-4 prose-headings:mt-8 prose-headings:mb-4"
+                dangerouslySetInnerHTML={{ __html: enrichedContent }}
+              />
+            )}
 
-            {/* Tags inline */}
+            {/* Bottom CTA */}
+            {effectiveVariant.cta_position === "bottom" && (
+              <div className="mt-10">
+                <DynamicBlogCTA variant={effectiveVariant} onCTAClick={handleCTAClick} onVariantClick={trackClick} />
+              </div>
+            )}
+
             {post.tags && post.tags.length > 0 && (
               <div className="mt-10 flex flex-wrap gap-2 border-t border-border pt-6">
                 {post.tags.map((tag) => (
@@ -200,8 +237,6 @@ const BlogPost = () => {
               </div>
             )}
 
-
-            {/* Related Posts — AI-powered by keyword similarity */}
             <RelatedPosts
               postId={post.id}
               keywords={post.keywords || []}
@@ -210,7 +245,6 @@ const BlogPost = () => {
             />
           </article>
 
-          {/* Sidebar */}
           <div className="w-full lg:w-[300px] lg:flex-shrink-0">
             <BlogSidebar
               tags={post.tags || []}
@@ -219,11 +253,21 @@ const BlogPost = () => {
               showTags={true}
               showRecent={true}
               showCategories={true}
-              onCTAClick={trackCTA}
+              onCTAClick={handleCTAClick}
+              variant={effectiveVariant}
+              onVariantClick={trackClick}
             />
           </div>
         </div>
       </div>
+
+      {/* Sticky floating CTA */}
+      {effectiveVariant.cta_position === "sticky" && (
+        <StickyFloatingCTA ctaText={effectiveVariant.cta_text} onCTAClick={handleCTAClick} onVariantClick={trackClick} />
+      )}
+
+      {/* Exit intent modal */}
+      <ExitIntentModal enabled={true} onCTAClick={handleCTAClick} />
 
       <Footer />
     </div>

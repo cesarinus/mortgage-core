@@ -55,7 +55,7 @@ async function sendEvent(
       },
     });
   } catch {
-    // Silent fail — don't impact UX
+    // Silent fail
   }
 }
 
@@ -75,12 +75,10 @@ export function useBlogTracking({ postId, enabled = true }: UseBlogTrackingOptio
     firedEvents.current.clear();
     startTime.current = Date.now();
 
-    // Track page view
     const isNewVisit = addVisitedPost(postId);
     sendEvent("page_view", postId);
     scoreRef.current = addScore(5);
 
-    // Multi-visit bonus (3+ unique posts)
     if (isNewVisit) {
       const visited = getVisitedPosts();
       if (visited.length >= 3 && !firedEvents.current.has("multi_visit")) {
@@ -130,6 +128,21 @@ export function useBlogTracking({ postId, enabled = true }: UseBlogTrackingOptio
     }, 120_000);
 
     return () => clearTimeout(timer);
+  }, [postId, enabled]);
+
+  // Exit intent tracking
+  useEffect(() => {
+    if (!enabled || !postId) return;
+
+    const handleMouseLeave = (e: MouseEvent) => {
+      if (e.clientY <= 5 && !firedEvents.current.has("exit_intent")) {
+        firedEvents.current.add("exit_intent");
+        sendEvent("exit_intent_triggered", postId);
+      }
+    };
+
+    document.addEventListener("mouseleave", handleMouseLeave);
+    return () => document.removeEventListener("mouseleave", handleMouseLeave);
   }, [postId, enabled]);
 
   // CTA click tracker
