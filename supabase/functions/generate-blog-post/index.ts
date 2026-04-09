@@ -100,7 +100,8 @@ Return a valid JSON object with these exact keys:
   "meta_description": "Meta description under 160 chars",
   "excerpt": "2-3 sentence summary",
   "content_html": "Full article as clean HTML using <h2>, <h3>, <p>, <ul>, <li> tags. Include a <div data-module=\\"recommended-businesses\\" data-category=\\"${category || "mortgage"}\\"></div> placeholder after the 2nd section and at the end before the CTA.",
-  "tags": ["tag1", "tag2", "tag3"]
+  "tags": ["tag1", "tag2", "tag3"],
+  "keywords": ["keyword1", "keyword phrase 2", "keyword3", ...] // 8-15 SEO keywords/keyphrases for internal linking
 }
 
 DO NOT include markdown, emojis, or AI disclaimers in the content.`;
@@ -134,6 +135,7 @@ DO NOT include markdown, emojis, or AI disclaimers in the content.`;
                     excerpt: { type: "string" },
                     content_html: { type: "string" },
                     tags: { type: "array", items: { type: "string" } },
+                    keywords: { type: "array", items: { type: "string" }, description: "8-15 SEO keywords/keyphrases extracted from the article for internal linking" },
                   },
                   required: [
                     "title",
@@ -142,6 +144,7 @@ DO NOT include markdown, emojis, or AI disclaimers in the content.`;
                     "excerpt",
                     "content_html",
                     "tags",
+                    "keywords",
                   ],
                   additionalProperties: false,
                 },
@@ -207,6 +210,7 @@ DO NOT include markdown, emojis, or AI disclaimers in the content.`;
         excerpt: post.excerpt,
         category: category || "General",
         tags: post.tags || [],
+        keywords: post.keywords || [],
         meta_title: post.meta_title,
         meta_description: post.meta_description,
         status: postStatus || "draft",

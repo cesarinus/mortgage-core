@@ -3,12 +3,13 @@ import { useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
-
 import BlogSidebar from "@/components/blog/BlogSidebar";
+import RelatedPosts from "@/components/blog/RelatedPosts";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CalendarDays, ArrowLeft, User } from "lucide-react";
 import { Helmet } from "react-helmet-async";
+import { injectInternalLinks } from "@/lib/internalLinking";
 
 interface Post {
   id: string;
@@ -19,10 +20,20 @@ interface Post {
   featured_image: string | null;
   category: string | null;
   tags: string[];
+  keywords: string[];
   author: string;
   meta_title: string | null;
   meta_description: string | null;
   created_at: string;
+}
+
+interface LinkablePost {
+  id: string;
+  title: string;
+  slug: string;
+  keywords: string[] | null;
+  tags: string[] | null;
+  category: string | null;
 }
 
 interface RelatedPost {
@@ -45,7 +56,7 @@ const stripExternalModules = (html: string): string => {
 const BlogPost = () => {
   const { slug } = useParams<{ slug: string }>();
   const [post, setPost] = useState<Post | null>(null);
-  const [related, setRelated] = useState<RelatedPost[]>([]);
+  const [linkablePosts, setLinkablePosts] = useState<LinkablePost[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -61,15 +72,14 @@ const BlogPost = () => {
       if (!error && data) {
         setPost(data as Post);
 
-        const { data: relatedData } = await supabase
+        // Fetch other posts for internal linking
+        const { data: others } = await supabase
           .from("blog_posts")
-          .select("id, title, slug, excerpt, category, created_at")
+          .select("id, title, slug, keywords, tags, category")
           .eq("status", "published")
-          .neq("id", data.id)
-          .limit(3)
-          .order("created_at", { ascending: false });
+          .neq("id", data.id);
 
-        if (relatedData) setRelated(relatedData);
+        if (others) setLinkablePosts(others as LinkablePost[]);
       }
       setLoading(false);
     };
@@ -105,6 +115,7 @@ const BlogPost = () => {
   }
 
   const cleanContent = stripExternalModules(post.content_html);
+  const enrichedContent = injectInternalLinks(cleanContent, linkablePosts, 5);
 
   return (
     <div className="min-h-screen bg-background">
@@ -170,7 +181,7 @@ const BlogPost = () => {
             {/* Article content — clean, no external modules */}
             <div
               className="prose prose-lg max-w-none prose-p:my-4 prose-headings:mt-8 prose-headings:mb-4"
-              dangerouslySetInnerHTML={{ __html: cleanContent }}
+              dangerouslySetInnerHTML={{ __html: enrichedContent }}
             />
 
             {/* Tags inline */}
@@ -187,35 +198,13 @@ const BlogPost = () => {
             )}
 
 
-            {/* Related Posts */}
-            {related.length > 0 && (
-              <section className="mt-16">
-                <h2 className="mb-6 font-display text-2xl font-bold text-foreground">
-                  Related Articles
-                </h2>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {related.map((r) => (
-                    <Link
-                      key={r.id}
-                      to={`/blog/${r.slug}`}
-                      className="group rounded-xl border border-border bg-card p-5 transition-shadow hover:shadow-md"
-                    >
-                      {r.category && (
-                        <Badge variant="secondary" className="mb-2 text-xs">
-                          {r.category}
-                        </Badge>
-                      )}
-                      <h3 className="font-display text-base font-semibold text-foreground transition-colors group-hover:text-primary">
-                        {r.title}
-                      </h3>
-                      <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-                        {r.excerpt}
-                      </p>
-                    </Link>
-                  ))}
-                </div>
-              </section>
-            )}
+            {/* Related Posts — AI-powered by keyword similarity */}
+            <RelatedPosts
+              postId={post.id}
+              keywords={post.keywords || []}
+              tags={post.tags || []}
+              category={post.category}
+            />
           </article>
 
           {/* Sidebar */}
