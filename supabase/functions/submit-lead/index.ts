@@ -73,6 +73,14 @@ Deno.serve(async (req) => {
     const source = sanitizeText(body.source, 50) || "website";
     const lead_score = sanitizeNumber(body.lead_score, 0, 10000) || 0;
     const blog_session_id = sanitizeText(body.blog_session_id, 64);
+    let variant_shown: Record<string, unknown> | null = null;
+    if (body.variant_shown && typeof body.variant_shown === "object") {
+      variant_shown = {
+        cta_position: sanitizeText(body.variant_shown.cta_position, 20),
+        cta_text: sanitizeText(body.variant_shown.cta_text, 100),
+        sidebar_module: sanitizeText(body.variant_shown.sidebar_module, 50),
+      };
+    }
 
     const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
     const now = Date.now();
@@ -113,6 +121,7 @@ Deno.serve(async (req) => {
       notes,
       source,
       lead_score,
+      variant_shown,
       status: "new",
     }).select("id").single();
 
