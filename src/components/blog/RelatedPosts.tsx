@@ -37,7 +37,8 @@ const RelatedPosts = ({ postId, keywords, tags, category, limit = 3 }: RelatedPo
       const scored = scoreRelatedPosts(keywords, tags, category, data as any);
 
       if (scored.length > 0) {
-        setPosts(scored.slice(0, limit));
+        const relatedIds = scored.slice(0, limit).map((s) => s.id);
+        setPosts(data.filter((d) => relatedIds.includes(d.id)).slice(0, limit) as RelatedPost[]);
       } else {
         // Fallback: recent posts
         const sorted = [...data].sort(
