@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    if (!VALID_EVENTS[event_type]) {
+    if (!(event_type in VALID_EVENTS)) {
       return new Response(JSON.stringify({ error: "Invalid event_type" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
