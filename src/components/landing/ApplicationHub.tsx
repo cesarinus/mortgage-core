@@ -173,6 +173,12 @@ const ApplicationHub = ({ open, onClose, prefillPurpose }: ApplicationHubProps) 
           source: "application_hub",
           lead_score: getScore(),
           blog_session_id: getSessionId(),
+          variant_shown: (() => {
+            try {
+              const v = localStorage.getItem("ng_blog_variant");
+              return v ? JSON.parse(v) : null;
+            } catch { return null; }
+          })(),
           notes: [
             data.loan_purpose && `Loan Purpose: ${data.loan_purpose}`,
             data.property_type && `Property Type: ${data.property_type}`,

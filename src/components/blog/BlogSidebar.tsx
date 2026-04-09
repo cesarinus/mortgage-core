@@ -1,7 +1,11 @@
 import TagModule from "./TagModule";
 import RecentPosts from "./RecentPosts";
 import CategoryModule from "./CategoryModule";
-import BlogCTA from "./BlogCTA";
+import DynamicBlogCTA from "./DynamicBlogCTA";
+import TestimonialCTA from "./TestimonialCTA";
+import UrgencyCTA from "./UrgencyCTA";
+import type { BlogVariant } from "@/hooks/useBlogVariants";
+import { DEFAULT_VARIANT } from "@/hooks/useBlogVariants";
 
 interface BlogSidebarProps {
   tags?: string[];
@@ -11,6 +15,8 @@ interface BlogSidebarProps {
   showRecent?: boolean;
   showCategories?: boolean;
   onCTAClick?: (ctaName: string) => void;
+  variant?: BlogVariant;
+  onVariantClick?: () => void;
 }
 
 const BlogSidebar = ({
@@ -21,13 +27,26 @@ const BlogSidebar = ({
   showRecent = true,
   showCategories = true,
   onCTAClick,
+  variant = DEFAULT_VARIANT,
+  onVariantClick,
 }: BlogSidebarProps) => {
+  const renderSidebarModule = () => {
+    switch (variant.sidebar_module) {
+      case "testimonial":
+        return <TestimonialCTA onCTAClick={onCTAClick} onVariantClick={onVariantClick} />;
+      case "urgency":
+        return <UrgencyCTA onCTAClick={onCTAClick} onVariantClick={onVariantClick} />;
+      default:
+        return <DynamicBlogCTA variant={variant} onCTAClick={onCTAClick} onVariantClick={onVariantClick} />;
+    }
+  };
+
   return (
     <aside className="space-y-6 lg:sticky lg:top-8">
       {showTags && <TagModule tags={tags} />}
+      {renderSidebarModule()}
       {showRecent && <RecentPosts currentPostId={currentPostId} limit={5} />}
       {showCategories && <CategoryModule currentCategory={currentCategory} />}
-      <BlogCTA onCTAClick={onCTAClick} />
     </aside>
   );
 };

@@ -12,9 +12,11 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Sparkles, Trash2, Eye, Pencil } from "lucide-react";
+import { Loader2, Sparkles, Trash2, Eye, Pencil, BarChart3 } from "lucide-react";
 import { Link } from "react-router-dom";
+import BlogOptimization from "@/components/blog/BlogOptimization";
 
 const CATEGORIES = [
   "Real Estate",
@@ -133,6 +135,21 @@ const BlogAdmin = () => {
         <h1 className="text-2xl font-bold text-foreground">Blog Manager</h1>
         <p className="text-muted-foreground">Generate AI-powered blog content</p>
       </div>
+
+      <Tabs defaultValue="content" className="w-full">
+        <TabsList>
+          <TabsTrigger value="content">Content</TabsTrigger>
+          <TabsTrigger value="optimization" className="gap-1.5">
+            <BarChart3 className="h-3.5 w-3.5" />
+            Optimization
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="optimization" className="mt-6">
+          <BlogOptimization />
+        </TabsContent>
+
+        <TabsContent value="content" className="mt-6 space-y-8">
 
       {/* Generator */}
       <Card>
@@ -264,6 +281,8 @@ const BlogAdmin = () => {
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
