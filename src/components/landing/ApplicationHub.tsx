@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { getScore, getSessionId } from "@/hooks/useBlogTracking";
 import { X, ArrowLeft, ArrowRight, Check, Shield, Clock, Lock, Home, Building2, Users, DollarSign, Phone, Mail, Calendar, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -170,6 +171,8 @@ const ApplicationHub = ({ open, onClose, prefillPurpose }: ApplicationHubProps) 
           annual_income: data.annual_income ? Number(data.annual_income) : null,
           timeline: data.timeline,
           source: "application_hub",
+          lead_score: getScore(),
+          blog_session_id: getSessionId(),
           notes: [
             data.loan_purpose && `Loan Purpose: ${data.loan_purpose}`,
             data.property_type && `Property Type: ${data.property_type}`,

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { getScore, getSessionId } from "@/hooks/useBlogTracking";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -38,6 +39,8 @@ const ContactFormSection = () => {
           phone: form.phone || null,
           notes: [form.loan_type && `Loan Type: ${form.loan_type}`, form.message].filter(Boolean).join("\n"),
           source: "contact_form",
+          lead_score: getScore(),
+          blog_session_id: getSessionId(),
         },
       });
 
