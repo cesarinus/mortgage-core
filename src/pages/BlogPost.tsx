@@ -3,12 +3,13 @@ import { useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
-
 import BlogSidebar from "@/components/blog/BlogSidebar";
+import RelatedPosts from "@/components/blog/RelatedPosts";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CalendarDays, ArrowLeft, User } from "lucide-react";
 import { Helmet } from "react-helmet-async";
+import { injectInternalLinks } from "@/lib/internalLinking";
 
 interface Post {
   id: string;
@@ -19,10 +20,20 @@ interface Post {
   featured_image: string | null;
   category: string | null;
   tags: string[];
+  keywords: string[];
   author: string;
   meta_title: string | null;
   meta_description: string | null;
   created_at: string;
+}
+
+interface LinkablePost {
+  id: string;
+  title: string;
+  slug: string;
+  keywords: string[] | null;
+  tags: string[] | null;
+  category: string | null;
 }
 
 interface RelatedPost {
