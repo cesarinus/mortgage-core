@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      blog_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          metadata: Json | null
+          points: number
+          post_id: string | null
+          session_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          metadata?: Json | null
+          points?: number
+          post_id?: string | null
+          session_id: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          metadata?: Json | null
+          points?: number
+          post_id?: string | null
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blog_events_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "blog_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       blog_posts: {
         Row: {
           author: string
@@ -70,6 +108,44 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      blog_sessions: {
+        Row: {
+          created_at: string
+          id: string
+          lead_id: string | null
+          posts_viewed: number
+          session_id: string
+          total_score: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lead_id?: string | null
+          posts_viewed?: number
+          session_id: string
+          total_score?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lead_id?: string | null
+          posts_viewed?: number
+          session_id?: string
+          total_score?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blog_sessions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       contacts: {
         Row: {
@@ -231,6 +307,7 @@ export type Database = {
           first_name: string
           id: string
           last_name: string
+          lead_score: number | null
           loan_purpose: string | null
           notes: string | null
           phone: string | null
@@ -253,6 +330,7 @@ export type Database = {
           first_name: string
           id?: string
           last_name: string
+          lead_score?: number | null
           loan_purpose?: string | null
           notes?: string | null
           phone?: string | null
@@ -275,6 +353,7 @@ export type Database = {
           first_name?: string
           id?: string
           last_name?: string
+          lead_score?: number | null
           loan_purpose?: string | null
           notes?: string | null
           phone?: string | null
