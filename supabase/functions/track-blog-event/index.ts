@@ -13,6 +13,7 @@ const VALID_EVENTS: Record<string, number> = {
   time_on_page: 15,
   cta_click: 30,
   multi_visit: 25,
+  exit_intent_triggered: 0,
 };
 
 Deno.serve(async (req) => {
