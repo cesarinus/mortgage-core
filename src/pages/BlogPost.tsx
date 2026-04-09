@@ -56,7 +56,7 @@ const stripExternalModules = (html: string): string => {
 const BlogPost = () => {
   const { slug } = useParams<{ slug: string }>();
   const [post, setPost] = useState<Post | null>(null);
-  const [related, setRelated] = useState<RelatedPost[]>([]);
+  const [linkablePosts, setLinkablePosts] = useState<LinkablePost[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -72,15 +72,14 @@ const BlogPost = () => {
       if (!error && data) {
         setPost(data as Post);
 
-        const { data: relatedData } = await supabase
+        // Fetch other posts for internal linking
+        const { data: others } = await supabase
           .from("blog_posts")
-          .select("id, title, slug, excerpt, category, created_at")
+          .select("id, title, slug, keywords, tags, category")
           .eq("status", "published")
-          .neq("id", data.id)
-          .limit(3)
-          .order("created_at", { ascending: false });
+          .neq("id", data.id);
 
-        if (relatedData) setRelated(relatedData);
+        if (others) setLinkablePosts(others as LinkablePost[]);
       }
       setLoading(false);
     };
