@@ -63,6 +63,21 @@ Deno.serve(async (req) => {
     };
 
     const loan_purpose = sanitizeText(body.loan_purpose);
+
+    // Auto-derive intent_tag from loan_purpose
+    const deriveIntentTag = (purpose: string | null): string => {
+      if (!purpose) return "general";
+      const p = purpose.toLowerCase();
+      if (p.includes("fha")) return "FHA";
+      if (p.includes("va")) return "VA";
+      if (p.includes("pre-approv") || p.includes("pre approv")) return "pre-approval";
+      if (p.includes("first") || p.includes("buy")) return "first-time-buyer";
+      if (p.includes("cash-out") || p.includes("cash out")) return "cash-out-refi";
+      if (p.includes("refinanc")) return "refinance";
+      if (p.includes("invest") || p.includes("multi")) return "investment";
+      return "purchase";
+    };
+    const intent_tag = sanitizeText(body.intent_tag, 50) || deriveIntentTag(loan_purpose);
     const property_type = sanitizeText(body.property_type);
     const property_value = sanitizeNumber(body.property_value);
     const credit_range = sanitizeText(body.credit_range, 50);
@@ -122,6 +137,7 @@ Deno.serve(async (req) => {
       source,
       lead_score,
       variant_shown,
+      intent_tag,
       status: "new",
     }).select("id").single();
 
