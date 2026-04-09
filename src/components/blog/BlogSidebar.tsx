@@ -44,7 +44,13 @@ const BlogSidebar = ({
   return (
     <aside className="space-y-6 lg:sticky lg:top-8">
       {showTags && <TagModule tags={tags} />}
-      {renderSidebarModule()}
+      <DynamicBlogCTA variant={variant} onCTAClick={onCTAClick} onVariantClick={onVariantClick} />
+      {variant.sidebar_module === "testimonial" && (
+        <TestimonialCTA onCTAClick={onCTAClick} onVariantClick={onVariantClick} />
+      )}
+      {variant.sidebar_module === "urgency" && (
+        <UrgencyCTA onCTAClick={onCTAClick} onVariantClick={onVariantClick} />
+      )}
       {showRecent && <RecentPosts currentPostId={currentPostId} limit={5} />}
       {showCategories && <CategoryModule currentCategory={currentCategory} />}
     </aside>
