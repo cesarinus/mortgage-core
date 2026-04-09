@@ -5,7 +5,7 @@ import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
 import BlogSidebar from "@/components/blog/BlogSidebar";
 import RelatedPosts from "@/components/blog/RelatedPosts";
-import DynamicBlogCTA from "@/components/blog/DynamicBlogCTA";
+
 import StickyFloatingCTA from "@/components/blog/StickyFloatingCTA";
 import ExitIntentModal from "@/components/blog/ExitIntentModal";
 import { Badge } from "@/components/ui/badge";
@@ -134,9 +134,6 @@ const BlogPost = () => {
   const cleanContent = stripExternalModules(post.content_html);
   const enrichedContent = injectInternalLinks(cleanContent, linkablePosts, 5);
 
-  // Split content for middle CTA injection
-  const paragraphs = enrichedContent.split(/<\/p>/);
-  const midPoint = Math.floor(paragraphs.length / 2);
 
   return (
     <div className="min-h-screen bg-background">
@@ -158,13 +155,6 @@ const BlogPost = () => {
 
         <div className="mt-4 flex flex-col gap-10 lg:flex-row">
           <article className="min-w-0 flex-1">
-            {/* Top CTA */}
-            {effectiveVariant.cta_position === "top" && (
-              <div className="mb-8">
-                <DynamicBlogCTA variant={effectiveVariant} onCTAClick={handleCTAClick} onVariantClick={trackClick} />
-              </div>
-            )}
-
             <header className="mb-8">
               {post.category && (
                 <Badge variant="secondary" className="mb-3">
@@ -196,34 +186,10 @@ const BlogPost = () => {
               </div>
             )}
 
-            {/* Article content with optional middle CTA */}
-            {effectiveVariant.cta_position === "middle" && paragraphs.length > 4 ? (
-              <>
-                <div
-                  className="prose prose-lg max-w-none prose-p:my-4 prose-headings:mt-8 prose-headings:mb-4"
-                  dangerouslySetInnerHTML={{ __html: paragraphs.slice(0, midPoint).join("</p>") + "</p>" }}
-                />
-                <div className="my-8">
-                  <DynamicBlogCTA variant={effectiveVariant} onCTAClick={handleCTAClick} onVariantClick={trackClick} />
-                </div>
-                <div
-                  className="prose prose-lg max-w-none prose-p:my-4 prose-headings:mt-8 prose-headings:mb-4"
-                  dangerouslySetInnerHTML={{ __html: paragraphs.slice(midPoint).join("</p>") }}
-                />
-              </>
-            ) : (
-              <div
-                className="prose prose-lg max-w-none prose-p:my-4 prose-headings:mt-8 prose-headings:mb-4"
-                dangerouslySetInnerHTML={{ __html: enrichedContent }}
-              />
-            )}
-
-            {/* Bottom CTA */}
-            {effectiveVariant.cta_position === "bottom" && (
-              <div className="mt-10">
-                <DynamicBlogCTA variant={effectiveVariant} onCTAClick={handleCTAClick} onVariantClick={trackClick} />
-              </div>
-            )}
+            <div
+              className="prose prose-lg max-w-none prose-p:my-4 prose-headings:mt-8 prose-headings:mb-4"
+              dangerouslySetInnerHTML={{ __html: enrichedContent }}
+            />
 
             {post.tags && post.tags.length > 0 && (
               <div className="mt-10 flex flex-wrap gap-2 border-t border-border pt-6">

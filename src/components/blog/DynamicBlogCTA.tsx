@@ -62,23 +62,18 @@ const DynamicBlogCTA = ({ variant, onCTAClick, onVariantClick }: DynamicBlogCTAP
           </div>
         )}
         <h3 className="font-display text-lg font-bold text-foreground sm:text-xl">
-          {isHighIntent ? "You're Ready — Let's Make It Happen!" : "Ready to Take the Next Step?"}
+          Ready to Take the Next Step?
         </h3>
         <p className="mx-auto mt-2 text-sm text-muted-foreground">
-          {isHighIntent
-            ? "Based on your research, you're well-prepared. Connect with our SWFL mortgage experts today."
-            : "Whether you're buying your first home or growing your investment portfolio in Southwest Florida, our team is here to help."}
+          Whether you're buying your first home or growing your investment portfolio in Southwest Florida, our team is here to help.
         </p>
-        <div className="mt-4 flex flex-col gap-2">
+        <div className="mt-4">
           <Button
             size="sm"
             className={`w-full ${isHighIntent ? "animate-pulse btn-shadow" : "btn-shadow"}`}
             onClick={handlePrimaryClick}
           >
             {isHighIntent ? <><Zap className="mr-1 h-3 w-3" /> {ctaText}</> : ctaText}
-          </Button>
-          <Button variant="outline" size="sm" className="w-full" onClick={handleSecondaryClick}>
-            Talk to an Expert
           </Button>
         </div>
       </div>
