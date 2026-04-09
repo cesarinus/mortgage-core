@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Flame, ThermometerSun, Snowflake } from "lucide-react";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Lead = Tables<"leads">;
@@ -25,6 +25,13 @@ const statusColors: Record<string, string> = {
   converted: "bg-success text-success-foreground",
   lost: "bg-destructive/10 text-destructive",
 };
+
+function HeatBadge({ score }: { score: number | null }) {
+  const s = score ?? 0;
+  if (s > 70) return <Badge className="bg-red-500/15 text-red-600 gap-1"><Flame className="h-3 w-3" />HOT</Badge>;
+  if (s >= 40) return <Badge className="bg-amber-500/15 text-amber-600 gap-1"><ThermometerSun className="h-3 w-3" />Warm</Badge>;
+  return <Badge variant="secondary" className="gap-1"><Snowflake className="h-3 w-3" />Cold</Badge>;
+}
 
 export default function Leads() {
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -67,7 +74,7 @@ export default function Leads() {
   };
 
   const filtered = leads.filter((l) =>
-    `${l.first_name} ${l.last_name} ${l.email ?? ""}`.toLowerCase().includes(search.toLowerCase())
+    `${l.first_name} ${l.last_name} ${l.email ?? ""} ${(l as any).intent_tag ?? ""}`.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -137,18 +144,30 @@ export default function Leads() {
                 <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Phone</TableHead>
+                <TableHead>Source</TableHead>
+                <TableHead>Intent</TableHead>
+                <TableHead>Heat</TableHead>
+                <TableHead>Score</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Created</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">No leads found</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">No leads found</TableCell></TableRow>
               ) : filtered.map((l) => (
                 <TableRow key={l.id}>
                   <TableCell className="font-medium">{l.first_name} {l.last_name}</TableCell>
                   <TableCell>{l.email ?? "—"}</TableCell>
                   <TableCell>{l.phone ?? "—"}</TableCell>
+                  <TableCell className="text-xs">{l.source ?? "—"}</TableCell>
+                  <TableCell>
+                    {(l as any).intent_tag ? (
+                      <Badge variant="outline" className="text-xs">{(l as any).intent_tag}</Badge>
+                    ) : "—"}
+                  </TableCell>
+                  <TableCell><HeatBadge score={l.lead_score} /></TableCell>
+                  <TableCell className="font-mono text-sm">{l.lead_score ?? 0}</TableCell>
                   <TableCell>
                     <Badge variant="secondary" className={statusColors[l.status] ?? ""}>
                       {l.status}

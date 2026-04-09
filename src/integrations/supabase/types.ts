@@ -396,6 +396,7 @@ export type Database = {
           employment_type: string | null
           first_name: string
           id: string
+          intent_tag: string | null
           last_name: string
           lead_score: number | null
           loan_purpose: string | null
@@ -421,6 +422,7 @@ export type Database = {
           employment_type?: string | null
           first_name: string
           id?: string
+          intent_tag?: string | null
           last_name: string
           lead_score?: number | null
           loan_purpose?: string | null
@@ -446,6 +448,7 @@ export type Database = {
           employment_type?: string | null
           first_name?: string
           id?: string
+          intent_tag?: string | null
           last_name?: string
           lead_score?: number | null
           loan_purpose?: string | null

@@ -1,0 +1,1 @@
+ALTER TABLE public.leads ADD COLUMN intent_tag text DEFAULT NULL;
