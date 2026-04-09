@@ -5,7 +5,7 @@ import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
 import BlogSidebar from "@/components/blog/BlogSidebar";
 import RelatedPosts from "@/components/blog/RelatedPosts";
-import DynamicBlogCTA from "@/components/blog/DynamicBlogCTA";
+
 import StickyFloatingCTA from "@/components/blog/StickyFloatingCTA";
 import ExitIntentModal from "@/components/blog/ExitIntentModal";
 import { Badge } from "@/components/ui/badge";
@@ -134,9 +134,6 @@ const BlogPost = () => {
   const cleanContent = stripExternalModules(post.content_html);
   const enrichedContent = injectInternalLinks(cleanContent, linkablePosts, 5);
 
-  // Split content for middle CTA injection
-  const paragraphs = enrichedContent.split(/<\/p>/);
-  const midPoint = Math.floor(paragraphs.length / 2);
 
   return (
     <div className="min-h-screen bg-background">
