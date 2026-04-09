@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
 import BlogCTA from "@/components/blog/BlogCTA";
-import RecommendedBusinesses from "@/components/blog/RecommendedBusinesses";
+import BlogSidebar from "@/components/blog/BlogSidebar";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CalendarDays, ArrowLeft, User } from "lucide-react";
@@ -34,6 +34,14 @@ interface RelatedPost {
   created_at: string;
 }
 
+const stripExternalModules = (html: string): string => {
+  // Remove any data-module divs (competitor/external business embeds)
+  return html.replace(
+    /<div\s+data-module="[^"]*"[^>]*><\/div>/g,
+    ""
+  );
+};
+
 const BlogPost = () => {
   const { slug } = useParams<{ slug: string }>();
   const [post, setPost] = useState<Post | null>(null);
@@ -53,7 +61,6 @@ const BlogPost = () => {
       if (!error && data) {
         setPost(data as Post);
 
-        // Fetch related posts
         const { data: relatedData } = await supabase
           .from("blog_posts")
           .select("id, title, slug, excerpt, category, created_at")
@@ -69,19 +76,11 @@ const BlogPost = () => {
     fetchPost();
   }, [slug]);
 
-  // Process content to replace module placeholders
-  const processContent = (html: string) => {
-    return html.replace(
-      /<div\s+data-module="recommended-businesses"\s+data-category="([^"]+)"[^>]*><\/div>/g,
-      '<div class="blog-module-placeholder" data-category="$1"></div>'
-    );
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
-        <div className="container mx-auto max-w-4xl px-4 py-12">
+        <div className="container mx-auto max-w-6xl px-4 py-12">
           <Skeleton className="mb-4 h-10 w-3/4" />
           <Skeleton className="mb-8 h-6 w-1/2" />
           <Skeleton className="h-[400px] w-full rounded-xl" />
@@ -94,7 +93,7 @@ const BlogPost = () => {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
-        <div className="container mx-auto max-w-4xl px-4 py-24 text-center">
+        <div className="container mx-auto max-w-6xl px-4 py-24 text-center">
           <h1 className="text-2xl font-bold text-foreground">Post not found</h1>
           <Link to="/blog" className="mt-4 inline-flex items-center gap-1 text-primary hover:underline">
             <ArrowLeft className="h-4 w-4" /> Back to Blog
@@ -105,10 +104,7 @@ const BlogPost = () => {
     );
   }
 
-  // Split content to inject modules
-  const contentParts = post.content_html.split(
-    /<div\s+data-module="recommended-businesses"\s+data-category="([^"]+)"[^>]*><\/div>/g
-  );
+  const cleanContent = stripExternalModules(post.content_html);
 
   return (
     <div className="min-h-screen bg-background">
@@ -120,7 +116,7 @@ const BlogPost = () => {
 
       <Navbar />
 
-      <article className="container mx-auto max-w-4xl px-4 py-8 md:py-12">
+      <div className="container mx-auto max-w-6xl px-4 py-8 md:py-12">
         {/* Back link */}
         <Link
           to="/blog"
@@ -129,103 +125,114 @@ const BlogPost = () => {
           <ArrowLeft className="h-4 w-4" /> Back to Blog
         </Link>
 
-        {/* Header */}
-        <header className="mb-8">
-          {post.category && (
-            <Badge variant="secondary" className="mb-3">
-              {post.category}
-            </Badge>
-          )}
-          <h1 className="font-display text-3xl font-bold leading-tight text-foreground md:text-4xl lg:text-5xl">
-            {post.title}
-          </h1>
-          <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-            <span className="flex items-center gap-1">
-              <User className="h-4 w-4" />
-              {post.author}
-            </span>
-            <span className="flex items-center gap-1">
-              <CalendarDays className="h-4 w-4" />
-              {new Date(post.created_at).toLocaleDateString("en-US", {
-                month: "long",
-                day: "numeric",
-                year: "numeric",
-              })}
-            </span>
-          </div>
-        </header>
+        {/* 2-column layout */}
+        <div className="mt-4 flex flex-col gap-10 lg:flex-row">
+          {/* Main content */}
+          <article className="min-w-0 flex-1">
+            {/* Header */}
+            <header className="mb-8">
+              {post.category && (
+                <Badge variant="secondary" className="mb-3">
+                  {post.category}
+                </Badge>
+              )}
+              <h1 className="font-display text-3xl font-bold leading-tight text-foreground md:text-4xl lg:text-5xl">
+                {post.title}
+              </h1>
+              <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                <span className="flex items-center gap-1">
+                  <User className="h-4 w-4" />
+                  {post.author}
+                </span>
+                <span className="flex items-center gap-1">
+                  <CalendarDays className="h-4 w-4" />
+                  {new Date(post.created_at).toLocaleDateString("en-US", {
+                    month: "long",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                </span>
+              </div>
+            </header>
 
-        {/* Featured Image */}
-        {post.featured_image && (
-          <div className="mb-10 overflow-hidden rounded-2xl">
-            <img
-              src={post.featured_image}
-              alt={post.title}
-              className="w-full object-cover"
+            {/* Featured Image */}
+            {post.featured_image && (
+              <div className="mb-10 overflow-hidden rounded-2xl">
+                <img
+                  src={post.featured_image}
+                  alt={post.title}
+                  className="w-full object-cover"
+                  loading="lazy"
+                />
+              </div>
+            )}
+
+            {/* Article content — clean, no external modules */}
+            <div
+              className="prose prose-lg max-w-none prose-p:my-4 prose-headings:mt-8 prose-headings:mb-4"
+              dangerouslySetInnerHTML={{ __html: cleanContent }}
+            />
+
+            {/* Tags inline */}
+            {post.tags && post.tags.length > 0 && (
+              <div className="mt-10 flex flex-wrap gap-2 border-t border-border pt-6">
+                {post.tags.map((tag) => (
+                  <Link key={tag} to={`/blog?tag=${encodeURIComponent(tag)}`}>
+                    <Badge variant="outline" className="cursor-pointer text-xs transition-colors hover:bg-primary hover:text-primary-foreground">
+                      {tag}
+                    </Badge>
+                  </Link>
+                ))}
+              </div>
+            )}
+
+            {/* CTA — after content, before related posts */}
+            <BlogCTA />
+
+            {/* Related Posts */}
+            {related.length > 0 && (
+              <section className="mt-16">
+                <h2 className="mb-6 font-display text-2xl font-bold text-foreground">
+                  Related Articles
+                </h2>
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  {related.map((r) => (
+                    <Link
+                      key={r.id}
+                      to={`/blog/${r.slug}`}
+                      className="group rounded-xl border border-border bg-card p-5 transition-shadow hover:shadow-md"
+                    >
+                      {r.category && (
+                        <Badge variant="secondary" className="mb-2 text-xs">
+                          {r.category}
+                        </Badge>
+                      )}
+                      <h3 className="font-display text-base font-semibold text-foreground transition-colors group-hover:text-primary">
+                        {r.title}
+                      </h3>
+                      <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                        {r.excerpt}
+                      </p>
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            )}
+          </article>
+
+          {/* Sidebar */}
+          <div className="w-full lg:w-[300px] lg:flex-shrink-0">
+            <BlogSidebar
+              tags={post.tags || []}
+              currentPostId={post.id}
+              currentCategory={post.category}
+              showTags={true}
+              showRecent={true}
+              showCategories={true}
             />
           </div>
-        )}
-
-        {/* Content with embedded modules */}
-        <div className="prose prose-lg max-w-none">
-          {contentParts.map((part, i) => {
-            // Odd indices are category captures from the regex
-            if (i % 2 === 1) {
-              return <RecommendedBusinesses key={`module-${i}`} category={part} limit={3} />;
-            }
-            return (
-              <div
-                key={`content-${i}`}
-                dangerouslySetInnerHTML={{ __html: part }}
-              />
-            );
-          })}
         </div>
-
-        {/* Tags */}
-        {post.tags && post.tags.length > 0 && (
-          <div className="mt-10 flex flex-wrap gap-2 border-t border-border pt-6">
-            {post.tags.map((tag) => (
-              <Badge key={tag} variant="outline" className="text-xs">
-                {tag}
-              </Badge>
-            ))}
-          </div>
-        )}
-
-        {/* CTA */}
-        <BlogCTA />
-
-        {/* Related Posts */}
-        {related.length > 0 && (
-          <section className="mt-16">
-            <h2 className="mb-6 font-display text-2xl font-bold text-foreground">
-              Related Articles
-            </h2>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {related.map((r) => (
-                <Link
-                  key={r.id}
-                  to={`/blog/${r.slug}`}
-                  className="group rounded-xl border border-border bg-card p-5 transition-shadow hover:shadow-md"
-                >
-                  {r.category && (
-                    <Badge variant="secondary" className="mb-2 text-xs">
-                      {r.category}
-                    </Badge>
-                  )}
-                  <h3 className="font-display text-base font-semibold text-foreground transition-colors group-hover:text-primary">
-                    {r.title}
-                  </h3>
-                  <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-                    {r.excerpt}
-                  </p>
-                </Link>
-              ))}
-            </div>
-          </section>
-        )}
-      </article>
+      </div>
 
       <Footer />
     </div>
