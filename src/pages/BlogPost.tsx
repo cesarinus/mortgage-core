@@ -3,7 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
-import BlogCTA from "@/components/blog/BlogCTA";
+
 import BlogSidebar from "@/components/blog/BlogSidebar";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -186,8 +186,6 @@ const BlogPost = () => {
               </div>
             )}
 
-            {/* CTA — after content, before related posts */}
-            <BlogCTA />
 
             {/* Related Posts */}
             {related.length > 0 && (

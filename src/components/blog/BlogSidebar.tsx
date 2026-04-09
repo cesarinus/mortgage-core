@@ -1,6 +1,7 @@
 import TagModule from "./TagModule";
 import RecentPosts from "./RecentPosts";
 import CategoryModule from "./CategoryModule";
+import BlogCTA from "./BlogCTA";
 
 interface BlogSidebarProps {
   tags?: string[];
@@ -24,6 +25,7 @@ const BlogSidebar = ({
       {showTags && <TagModule tags={tags} />}
       {showRecent && <RecentPosts currentPostId={currentPostId} limit={5} />}
       {showCategories && <CategoryModule currentCategory={currentCategory} />}
+      <BlogCTA />
     </aside>
   );
 };
