@@ -147,6 +147,95 @@ export type Database = {
           },
         ]
       }
+      blog_variant_metrics: {
+        Row: {
+          created_at: string
+          cta_position: string
+          cta_text: string
+          event_type: string
+          id: string
+          post_id: string | null
+          session_id: string
+          sidebar_module: string
+          variant_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          cta_position: string
+          cta_text: string
+          event_type: string
+          id?: string
+          post_id?: string | null
+          session_id: string
+          sidebar_module: string
+          variant_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          cta_position?: string
+          cta_text?: string
+          event_type?: string
+          id?: string
+          post_id?: string | null
+          session_id?: string
+          sidebar_module?: string
+          variant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blog_variant_metrics_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "blog_posts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "blog_variant_metrics_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "blog_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      blog_variants: {
+        Row: {
+          created_at: string
+          cta_position: string
+          cta_text: string
+          id: string
+          post_id: string | null
+          session_id: string
+          sidebar_module: string
+        }
+        Insert: {
+          created_at?: string
+          cta_position?: string
+          cta_text?: string
+          id?: string
+          post_id?: string | null
+          session_id: string
+          sidebar_module?: string
+        }
+        Update: {
+          created_at?: string
+          cta_position?: string
+          cta_text?: string
+          id?: string
+          post_id?: string | null
+          session_id?: string
+          sidebar_module?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "blog_variants_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "blog_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contacts: {
         Row: {
           address: string | null
@@ -299,6 +388,7 @@ export type Database = {
         Row: {
           annual_income: number | null
           assigned_to: string | null
+          blog_session_id: string | null
           created_at: string
           created_by: string | null
           credit_range: string | null
@@ -318,10 +408,12 @@ export type Database = {
           status: Database["public"]["Enums"]["lead_status"]
           timeline: string | null
           updated_at: string
+          variant_shown: Json | null
         }
         Insert: {
           annual_income?: number | null
           assigned_to?: string | null
+          blog_session_id?: string | null
           created_at?: string
           created_by?: string | null
           credit_range?: string | null
@@ -341,10 +433,12 @@ export type Database = {
           status?: Database["public"]["Enums"]["lead_status"]
           timeline?: string | null
           updated_at?: string
+          variant_shown?: Json | null
         }
         Update: {
           annual_income?: number | null
           assigned_to?: string | null
+          blog_session_id?: string | null
           created_at?: string
           created_by?: string | null
           credit_range?: string | null
@@ -364,6 +458,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["lead_status"]
           timeline?: string | null
           updated_at?: string
+          variant_shown?: Json | null
         }
         Relationships: [
           {
