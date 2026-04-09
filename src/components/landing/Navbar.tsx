@@ -43,6 +43,9 @@ const Navbar = ({ onGetStarted }: NavbarProps) => {
           <button onClick={() => scrollTo("about")} className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
             About
           </button>
+          <Link to="/blog" className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
+            Blog
+          </Link>
           <button onClick={() => scrollTo("contact")} className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
             Contact
           </button>
@@ -65,6 +68,9 @@ const Navbar = ({ onGetStarted }: NavbarProps) => {
             <button onClick={() => scrollTo("about")} className="rounded-lg px-3 py-2 text-left text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground">
               About
             </button>
+            <Link to="/blog" className="rounded-lg px-3 py-2 text-left text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground" onClick={() => setIsOpen(false)}>
+              Blog
+            </Link>
             <button onClick={() => scrollTo("contact")} className="rounded-lg px-3 py-2 text-left text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground">
               Contact
             </button>
