@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { CalendarDays, ArrowLeft, User } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 import { injectInternalLinks } from "@/lib/internalLinking";
+import { useBlogTracking } from "@/hooks/useBlogTracking";
 
 interface Post {
   id: string;
@@ -58,6 +59,8 @@ const BlogPost = () => {
   const [post, setPost] = useState<Post | null>(null);
   const [linkablePosts, setLinkablePosts] = useState<LinkablePost[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const { trackCTA } = useBlogTracking({ postId: post?.id, enabled: !!post });
 
   useEffect(() => {
     const fetchPost = async () => {
