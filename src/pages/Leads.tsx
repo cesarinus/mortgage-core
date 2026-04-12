@@ -102,6 +102,22 @@ const smartViews: { key: SmartView; label: string; icon: typeof Flame }[] = [
   { key: "inactive", label: "Inactive", icon: AlertTriangle },
 ];
 
+function StuckBadge({ lead }: { lead: Lead }) {
+  if (!(lead as any).is_stuck) return null;
+  return <Badge className="bg-amber-500/15 text-amber-700 gap-1 border-amber-500/20 text-[10px]"><AlertTriangle className="h-2.5 w-2.5" />Stuck</Badge>;
+}
+
+function LastActivity({ lead }: { lead: Lead }) {
+  const ts = (lead as any).last_activity_at;
+  if (!ts) return <span className="text-muted-foreground">—</span>;
+  const diff = Date.now() - new Date(ts).getTime();
+  const hours = Math.floor(diff / 3600000);
+  if (hours < 1) return <span className="text-xs text-emerald-600">Just now</span>;
+  if (hours < 24) return <span className="text-xs">{hours}h ago</span>;
+  const days = Math.floor(hours / 24);
+  return <span className={`text-xs ${days > 3 ? "text-amber-600" : ""}`}>{days}d ago</span>;
+}
+
 function HeatBadge({ score }: { score: number | null }) {
   const s = score ?? 0;
   if (s > 70) return <Badge className="bg-red-500/15 text-red-600 gap-1 border-red-500/20"><Flame className="h-3 w-3" />HOT</Badge>;
