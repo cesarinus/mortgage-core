@@ -20,7 +20,6 @@ import {
   Filter, Zap, Users, UserCheck, AlertTriangle,
 } from "lucide-react";
 import type { Tables, Enums } from "@/integrations/supabase/types";
-import { Constants } from "@/integrations/supabase/types";
 
 type Lead = Tables<"leads">;
 type LeadSource = Tables<"lead_sources">;
