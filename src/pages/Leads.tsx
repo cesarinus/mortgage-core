@@ -44,20 +44,33 @@ interface LeadTag {
 const statusColors: Record<string, string> = {
   new: "bg-primary/10 text-primary border-primary/20",
   contacted: "bg-accent/10 text-accent-foreground border-accent/30",
+  pre_qualified: "bg-sky-500/10 text-sky-600 border-sky-500/20",
   qualified: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
+  application_started: "bg-violet-500/10 text-violet-600 border-violet-500/20",
+  underwriting: "bg-orange-500/10 text-orange-600 border-orange-500/20",
+  approved: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30",
+  closed: "bg-emerald-500 text-white border-emerald-600",
   unqualified: "bg-muted text-muted-foreground border-border",
   converted: "bg-emerald-500 text-white border-emerald-600",
   lost: "bg-destructive/10 text-destructive border-destructive/20",
 };
 
 const stageLabels: Record<string, string> = {
-  new: "New",
+  new: "New Lead",
   contacted: "Contacted",
+  pre_qualified: "Pre-Qualified",
   qualified: "Qualified",
+  application_started: "Application Started",
+  underwriting: "Underwriting",
+  approved: "Approved",
+  closed: "Closed",
   unqualified: "Unqualified",
   converted: "Converted",
   lost: "Lost",
 };
+
+// Pipeline stages in order for kanban
+const pipelineStages = ["new", "contacted", "pre_qualified", "application_started", "underwriting", "approved", "closed"] as const;
 
 const eventIcons: Record<string, typeof Eye> = {
   blog_view: Eye,
@@ -70,7 +83,13 @@ const eventIcons: Record<string, typeof Eye> = {
   time_on_page: Clock,
   multi_visit: Users,
   calculator_use: Zap,
+  calculator_used: Zap,
   application_start: FileText,
+  application_started: FileText,
+  documents_uploaded: FileText,
+  application_approved: UserCheck,
+  loan_closed: UserCheck,
+  contact_made: Users,
 };
 
 type SmartView = "all" | "hot" | "ready" | "fha" | "inactive";
