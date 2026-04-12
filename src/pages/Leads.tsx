@@ -436,10 +436,10 @@ export default function Leads() {
                   <TableHead>Name</TableHead>
                   <TableHead className="hidden sm:table-cell">Email</TableHead>
                   <TableHead className="hidden md:table-cell">Source</TableHead>
-                  <TableHead>Intent</TableHead>
                   <TableHead>Score</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="hidden lg:table-cell">Created</TableHead>
+                  <TableHead className="hidden lg:table-cell">Last Activity</TableHead>
+                  <TableHead className="hidden xl:table-cell">Created</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -452,7 +452,7 @@ export default function Leads() {
                 ) : filtered.map(l => (
                   <TableRow
                     key={l.id}
-                    className="cursor-pointer hover:bg-muted/50"
+                    className={`cursor-pointer hover:bg-muted/50 transition-colors ${(l as any).is_stuck ? "bg-amber-500/5" : ""}`}
                     onClick={() => setSelectedLead(l)}
                   >
                     <TableCell>
@@ -461,7 +461,10 @@ export default function Leads() {
                           {l.first_name[0]}{l.last_name[0]}
                         </div>
                         <div>
-                          <p className="font-medium text-sm">{l.first_name} {l.last_name}</p>
+                          <div className="flex items-center gap-1.5">
+                            <p className="font-medium text-sm">{l.first_name} {l.last_name}</p>
+                            <StuckBadge lead={l} />
+                          </div>
                           <p className="text-xs text-muted-foreground sm:hidden">{l.email ?? ""}</p>
                         </div>
                       </div>
@@ -470,20 +473,18 @@ export default function Leads() {
                     <TableCell className="hidden md:table-cell">
                       <span className="text-xs text-muted-foreground">{l.source ?? "—"}</span>
                     </TableCell>
-                    <TableCell>
-                      {l.intent_tag ? (
-                        <Badge variant="outline" className="text-xs">{l.intent_tag}</Badge>
-                      ) : <span className="text-muted-foreground">—</span>}
-                    </TableCell>
                     <TableCell className="w-28">
                       <ScoreBadge score={l.lead_score} />
                     </TableCell>
                     <TableCell>
                       <Badge variant="secondary" className={`text-xs ${statusColors[l.status] ?? ""}`}>
-                        {l.status}
+                        {stageLabels[l.status] ?? l.status}
                       </Badge>
                     </TableCell>
-                    <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">
+                    <TableCell className="hidden lg:table-cell">
+                      <LastActivity lead={l} />
+                    </TableCell>
+                    <TableCell className="hidden xl:table-cell text-sm text-muted-foreground">
                       {new Date(l.created_at).toLocaleDateString()}
                     </TableCell>
                   </TableRow>
