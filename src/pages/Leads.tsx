@@ -494,19 +494,19 @@ export default function Leads() {
           ) : (
             /* Kanban View */
             <div className="flex gap-3 p-4 overflow-x-auto h-full">
-              {statuses.map(status => {
+              {pipelineStages.map(status => {
                 const statusLeads = filtered.filter(l => l.status === status);
                 return (
                   <div key={status} className="flex-shrink-0 w-64">
                     <div className="flex items-center justify-between mb-2 px-1">
-                      <h3 className="text-sm font-semibold capitalize">{stageLabels[status] ?? status}</h3>
+                      <h3 className="text-sm font-semibold">{stageLabels[status] ?? status}</h3>
                       <Badge variant="secondary" className="text-xs">{statusLeads.length}</Badge>
                     </div>
                     <div className="space-y-2 min-h-[200px] rounded-lg bg-muted/30 p-2">
                       {statusLeads.map(l => (
                         <Card
                           key={l.id}
-                          className="cursor-pointer hover:shadow-md transition-shadow"
+                          className={`cursor-pointer hover:shadow-md transition-all ${(l as any).is_stuck ? "ring-1 ring-amber-500/40" : ""}`}
                           onClick={() => setSelectedLead(l)}
                         >
                           <CardContent className="p-3 space-y-2">
@@ -514,15 +514,19 @@ export default function Leads() {
                               <div className="h-6 w-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-semibold">
                                 {l.first_name[0]}{l.last_name[0]}
                               </div>
-                              <p className="font-medium text-sm truncate">{l.first_name} {l.last_name}</p>
+                              <p className="font-medium text-sm truncate flex-1">{l.first_name} {l.last_name}</p>
+                              <StuckBadge lead={l} />
                             </div>
                             <div className="flex items-center justify-between">
                               <HeatBadge score={l.lead_score} />
                               <span className="text-xs font-mono text-muted-foreground">{l.lead_score ?? 0}</span>
                             </div>
-                            {l.intent_tag && (
-                              <Badge variant="outline" className="text-[10px]">{l.intent_tag}</Badge>
-                            )}
+                            <div className="flex items-center justify-between">
+                              <LastActivity lead={l} />
+                              {l.intent_tag && (
+                                <Badge variant="outline" className="text-[10px]">{l.intent_tag}</Badge>
+                              )}
+                            </div>
                           </CardContent>
                         </Card>
                       ))}
