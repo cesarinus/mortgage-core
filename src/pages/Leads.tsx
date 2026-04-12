@@ -176,6 +176,17 @@ export default function Leads() {
   };
 
   useEffect(() => { load(); }, []);
+
+  // Realtime subscription for leads updates
+  useEffect(() => {
+    const channel = supabase
+      .channel('leads-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, () => {
+        load();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, []);
   useEffect(() => {
     if (selectedLead) loadEvents(selectedLead.id);
     else setEvents([]);
