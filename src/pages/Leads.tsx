@@ -44,20 +44,33 @@ interface LeadTag {
 const statusColors: Record<string, string> = {
   new: "bg-primary/10 text-primary border-primary/20",
   contacted: "bg-accent/10 text-accent-foreground border-accent/30",
+  pre_qualified: "bg-sky-500/10 text-sky-600 border-sky-500/20",
   qualified: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
+  application_started: "bg-violet-500/10 text-violet-600 border-violet-500/20",
+  underwriting: "bg-orange-500/10 text-orange-600 border-orange-500/20",
+  approved: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30",
+  closed: "bg-emerald-500 text-white border-emerald-600",
   unqualified: "bg-muted text-muted-foreground border-border",
   converted: "bg-emerald-500 text-white border-emerald-600",
   lost: "bg-destructive/10 text-destructive border-destructive/20",
 };
 
 const stageLabels: Record<string, string> = {
-  new: "New",
+  new: "New Lead",
   contacted: "Contacted",
+  pre_qualified: "Pre-Qualified",
   qualified: "Qualified",
+  application_started: "Application Started",
+  underwriting: "Underwriting",
+  approved: "Approved",
+  closed: "Closed",
   unqualified: "Unqualified",
   converted: "Converted",
   lost: "Lost",
 };
+
+// Pipeline stages in order for kanban
+const pipelineStages = ["new", "contacted", "pre_qualified", "application_started", "underwriting", "approved", "closed"] as const;
 
 const eventIcons: Record<string, typeof Eye> = {
   blog_view: Eye,
@@ -70,7 +83,13 @@ const eventIcons: Record<string, typeof Eye> = {
   time_on_page: Clock,
   multi_visit: Users,
   calculator_use: Zap,
+  calculator_used: Zap,
   application_start: FileText,
+  application_started: FileText,
+  documents_uploaded: FileText,
+  application_approved: UserCheck,
+  loan_closed: UserCheck,
+  contact_made: Users,
 };
 
 type SmartView = "all" | "hot" | "ready" | "fha" | "inactive";
@@ -82,6 +101,22 @@ const smartViews: { key: SmartView; label: string; icon: typeof Flame }[] = [
   { key: "fha", label: "FHA Buyers", icon: UserCheck },
   { key: "inactive", label: "Inactive", icon: AlertTriangle },
 ];
+
+function StuckBadge({ lead }: { lead: Lead }) {
+  if (!(lead as any).is_stuck) return null;
+  return <Badge className="bg-amber-500/15 text-amber-700 gap-1 border-amber-500/20 text-[10px]"><AlertTriangle className="h-2.5 w-2.5" />Stuck</Badge>;
+}
+
+function LastActivity({ lead }: { lead: Lead }) {
+  const ts = (lead as any).last_activity_at;
+  if (!ts) return <span className="text-muted-foreground">—</span>;
+  const diff = Date.now() - new Date(ts).getTime();
+  const hours = Math.floor(diff / 3600000);
+  if (hours < 1) return <span className="text-xs text-emerald-600">Just now</span>;
+  if (hours < 24) return <span className="text-xs">{hours}h ago</span>;
+  const days = Math.floor(hours / 24);
+  return <span className={`text-xs ${days > 3 ? "text-amber-600" : ""}`}>{days}d ago</span>;
+}
 
 function HeatBadge({ score }: { score: number | null }) {
   const s = score ?? 0;
@@ -141,6 +176,17 @@ export default function Leads() {
   };
 
   useEffect(() => { load(); }, []);
+
+  // Realtime subscription for leads updates
+  useEffect(() => {
+    const channel = supabase
+      .channel('leads-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, () => {
+        load();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, []);
   useEffect(() => {
     if (selectedLead) loadEvents(selectedLead.id);
     else setEvents([]);
@@ -401,10 +447,10 @@ export default function Leads() {
                   <TableHead>Name</TableHead>
                   <TableHead className="hidden sm:table-cell">Email</TableHead>
                   <TableHead className="hidden md:table-cell">Source</TableHead>
-                  <TableHead>Intent</TableHead>
                   <TableHead>Score</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="hidden lg:table-cell">Created</TableHead>
+                  <TableHead className="hidden lg:table-cell">Last Activity</TableHead>
+                  <TableHead className="hidden xl:table-cell">Created</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -417,7 +463,7 @@ export default function Leads() {
                 ) : filtered.map(l => (
                   <TableRow
                     key={l.id}
-                    className="cursor-pointer hover:bg-muted/50"
+                    className={`cursor-pointer hover:bg-muted/50 transition-colors ${(l as any).is_stuck ? "bg-amber-500/5" : ""}`}
                     onClick={() => setSelectedLead(l)}
                   >
                     <TableCell>
@@ -426,7 +472,10 @@ export default function Leads() {
                           {l.first_name[0]}{l.last_name[0]}
                         </div>
                         <div>
-                          <p className="font-medium text-sm">{l.first_name} {l.last_name}</p>
+                          <div className="flex items-center gap-1.5">
+                            <p className="font-medium text-sm">{l.first_name} {l.last_name}</p>
+                            <StuckBadge lead={l} />
+                          </div>
                           <p className="text-xs text-muted-foreground sm:hidden">{l.email ?? ""}</p>
                         </div>
                       </div>
@@ -435,20 +484,18 @@ export default function Leads() {
                     <TableCell className="hidden md:table-cell">
                       <span className="text-xs text-muted-foreground">{l.source ?? "—"}</span>
                     </TableCell>
-                    <TableCell>
-                      {l.intent_tag ? (
-                        <Badge variant="outline" className="text-xs">{l.intent_tag}</Badge>
-                      ) : <span className="text-muted-foreground">—</span>}
-                    </TableCell>
                     <TableCell className="w-28">
                       <ScoreBadge score={l.lead_score} />
                     </TableCell>
                     <TableCell>
                       <Badge variant="secondary" className={`text-xs ${statusColors[l.status] ?? ""}`}>
-                        {l.status}
+                        {stageLabels[l.status] ?? l.status}
                       </Badge>
                     </TableCell>
-                    <TableCell className="hidden lg:table-cell text-sm text-muted-foreground">
+                    <TableCell className="hidden lg:table-cell">
+                      <LastActivity lead={l} />
+                    </TableCell>
+                    <TableCell className="hidden xl:table-cell text-sm text-muted-foreground">
                       {new Date(l.created_at).toLocaleDateString()}
                     </TableCell>
                   </TableRow>
@@ -458,19 +505,19 @@ export default function Leads() {
           ) : (
             /* Kanban View */
             <div className="flex gap-3 p-4 overflow-x-auto h-full">
-              {statuses.map(status => {
+              {pipelineStages.map(status => {
                 const statusLeads = filtered.filter(l => l.status === status);
                 return (
                   <div key={status} className="flex-shrink-0 w-64">
                     <div className="flex items-center justify-between mb-2 px-1">
-                      <h3 className="text-sm font-semibold capitalize">{stageLabels[status] ?? status}</h3>
+                      <h3 className="text-sm font-semibold">{stageLabels[status] ?? status}</h3>
                       <Badge variant="secondary" className="text-xs">{statusLeads.length}</Badge>
                     </div>
                     <div className="space-y-2 min-h-[200px] rounded-lg bg-muted/30 p-2">
                       {statusLeads.map(l => (
                         <Card
                           key={l.id}
-                          className="cursor-pointer hover:shadow-md transition-shadow"
+                          className={`cursor-pointer hover:shadow-md transition-all ${(l as any).is_stuck ? "ring-1 ring-amber-500/40" : ""}`}
                           onClick={() => setSelectedLead(l)}
                         >
                           <CardContent className="p-3 space-y-2">
@@ -478,15 +525,19 @@ export default function Leads() {
                               <div className="h-6 w-6 rounded-full bg-primary/10 text-primary flex items-center justify-center text-[10px] font-semibold">
                                 {l.first_name[0]}{l.last_name[0]}
                               </div>
-                              <p className="font-medium text-sm truncate">{l.first_name} {l.last_name}</p>
+                              <p className="font-medium text-sm truncate flex-1">{l.first_name} {l.last_name}</p>
+                              <StuckBadge lead={l} />
                             </div>
                             <div className="flex items-center justify-between">
                               <HeatBadge score={l.lead_score} />
                               <span className="text-xs font-mono text-muted-foreground">{l.lead_score ?? 0}</span>
                             </div>
-                            {l.intent_tag && (
-                              <Badge variant="outline" className="text-[10px]">{l.intent_tag}</Badge>
-                            )}
+                            <div className="flex items-center justify-between">
+                              <LastActivity lead={l} />
+                              {l.intent_tag && (
+                                <Badge variant="outline" className="text-[10px]">{l.intent_tag}</Badge>
+                              )}
+                            </div>
                           </CardContent>
                         </Card>
                       ))}

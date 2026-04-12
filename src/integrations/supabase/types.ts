@@ -419,6 +419,44 @@ export type Database = {
         }
         Relationships: []
       }
+      lead_stage_history: {
+        Row: {
+          changed_at: string
+          id: string
+          lead_id: string
+          new_status: string
+          old_status: string | null
+          trigger_event: string | null
+          trigger_event_id: string | null
+        }
+        Insert: {
+          changed_at?: string
+          id?: string
+          lead_id: string
+          new_status: string
+          old_status?: string | null
+          trigger_event?: string | null
+          trigger_event_id?: string | null
+        }
+        Update: {
+          changed_at?: string
+          id?: string
+          lead_id?: string
+          new_status?: string
+          old_status?: string | null
+          trigger_event?: string | null
+          trigger_event_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_stage_history_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_tags: {
         Row: {
           created_at: string
@@ -461,6 +499,8 @@ export type Database = {
           first_name: string
           id: string
           intent_tag: string | null
+          is_stuck: boolean | null
+          last_activity_at: string | null
           last_name: string
           lead_score: number | null
           loan_purpose: string | null
@@ -487,6 +527,8 @@ export type Database = {
           first_name: string
           id?: string
           intent_tag?: string | null
+          is_stuck?: boolean | null
+          last_activity_at?: string | null
           last_name: string
           lead_score?: number | null
           loan_purpose?: string | null
@@ -513,6 +555,8 @@ export type Database = {
           first_name?: string
           id?: string
           intent_tag?: string | null
+          is_stuck?: boolean | null
+          last_activity_at?: string | null
           last_name?: string
           lead_score?: number | null
           loan_purpose?: string | null
@@ -620,6 +664,11 @@ export type Database = {
         | "unqualified"
         | "converted"
         | "lost"
+        | "pre_qualified"
+        | "application_started"
+        | "underwriting"
+        | "approved"
+        | "closed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -768,6 +817,11 @@ export const Constants = {
         "unqualified",
         "converted",
         "lost",
+        "pre_qualified",
+        "application_started",
+        "underwriting",
+        "approved",
+        "closed",
       ],
     },
   },
