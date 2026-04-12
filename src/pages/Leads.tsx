@@ -20,7 +20,6 @@ import {
   Filter, Zap, Users, UserCheck, AlertTriangle,
 } from "lucide-react";
 import type { Tables, Enums } from "@/integrations/supabase/types";
-import { Constants } from "@/integrations/supabase/types";
 
 type Lead = Tables<"leads">;
 type LeadSource = Tables<"lead_sources">;
@@ -41,36 +40,23 @@ interface LeadTag {
   created_at: string;
 }
 
+// Lead-only statuses (pipeline stages belong to Deals/Pipeline view)
+const LEAD_STATUSES = ["new", "contacted", "qualified", "unqualified"] as const;
+type LeadStatusValue = typeof LEAD_STATUSES[number];
+
 const statusColors: Record<string, string> = {
   new: "bg-primary/10 text-primary border-primary/20",
   contacted: "bg-accent/10 text-accent-foreground border-accent/30",
-  pre_qualified: "bg-sky-500/10 text-sky-600 border-sky-500/20",
   qualified: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
-  application_started: "bg-violet-500/10 text-violet-600 border-violet-500/20",
-  underwriting: "bg-orange-500/10 text-orange-600 border-orange-500/20",
-  approved: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30",
-  closed: "bg-emerald-500 text-white border-emerald-600",
   unqualified: "bg-muted text-muted-foreground border-border",
-  converted: "bg-emerald-500 text-white border-emerald-600",
-  lost: "bg-destructive/10 text-destructive border-destructive/20",
 };
 
 const stageLabels: Record<string, string> = {
-  new: "New Lead",
+  new: "New",
   contacted: "Contacted",
-  pre_qualified: "Pre-Qualified",
   qualified: "Qualified",
-  application_started: "Application Started",
-  underwriting: "Underwriting",
-  approved: "Approved",
-  closed: "Closed",
   unqualified: "Unqualified",
-  converted: "Converted",
-  lost: "Lost",
 };
-
-// Pipeline stages in order for kanban
-const pipelineStages = ["new", "contacted", "pre_qualified", "application_started", "underwriting", "approved", "closed"] as const;
 
 const eventIcons: Record<string, typeof Eye> = {
   blog_view: Eye,
@@ -283,7 +269,7 @@ export default function Leads() {
     [leads]
   );
 
-  const statuses = Constants.public.Enums.lead_status;
+  const statuses = LEAD_STATUSES;
 
   return (
     <div className="flex h-[calc(100vh-3.5rem)] overflow-hidden">
@@ -505,7 +491,7 @@ export default function Leads() {
           ) : (
             /* Kanban View */
             <div className="flex gap-3 p-4 overflow-x-auto h-full">
-              {pipelineStages.map(status => {
+              {LEAD_STATUSES.map(status => {
                 const statusLeads = filtered.filter(l => l.status === status);
                 return (
                   <div key={status} className="flex-shrink-0 w-64">
