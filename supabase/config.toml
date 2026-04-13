@@ -2,3 +2,6 @@ project_id = "hyskofjwotohgdtocsie"
 
 [functions.generate-blog-post]
 verify_jwt = false
+
+[functions.parse-market-commentary]
+verify_jwt = false
