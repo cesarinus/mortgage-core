@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, Users, Contact, Kanban, Settings, LogOut, Building2, FileText,
+  LayoutDashboard, Users, Contact, Kanban, Settings, LogOut, Building2, FileText, TrendingUp,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
@@ -15,6 +15,7 @@ const navItems = [
   { title: "Contacts", url: "/contacts", icon: Contact },
   { title: "Pipeline", url: "/pipeline", icon: Kanban },
   { title: "Blog Manager", url: "/blog-admin", icon: FileText },
+  { title: "Lock vs Float", url: "/rate-decision", icon: TrendingUp },
   { title: "Settings", url: "/settings", icon: Settings },
 ];
 

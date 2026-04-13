@@ -611,6 +611,57 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_decisions: {
+        Row: {
+          confidence: string
+          created_at: string
+          created_by: string | null
+          decision_date: string
+          explanation: string | null
+          id: string
+          mbs_direction: string
+          rate_change: number
+          recommendation: string
+          risk_profile: string
+          time_of_day: string | null
+          total_score: number
+          trend_indicator: string
+          updated_at: string
+        }
+        Insert: {
+          confidence?: string
+          created_at?: string
+          created_by?: string | null
+          decision_date?: string
+          explanation?: string | null
+          id?: string
+          mbs_direction?: string
+          rate_change?: number
+          recommendation?: string
+          risk_profile?: string
+          time_of_day?: string | null
+          total_score?: number
+          trend_indicator?: string
+          updated_at?: string
+        }
+        Update: {
+          confidence?: string
+          created_at?: string
+          created_by?: string | null
+          decision_date?: string
+          explanation?: string | null
+          id?: string
+          mbs_direction?: string
+          rate_change?: number
+          recommendation?: string
+          risk_profile?: string
+          time_of_day?: string | null
+          total_score?: number
+          trend_indicator?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
