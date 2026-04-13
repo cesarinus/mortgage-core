@@ -17,6 +17,7 @@ import SettingsPage from "@/pages/SettingsPage";
 import BlogIndex from "@/pages/BlogIndex";
 import BlogPost from "@/pages/BlogPost";
 import BlogAdmin from "@/pages/BlogAdmin";
+import RateDecision from "@/pages/RateDecision";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -47,6 +48,7 @@ const App = () => (
                 <Route path="/pipeline" element={<Pipeline />} />
                 <Route path="/settings" element={<SettingsPage />} />
                 <Route path="/blog-admin" element={<BlogAdmin />} />
+                <Route path="/rate-decision" element={<RateDecision />} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
