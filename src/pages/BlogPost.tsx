@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CalendarDays, ArrowLeft, User } from "lucide-react";
 import { Helmet } from "react-helmet-async";
+import { SITE_URL } from "@/lib/seoConstants";
 import { injectInternalLinks } from "@/lib/internalLinking";
 import { useBlogTracking } from "@/hooks/useBlogTracking";
 import { useBlogVariants } from "@/hooks/useBlogVariants";
@@ -138,9 +139,25 @@ const BlogPost = () => {
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
-        <title>{post.meta_title || post.title} | NexGenSWFL</title>
+        <title>{post.meta_title || post.title} | NexGen Capital</title>
         <meta name="description" content={post.meta_description || post.excerpt || ""} />
-        <link rel="canonical" href={`https://ngcapital.net/blog/${post.slug}`} />
+        {post.keywords && post.keywords.length > 0 && (
+          <meta name="keywords" content={post.keywords.join(", ")} />
+        )}
+        <meta name="robots" content="index, follow" />
+        <link rel="canonical" href={`${SITE_URL}/blog/${post.slug}`} />
+        <meta property="og:title" content={post.meta_title || post.title} />
+        <meta property="og:description" content={post.meta_description || post.excerpt || ""} />
+        <meta property="og:type" content="article" />
+        <meta property="og:url" content={`${SITE_URL}/blog/${post.slug}`} />
+        <meta property="og:site_name" content="NexGen Capital" />
+        {post.featured_image && <meta property="og:image" content={post.featured_image} />}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={post.meta_title || post.title} />
+        <meta name="twitter:description" content={post.meta_description || post.excerpt || ""} />
+        {post.featured_image && <meta name="twitter:image" content={post.featured_image} />}
+        <meta property="article:published_time" content={post.created_at} />
+        <meta property="article:author" content={post.author} />
       </Helmet>
 
       <Navbar />
