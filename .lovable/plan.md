@@ -1,41 +1,59 @@
 
 
-# Daily Lock vs Float Decision Engine
+# Add Joomla-Level SEO Metadata + 25 Mortgage Keywords
 
 ## Summary
-Create the `rate_decisions` database table and build a full-featured dashboard page for mortgage rate lock/float recommendations based on market signals.
+Add comprehensive SEO metadata (meta keywords, robots directives, canonical URLs, Open Graph tags) to every page and blog article — matching Joomla CMS capabilities. Also research and embed the 25 most important mortgage/lending keywords site-wide.
 
-## Step 1: Database Migration
-Create `rate_decisions` table with columns: `rate_change` (numeric), `mbs_direction` (text), `trend_indicator` (text), `risk_profile` (text), `total_score` (integer), `recommendation` (text), `confidence` (text), `time_of_day` (text), `explanation` (text), `created_by` (uuid), `decision_date` (date), timestamps. Enable RLS with authenticated user policies. Enable realtime.
+## Step 1: Research 25 Core Mortgage Keywords
+Use AI to identify the 25 highest-value SEO keywords for a Southwest Florida mortgage lender. These will be used as the site-level meta keywords and inform per-page keyword assignments.
 
-## Step 2: New Page — `src/pages/RateDecision.tsx`
-Build the decision engine UI with:
-- **Input Form**: Rate change (+/-), MBS direction (increased/decreased/unchanged), trend indicator (positive/negative/minimal), risk profile toggle (Conservative/Aggressive)
-- **Scoring Engine** (client-side logic):
-  - Rate up = -1, down = +1
-  - MBS increased = +2, decreased = -2
-  - Trend positive = +1, negative = -1
-  - Time-of-day bias: before 10AM +1, 11AM-2PM flag "Reprice Window", after 3PM -1
-  - Risk profile shift: Conservative -1, Aggressive +1
-- **Output Display**:
-  - Score gauge (green/yellow/red)
-  - Recommendation badge (LOCK NOW / LOCK / WATCH / FLOAT CAUTIOUS / FLOAT)
-  - Confidence level (Low/Medium/High based on score magnitude)
-  - AI-generated explanation text
-  - "Loan Officer Action" section with next steps
-- **7-Day Trend Chart**: Line chart of recent scores from `rate_decisions` table using Recharts
-- **History Table**: Recent decisions with date, score, recommendation
+Expected output (examples): "mortgage rates", "FHA loan", "VA loan", "home refinance", "first-time homebuyer", "mortgage pre-approval", "Southwest Florida mortgage", "conventional loan", "closing costs", "down payment assistance", "USDA loan", "jumbo loan", "mortgage calculator", "home equity loan", "cash-out refinance", "interest rate lock", "mortgage broker near me", "home loan application", "debt-to-income ratio", "credit score mortgage", "ARM vs fixed rate", "loan estimate", "Cape Coral mortgage", "Fort Myers home loan", "Naples mortgage lender"
 
-## Step 3: AI Commentary Parser
-Create edge function `parse-market-commentary` that accepts MBS commentary text and uses Lovable AI to extract rate direction, MBS movement, and trend signals automatically. Called from the UI via an optional "Auto-Parse" button.
+## Step 2: Site-Level Meta Tags in `index.html`
+Add to `<head>`:
+- `<meta name="keywords" content="[25 keywords comma-separated]">`
+- `<meta name="robots" content="index, follow">`
+- `<meta name="content-rights" content="© 2025 NexGen Capital">`
+- Improve existing OG tags (add `og:url`, `og:site_name`, `og:image`)
 
-## Step 4: Routing & Navigation
-- Add `/rate-decision` route in `App.tsx` (protected)
-- Add sidebar nav link in `AppSidebar.tsx`
+## Step 3: Per-Page SEO with `react-helmet-async`
+Add `<Helmet>` blocks to pages that currently lack them:
 
-## Technical Details
-- Scoring logic lives in a utility function `src/lib/rateDecisionEngine.ts`
-- Uses existing Recharts setup for the 7-day trend chart
-- Stores each decision to `rate_decisions` for analytics
-- RLS: users can CRUD their own decisions, admins can access all
+- **LandingPage.tsx** — Title, description, keywords (homepage-focused subset), canonical `/`, robots
+- **BlogIndex.tsx** — Title "Mortgage Blog | NexGen Capital", description, keywords (blog-focused subset), canonical `/blog`
+- **Auth.tsx** — Title, `noindex, nofollow` robots (login page should not be indexed)
+- **NotFound.tsx** — `noindex` robots
+
+## Step 4: Blog Article Meta Keywords
+In **BlogPost.tsx**, add to the existing `<Helmet>`:
+- `<meta name="keywords" content={post.keywords.join(", ")}>`
+- `<meta name="robots" content="index, follow">`
+- `<meta property="og:title">`, `og:description`, `og:image`, `og:url`, `og:type=article`
+- `<meta name="twitter:title">`, `twitter:description`, `twitter:image`
+- `<meta property="article:published_time">`
+- `<meta property="article:author">`
+
+## Step 5: Update `robots.txt`
+Add a Sitemap directive:
+```text
+Sitemap: https://ngcapital.net/sitemap.xml
+```
+
+## Step 6: Create SEO Constants File
+Create `src/lib/seoConstants.ts` to centralize:
+- Site name, default title template
+- The 25 keywords (full list + per-page subsets)
+- Default OG image URL
+- Robots defaults
+
+## Files Changed
+- `index.html` — Add meta keywords, robots, enhanced OG tags
+- `src/lib/seoConstants.ts` — New constants file
+- `src/pages/LandingPage.tsx` — Add Helmet with per-page SEO
+- `src/pages/BlogIndex.tsx` — Add Helmet with per-page SEO
+- `src/pages/BlogPost.tsx` — Extend Helmet with keywords, OG, Twitter, article meta
+- `src/pages/Auth.tsx` — Add Helmet with noindex
+- `src/pages/NotFound.tsx` — Add Helmet with noindex
+- `public/robots.txt` — Add Sitemap directive
 
