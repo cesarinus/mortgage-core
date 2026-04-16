@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/landing/Navbar";
 import Footer from "@/components/landing/Footer";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CalendarDays, ArrowRight } from "lucide-react";
+import { SITE_URL, BLOG_KEYWORDS_STRING } from "@/lib/seoConstants";
 
 interface BlogPost {
   id: string;
@@ -32,13 +34,13 @@ const BlogIndex = () => {
         .eq("status", "published")
         .order("created_at", { ascending: false });
 
-      if (!error && data) setPosts(data);
+      if (!error && data) setPosts(data as BlogPost[]);
       setLoading(false);
     };
     fetchPosts();
   }, []);
 
-  const categories = [...new Set(posts.map((p) => p.category).filter(Boolean))];
+  const categories = [...new Set(posts.map((p) => p.category).filter(Boolean))] as string[];
   const filtered = selectedCategory
     ? posts.filter((p) => p.category === selectedCategory)
     : posts;
@@ -46,6 +48,13 @@ const BlogIndex = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <Helmet>
+        <title>Mortgage Blog | NexGen Capital</title>
+        <meta name="description" content="Expert mortgage insights, rate updates, and homebuying guides for Southwest Florida. Stay informed with NexGen Capital's blog." />
+        <meta name="keywords" content={BLOG_KEYWORDS_STRING} />
+        <meta name="robots" content="index, follow" />
+        <link rel="canonical" href={`${SITE_URL}/blog`} />
+      </Helmet>
       <Navbar />
 
       {/* Hero */}
