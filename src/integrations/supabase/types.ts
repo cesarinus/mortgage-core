@@ -236,6 +236,50 @@ export type Database = {
           },
         ]
       }
+      chat_sessions: {
+        Row: {
+          created_at: string
+          first_message_at: string
+          id: string
+          last_message_at: string
+          lead_id: string | null
+          messages_count: number
+          session_id: string
+          total_score: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          first_message_at?: string
+          id?: string
+          last_message_at?: string
+          lead_id?: string | null
+          messages_count?: number
+          session_id: string
+          total_score?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          first_message_at?: string
+          id?: string
+          last_message_at?: string
+          lead_id?: string | null
+          messages_count?: number
+          session_id?: string
+          total_score?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_sessions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contacts: {
         Row: {
           address: string | null
@@ -491,6 +535,7 @@ export type Database = {
           annual_income: number | null
           assigned_to: string | null
           blog_session_id: string | null
+          chat_session_id: string | null
           created_at: string
           created_by: string | null
           credit_range: string | null
@@ -519,6 +564,7 @@ export type Database = {
           annual_income?: number | null
           assigned_to?: string | null
           blog_session_id?: string | null
+          chat_session_id?: string | null
           created_at?: string
           created_by?: string | null
           credit_range?: string | null
@@ -547,6 +593,7 @@ export type Database = {
           annual_income?: number | null
           assigned_to?: string | null
           blog_session_id?: string | null
+          chat_session_id?: string | null
           created_at?: string
           created_by?: string | null
           credit_range?: string | null
