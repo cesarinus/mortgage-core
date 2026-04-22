@@ -72,6 +72,9 @@ const Navbar = ({ onGetStarted }: NavbarProps) => {
             <button onClick={handleContact} className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">
               Contact
             </button>
+            <Link to="/book">
+              <Button variant="outline" size="sm">Book a Meeting</Button>
+            </Link>
             <Button className="btn-shadow" onClick={handleGetStarted}>Get Started</Button>
           </div>
 
@@ -97,6 +100,9 @@ const Navbar = ({ onGetStarted }: NavbarProps) => {
               <button onClick={handleContact} className="rounded-lg px-3 py-2 text-left text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground">
                 Contact
               </button>
+              <Link to="/book" className="rounded-lg px-3 py-2 text-left text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground" onClick={() => setIsOpen(false)}>
+                Book a Meeting
+              </Link>
               <Button className="btn-shadow w-full" onClick={handleGetStarted}>Get Started</Button>
             </div>
           </div>
