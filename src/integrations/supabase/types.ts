@@ -236,6 +236,119 @@ export type Database = {
           },
         ]
       }
+      booking_blackout_dates: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          reason: string | null
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          reason?: string | null
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          reason?: string | null
+        }
+        Relationships: []
+      }
+      booking_settings: {
+        Row: {
+          buffer_minutes: number
+          created_at: string
+          id: string
+          notify_email: string
+          slot_minutes: number
+          timezone: string
+          updated_at: string
+          weekday_hours: Json
+        }
+        Insert: {
+          buffer_minutes?: number
+          created_at?: string
+          id?: string
+          notify_email?: string
+          slot_minutes?: number
+          timezone?: string
+          updated_at?: string
+          weekday_hours?: Json
+        }
+        Update: {
+          buffer_minutes?: number
+          created_at?: string
+          id?: string
+          notify_email?: string
+          slot_minutes?: number
+          timezone?: string
+          updated_at?: string
+          weekday_hours?: Json
+        }
+        Relationships: []
+      }
+      bookings: {
+        Row: {
+          created_at: string
+          email: string
+          end_at: string
+          first_name: string
+          id: string
+          last_name: string
+          lead_id: string | null
+          loan_type: string | null
+          meeting_type: string
+          notes: string | null
+          phone: string
+          start_at: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          end_at: string
+          first_name: string
+          id?: string
+          last_name: string
+          lead_id?: string | null
+          loan_type?: string | null
+          meeting_type?: string
+          notes?: string | null
+          phone: string
+          start_at: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          end_at?: string
+          first_name?: string
+          id?: string
+          last_name?: string
+          lead_id?: string | null
+          loan_type?: string | null
+          meeting_type?: string
+          notes?: string | null
+          phone?: string
+          start_at?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chat_sessions: {
         Row: {
           created_at: string
@@ -735,6 +848,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_available_slots: { Args: { p_date: string }; Returns: string[] }
       has_role: {
         Args: { _role: Database["public"]["Enums"]["app_role"] }
         Returns: boolean
