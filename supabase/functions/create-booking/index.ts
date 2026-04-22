@@ -59,10 +59,7 @@ Deno.serve(async (req) => {
       notes: notes ? String(notes).trim().slice(0, 1000) : null,
     };
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
+    const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
     // Load settings for slot length + notify email
     const { data: settings } = await supabase
@@ -83,22 +80,18 @@ Deno.serve(async (req) => {
     const { data: slots } = await supabase.rpc("get_available_slots", { p_date: dateISO });
     const startMs = start.getTime();
     const isAvail = (slots ?? []).some((s: any) => {
-      const v = typeof s === "string" ? s : s.get_available_slots ?? s;
+      const v = typeof s === "string" ? s : (s.get_available_slots ?? s);
       return new Date(v).getTime() === startMs;
     });
     if (!isAvail) {
-      return new Response(
-        JSON.stringify({ error: "That time slot is no longer available. Please choose another." }),
-        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+      return new Response(JSON.stringify({ error: "That time slot is no longer available. Please choose another." }), {
+        status: 409,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Find or create lead
-    const { data: existingLead } = await supabase
-      .from("leads")
-      .select("id")
-      .eq("email", sanitized.email)
-      .maybeSingle();
+    const { data: existingLead } = await supabase.from("leads").select("id").eq("email", sanitized.email).maybeSingle();
 
     let leadId: string | null = existingLead?.id ?? null;
 
@@ -191,7 +184,7 @@ Deno.serve(async (req) => {
           </div>
           <p style="color: #334155; line-height: 1.6;">${meetingNote}</p>
           <p style="color: #334155; line-height: 1.6;">If you need to reschedule or have questions before our meeting, just reply to this email.</p>
-          <p style="margin-top: 28px; color: #334155;">Talk soon,<br/><strong>Carlos Martinez</strong><br/>NexGen Capital</p>
+          <p style="margin-top: 28px; color: #334155;">Talk soon,<br/><strong>Cesar A Martinez</strong><br/>NexGen Capital</p>
         </div>
         <div style="padding: 16px 24px; background: #f8fafc; border-top: 1px solid #e2e8f0; font-size: 12px; color: #94a3b8; text-align: center;">
           NexGen Capital · NMLS #1766649 · Naples, FL
@@ -240,7 +233,12 @@ Deno.serve(async (req) => {
 
     await Promise.all([
       sendEmail(sanitized.email, `Your NexGen Capital meeting — ${whenLong}`, prospectHtml),
-      sendEmail(notifyEmail, `New booking — ${sanitized.first_name} ${sanitized.last_name} — ${whenLong}`, internalHtml, sanitized.email),
+      sendEmail(
+        notifyEmail,
+        `New booking — ${sanitized.first_name} ${sanitized.last_name} — ${whenLong}`,
+        internalHtml,
+        sanitized.email,
+      ),
     ]);
 
     return new Response(JSON.stringify({ success: true, bookingId: booking.id }), {
