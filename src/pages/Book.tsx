@@ -80,14 +80,22 @@ export default function Book() {
                     N
                   </div>
                   <p className="mt-3 text-sm font-medium text-muted-foreground">NexGen Capital</p>
-                  <h2 className="font-display text-xl font-semibold">Carlos Martinez</h2>
+                  <h2 className="font-display text-xl font-semibold">Cesar A Martinez</h2>
                   <p className="mt-1 text-xs text-muted-foreground">Mortgage Consultation</p>
 
                   <ul className="mt-5 space-y-3 text-sm text-muted-foreground">
-                    <li className="flex items-center gap-2"><Clock className="h-4 w-4 text-primary" /> 30 minutes</li>
-                    <li className="flex items-center gap-2"><Phone className="h-4 w-4 text-primary" /> Phone call</li>
-                    <li className="flex items-center gap-2"><Video className="h-4 w-4 text-primary" /> Or Zoom video</li>
-                    <li className="flex items-center gap-2"><MapPin className="h-4 w-4 text-primary" /> Naples, FL · ET</li>
+                    <li className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-primary" /> 30 minutes
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Phone className="h-4 w-4 text-primary" /> Phone call
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Video className="h-4 w-4 text-primary" /> Or Zoom video
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4 text-primary" /> Naples, FL · ET
+                    </li>
                   </ul>
 
                   {step !== "done" && selectedSlot && (
@@ -103,16 +111,9 @@ export default function Book() {
                 <section className="p-6 md:p-8">
                   {step === "pick" && (
                     <>
-                      <BookingCalendar
-                        selectedSlot={selectedSlot}
-                        onSelectSlot={setSelectedSlot}
-                      />
+                      <BookingCalendar selectedSlot={selectedSlot} onSelectSlot={setSelectedSlot} />
                       <div className="mt-6 flex justify-end">
-                        <Button
-                          disabled={!selectedSlot}
-                          onClick={() => setStep("details")}
-                          className="btn-shadow"
-                        >
+                        <Button disabled={!selectedSlot} onClick={() => setStep("details")} className="btn-shadow">
                           Continue <ArrowRight className="ml-1 h-4 w-4" />
                         </Button>
                       </div>
@@ -130,9 +131,7 @@ export default function Book() {
                     </>
                   )}
 
-                  {step === "done" && confirmed && (
-                    <BookingSuccess {...confirmed} />
-                  )}
+                  {step === "done" && confirmed && <BookingSuccess {...confirmed} />}
                 </section>
               </div>
             </div>
