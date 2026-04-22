@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Shield, TrendingUp, MapPin } from "lucide-react";
+import { ArrowRight, Shield, TrendingUp, MapPin, Calendar } from "lucide-react";
+import { Link } from "react-router-dom";
 
 interface HeroSectionProps {
   onApplyNow?: () => void;
@@ -44,7 +45,10 @@ const HeroSection = ({ onApplyNow }: HeroSectionProps) => {
             <Button size="lg" className="btn-shadow w-full sm:w-auto" onClick={onApplyNow}>
               Apply Now <ArrowRight className="ml-1 h-4 w-4" />
             </Button>
-            <Button size="lg" variant="outline" className="w-full sm:w-auto" onClick={scrollToServices}>
+            <Button asChild size="lg" variant="outline" className="w-full sm:w-auto">
+              <Link to="/book"><Calendar className="mr-1 h-4 w-4" /> Book a Meeting</Link>
+            </Button>
+            <Button size="lg" variant="ghost" className="w-full sm:w-auto" onClick={scrollToServices}>
               Learn More
             </Button>
           </div>

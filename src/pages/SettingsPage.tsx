@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import BookingAvailabilitySettings from "@/components/settings/BookingAvailabilitySettings";
 
 export default function SettingsPage() {
   const { user } = useAuth();
@@ -62,6 +63,7 @@ export default function SettingsPage() {
           <Button onClick={saveProfile}>Save changes</Button>
         </CardContent>
       </Card>
+      <BookingAvailabilitySettings />
     </div>
   );
 }
