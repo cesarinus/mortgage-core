@@ -822,6 +822,246 @@ export type Database = {
         }
         Relationships: []
       }
+      social_account_settings: {
+        Row: {
+          brand_voice: string | null
+          business_name: string | null
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string
+          default_image_url: string | null
+          facebook_page_id: string | null
+          id: string
+          instagram_business_id: string | null
+          linkedin_org_urn: string | null
+          updated_at: string
+          website_url: string | null
+        }
+        Insert: {
+          brand_voice?: string | null
+          business_name?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          default_image_url?: string | null
+          facebook_page_id?: string | null
+          id?: string
+          instagram_business_id?: string | null
+          linkedin_org_urn?: string | null
+          updated_at?: string
+          website_url?: string | null
+        }
+        Update: {
+          brand_voice?: string | null
+          business_name?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          default_image_url?: string | null
+          facebook_page_id?: string | null
+          id?: string
+          instagram_business_id?: string | null
+          linkedin_org_urn?: string | null
+          updated_at?: string
+          website_url?: string | null
+        }
+        Relationships: []
+      }
+      social_debug_logs: {
+        Row: {
+          created_at: string
+          id: string
+          message: string | null
+          metadata: Json | null
+          post_id: string | null
+          status: string
+          step: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message?: string | null
+          metadata?: Json | null
+          post_id?: string | null
+          status: string
+          step: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string | null
+          metadata?: Json | null
+          post_id?: string | null
+          status?: string
+          step?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_debug_logs_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "social_media_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      social_media_analytics: {
+        Row: {
+          created_at: string
+          id: string
+          interaction_type: string
+          lead_id: string | null
+          post_id: string
+          source_platform: Database["public"]["Enums"]["social_platform"] | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          interaction_type: string
+          lead_id?: string | null
+          post_id: string
+          source_platform?:
+            | Database["public"]["Enums"]["social_platform"]
+            | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          interaction_type?: string
+          lead_id?: string | null
+          post_id?: string
+          source_platform?:
+            | Database["public"]["Enums"]["social_platform"]
+            | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_media_analytics_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "social_media_analytics_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "social_media_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      social_media_posts: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          cta_link: string | null
+          engagement_clicks: number | null
+          facebook_post_id: string | null
+          hashtags: string[] | null
+          id: string
+          image_placeholder: string | null
+          image_url: string | null
+          instagram_post_id: string | null
+          leads_generated: number | null
+          linkedin_post_id: string | null
+          location_tags: string[] | null
+          mentions: string[] | null
+          meta_post_id: string | null
+          platform: Database["public"]["Enums"]["social_platform"]
+          post_text: string
+          post_type: Database["public"]["Enums"]["social_post_type"]
+          published_at: string | null
+          scheduled_date: string
+          scheduled_time: string | null
+          status: Database["public"]["Enums"]["social_post_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          cta_link?: string | null
+          engagement_clicks?: number | null
+          facebook_post_id?: string | null
+          hashtags?: string[] | null
+          id?: string
+          image_placeholder?: string | null
+          image_url?: string | null
+          instagram_post_id?: string | null
+          leads_generated?: number | null
+          linkedin_post_id?: string | null
+          location_tags?: string[] | null
+          mentions?: string[] | null
+          meta_post_id?: string | null
+          platform?: Database["public"]["Enums"]["social_platform"]
+          post_text: string
+          post_type: Database["public"]["Enums"]["social_post_type"]
+          published_at?: string | null
+          scheduled_date: string
+          scheduled_time?: string | null
+          status?: Database["public"]["Enums"]["social_post_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          cta_link?: string | null
+          engagement_clicks?: number | null
+          facebook_post_id?: string | null
+          hashtags?: string[] | null
+          id?: string
+          image_placeholder?: string | null
+          image_url?: string | null
+          instagram_post_id?: string | null
+          leads_generated?: number | null
+          linkedin_post_id?: string | null
+          location_tags?: string[] | null
+          mentions?: string[] | null
+          meta_post_id?: string | null
+          platform?: Database["public"]["Enums"]["social_platform"]
+          post_text?: string
+          post_type?: Database["public"]["Enums"]["social_post_type"]
+          published_at?: string | null
+          scheduled_date?: string
+          scheduled_time?: string | null
+          status?: Database["public"]["Enums"]["social_post_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      social_media_schedule: {
+        Row: {
+          created_at: string
+          day_of_week: number
+          default_time: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          post_type: Database["public"]["Enums"]["social_post_type"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          day_of_week: number
+          default_time?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          post_type: Database["public"]["Enums"]["social_post_type"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          day_of_week?: number
+          default_time?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          post_type?: Database["public"]["Enums"]["social_post_type"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -881,6 +1121,16 @@ export type Database = {
         | "underwriting"
         | "approved"
         | "closed"
+      social_platform: "facebook" | "instagram" | "linkedin" | "all"
+      social_post_status: "draft" | "scheduled" | "published" | "failed"
+      social_post_type:
+        | "featured_business"
+        | "local_tips"
+        | "events_promotions"
+        | "ai_tools"
+        | "success_stories"
+        | "community_highlight"
+        | "summary_reminder"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1034,6 +1284,17 @@ export const Constants = {
         "underwriting",
         "approved",
         "closed",
+      ],
+      social_platform: ["facebook", "instagram", "linkedin", "all"],
+      social_post_status: ["draft", "scheduled", "published", "failed"],
+      social_post_type: [
+        "featured_business",
+        "local_tips",
+        "events_promotions",
+        "ai_tools",
+        "success_stories",
+        "community_highlight",
+        "summary_reminder",
       ],
     },
   },

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { SocialIcons } from "@/components/SocialIcons";
 
 type LegalDoc = "privacy" | "terms" | null;
 
@@ -23,6 +24,7 @@ const Footer = () => {
             <p className="mt-3 text-sm leading-relaxed opacity-70">
               Southwest Florida's trusted mortgage lending partner since 2009.
             </p>
+            <SocialIcons variant="light" className="mt-4" />
           </div>
 
           {/* Quick links */}

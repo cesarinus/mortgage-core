@@ -19,6 +19,7 @@ import BlogPost from "@/pages/BlogPost";
 import BlogAdmin from "@/pages/BlogAdmin";
 import RateDecision from "@/pages/RateDecision";
 import Book from "@/pages/Book";
+import AdminSocialMedia from "@/pages/AdminSocialMedia";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -51,6 +52,7 @@ const App = () => (
                 <Route path="/settings" element={<SettingsPage />} />
                 <Route path="/blog-admin" element={<BlogAdmin />} />
                 <Route path="/rate-decision" element={<RateDecision />} />
+                <Route path="/admin/social-media" element={<AdminSocialMedia />} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
