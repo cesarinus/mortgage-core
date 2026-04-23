@@ -3,6 +3,7 @@ import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link, useLocation } from "react-router-dom";
 import { EmailContactSheet } from "@/components/landing/EmailContactSheet";
+import { SocialIcons } from "@/components/SocialIcons";
 
 interface NavbarProps {
   onGetStarted?: () => void;
@@ -76,6 +77,7 @@ const Navbar = ({ onGetStarted }: NavbarProps) => {
               <Button variant="outline" size="sm">Book a Meeting</Button>
             </Link>
             <Button className="btn-shadow" onClick={handleGetStarted}>Get Started</Button>
+            <SocialIcons className="ml-1" />
           </div>
 
           {/* Mobile hamburger */}
@@ -104,6 +106,9 @@ const Navbar = ({ onGetStarted }: NavbarProps) => {
                 Book a Meeting
               </Link>
               <Button className="btn-shadow w-full" onClick={handleGetStarted}>Get Started</Button>
+              <div className="pt-2 flex justify-center">
+                <SocialIcons />
+              </div>
             </div>
           </div>
         )}
