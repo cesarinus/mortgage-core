@@ -40,9 +40,9 @@ export type SocialPost = {
 };
 
 const platformIcon = (p: string) => {
-  if (p === "facebook") return <Facebook className="h-4 w-4 text-blue-600" />;
-  if (p === "instagram") return <Instagram className="h-4 w-4 text-pink-600" />;
-  if (p === "linkedin") return <Linkedin className="h-4 w-4 text-sky-700" />;
+  if (p === "facebook") return <Facebook className="h-4 w-4 text-primary" />;
+  if (p === "instagram") return <Instagram className="h-4 w-4 text-primary" />;
+  if (p === "linkedin") return <Linkedin className="h-4 w-4 text-primary" />;
   return <Globe className="h-4 w-4 text-muted-foreground" />;
 };
 
