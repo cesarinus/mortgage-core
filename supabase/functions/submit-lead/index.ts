@@ -157,12 +157,26 @@ Deno.serve(async (req) => {
         .eq("session_id", blog_session_id);
     }
 
-    if (error) {
-      console.error("DB insert error:", error);
-      return new Response(JSON.stringify({ error: "Failed to submit. Please try again." }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    // Notify the loan officer that a new lead was created (fire-and-forget)
+    try {
+      await supabase.functions.invoke("notify-lead-event", {
+        body: {
+          event: "created",
+          lead_id: leadData?.id,
+          first_name,
+          last_name,
+          email,
+          phone,
+          loan_purpose,
+          property_value,
+          lead_score,
+          source,
+          intent_tag,
+          notes,
+        },
       });
+    } catch (notifyErr) {
+      console.error("notify-lead-event failed (non-fatal):", notifyErr);
     }
 
     return new Response(JSON.stringify({ success: true }), {
