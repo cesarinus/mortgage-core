@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
-import { Calculator, Info, MessageCircle, CheckCircle2, Loader2 } from "lucide-react";
+import { Calculator, Info, MessageCircle, CheckCircle2, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -157,9 +157,17 @@ const MortgageCalculator = ({ open, onOpenChange }: MortgageCalculatorProps) => 
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
-        className="w-full overflow-y-auto p-0 sm:max-w-[480px]"
+        className="w-full overflow-y-auto p-0 sm:max-w-[640px] lg:max-w-[960px] xl:max-w-[1040px]"
       >
-        <div className="sticky top-0 z-10 flex items-center gap-2 border-b bg-background/95 px-6 py-4 backdrop-blur">
+        <div className="sticky top-0 z-20 flex items-center gap-3 border-b bg-background/95 px-6 py-4 backdrop-blur">
+          <button
+            type="button"
+            onClick={() => onOpenChange(false)}
+            aria-label="Close calculator"
+            className="flex h-9 w-9 items-center justify-center rounded-full border bg-background text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+          >
+            <X className="h-4 w-4" />
+          </button>
           <Calculator className="h-5 w-5 text-primary" />
           <SheetHeader className="flex-1 text-left">
             <SheetTitle className="font-display text-xl">Mortgage Calculator</SheetTitle>
@@ -169,7 +177,9 @@ const MortgageCalculator = ({ open, onOpenChange }: MortgageCalculatorProps) => 
           </SheetHeader>
         </div>
 
-        <div className="space-y-6 px-6 py-5">
+        <div className="grid gap-6 px-6 py-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)]">
+          {/* LEFT COLUMN — Inputs */}
+          <div className="space-y-6">
           {/* Home price */}
           <div className="space-y-2">
             <Label htmlFor="home-price">Home Price</Label>
@@ -347,10 +357,10 @@ const MortgageCalculator = ({ open, onOpenChange }: MortgageCalculatorProps) => 
               {formatUSD(insAnnual / 12, 2)} / month
             </p>
           </div>
+          </div>
 
-          <Separator />
-
-          {/* Results */}
+          {/* RIGHT COLUMN — Results & lead capture (sticky on desktop) */}
+          <div className="space-y-6 lg:sticky lg:top-24 lg:self-start">
           <div className="space-y-4 rounded-lg border bg-card p-5">
             <div className="text-center">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">Estimated Monthly Payment</p>
@@ -360,7 +370,7 @@ const MortgageCalculator = ({ open, onOpenChange }: MortgageCalculatorProps) => 
             </div>
 
             {chartData.some((d) => d.value > 0) && (
-              <div className="h-44">
+              <div className="h-52">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
@@ -368,8 +378,8 @@ const MortgageCalculator = ({ open, onOpenChange }: MortgageCalculatorProps) => 
                       dataKey="value"
                       cx="50%"
                       cy="50%"
-                      innerRadius={50}
-                      outerRadius={75}
+                      innerRadius={55}
+                      outerRadius={85}
                       paddingAngle={2}
                     >
                       {chartData.map((entry, idx) => (
@@ -518,6 +528,7 @@ const MortgageCalculator = ({ open, onOpenChange }: MortgageCalculatorProps) => 
           <p className="pb-4 text-center text-[10px] text-muted-foreground">
             Estimates only. Not a loan commitment. NexGen Capital · NMLS #1766649
           </p>
+          </div>
         </div>
       </SheetContent>
     </Sheet>
