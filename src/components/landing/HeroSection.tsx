@@ -1,12 +1,13 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Shield, TrendingUp, MapPin, Calendar } from "lucide-react";
+import { ArrowRight, Shield, TrendingUp, MapPin, Calendar, Calculator } from "lucide-react";
 import { Link } from "react-router-dom";
 
 interface HeroSectionProps {
   onApplyNow?: () => void;
+  onCalculate?: () => void;
 }
 
-const HeroSection = ({ onApplyNow }: HeroSectionProps) => {
+const HeroSection = ({ onApplyNow, onCalculate }: HeroSectionProps) => {
   const scrollToServices = () => {
     const el = document.getElementById("services");
     if (el) el.scrollIntoView({ behavior: "smooth" });
@@ -41,9 +42,12 @@ const HeroSection = ({ onApplyNow }: HeroSectionProps) => {
           </p>
 
           {/* CTA buttons */}
-          <div className="animate-fade-up mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center" style={{ animationDelay: "0.3s" }}>
+          <div className="animate-fade-up mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center sm:flex-wrap" style={{ animationDelay: "0.3s" }}>
             <Button size="lg" className="btn-shadow w-full sm:w-auto" onClick={onApplyNow}>
               Apply Now <ArrowRight className="ml-1 h-4 w-4" />
+            </Button>
+            <Button size="lg" variant="secondary" className="w-full sm:w-auto" onClick={onCalculate}>
+              <Calculator className="mr-1 h-4 w-4" /> Calculate My Payment
             </Button>
             <Button asChild size="lg" variant="outline" className="w-full sm:w-auto">
               <Link to="/book"><Calendar className="mr-1 h-4 w-4" /> Book a Meeting</Link>
