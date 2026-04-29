@@ -36,18 +36,6 @@ export function SocialIcons({ className, iconClassName, variant = "dark" }: Prop
           target="_blank"
           rel="noopener noreferrer"
           aria-label={`NexGen Capital on ${label}`}
-          onClick={(e) => {
-            // Defensive fallback: ensure navigation works even if a parent
-            // intercepts the click (e.g. event delegation on mobile).
-            if (!e.defaultPrevented) {
-              try {
-                window.open(href, "_blank", "noopener,noreferrer");
-                e.preventDefault();
-              } catch {
-                /* allow default <a> behavior */
-              }
-            }
-          }}
           className={cn(
             "inline-flex h-9 w-9 items-center justify-center rounded-full transition-colors",
             base,
