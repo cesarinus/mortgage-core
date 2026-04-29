@@ -6,9 +6,9 @@ import { cn } from "@/lib/utils";
  * TODO: Replace these placeholders with the official URLs.
  */
 export const SOCIAL_LINKS = {
-  facebook: "#",
-  instagram: "#",
-  linkedin: "#",
+  facebook: "https://www.facebook.com/CesarAMartinezNGC",
+  instagram: "https://www.instagram.com/cesarmartinezngc/",
+  linkedin: "https://www.linkedin.com/in/cesar-a-martinez-b294099/",
 };
 
 interface Props {
