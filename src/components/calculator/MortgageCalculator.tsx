@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
-import { Calculator, Info, MessageCircle, CheckCircle2, Loader2, X } from "lucide-react";
+import { Calculator, Info, MessageCircle, CheckCircle2, Loader2, X, Printer, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -49,8 +49,9 @@ const MortgageCalculator = ({ open, onOpenChange }: MortgageCalculatorProps) => 
   const [leadName, setLeadName] = useState("");
   const [leadEmail, setLeadEmail] = useState("");
   const [leadPhone, setLeadPhone] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const [submitting, setSubmitting] = useState<null | "quote" | "email" | "print">(null);
   const [submitted, setSubmitted] = useState<string | null>(null);
+  const [pendingAction, setPendingAction] = useState<"quote" | "email" | "print">("quote");
 
   const handleLoanTypeChange = (val: LoanType) => {
     setLoanType(val);
@@ -88,36 +89,88 @@ const MortgageCalculator = ({ open, onOpenChange }: MortgageCalculatorProps) => 
       : []),
   ];
 
-  const handleLeadSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const buildSummary = (loanTypeLabel: string) =>
+    [
+      `Source: Mortgage Calculator`,
+      `Loan Type: ${loanTypeLabel}`,
+      `Home Price: ${formatUSD(homePrice)}`,
+      `Down Payment: ${formatUSD(downPaymentDollars)} (${((downPaymentDollars / homePrice) * 100).toFixed(1)}%)`,
+      `Loan Amount: ${formatUSD(result.loanAmount)}`,
+      `Term: ${loanTermYears} years`,
+      `Rate: ${rate.toFixed(3)}%`,
+      `Estimated Monthly Payment: ${formatUSD(result.totalMonthly, 2)}`,
+      `  • P&I: ${formatUSD(result.monthlyPI, 2)}`,
+      `  • Tax: ${formatUSD(result.monthlyTax, 2)}/mo`,
+      `  • Insurance: ${formatUSD(result.monthlyInsurance, 2)}/mo`,
+      result.pmiRequired ? `  • PMI: ${formatUSD(result.monthlyPMI, 2)}/mo` : null,
+      `Total Interest: ${formatUSD(result.totalInterest)}`,
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+  const printQuote = (name: string, loanTypeLabel: string) => {
+    const w = window.open("", "_blank", "width=820,height=900");
+    if (!w) {
+      toast.error("Pop-up blocked. Allow pop-ups to print your quote.");
+      return;
+    }
+    const pmiRow = result.pmiRequired
+      ? `<tr><td>PMI</td><td style="text-align:right">${formatUSD(result.monthlyPMI, 2)}</td></tr>`
+      : "";
+    w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>NexGen Capital Mortgage Quote</title>
+      <style>
+        body{font-family:Arial,sans-serif;color:#0f172a;max-width:720px;margin:32px auto;padding:0 24px;}
+        h1{color:#ea580c;margin:0 0 4px;font-size:24px;}
+        h2{font-size:14px;margin:24px 0 8px;}
+        .hero{background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:18px;text-align:center;margin:16px 0 24px;}
+        .hero .label{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#9a3412;}
+        .hero .amount{font-size:32px;font-weight:700;color:#ea580c;margin-top:4px;}
+        table{width:100%;border-collapse:collapse;font-size:14px;margin-bottom:8px;}
+        td{padding:6px 0;color:#334155;}
+        td.label{color:#64748b;}
+        tr.total td{border-top:1px solid #e2e8f0;font-weight:700;color:#ea580c;padding-top:10px;}
+        footer{margin-top:32px;font-size:11px;color:#94a3b8;text-align:center;}
+      </style></head><body>
+      <h1>Your Mortgage Quote</h1>
+      <p>Prepared for ${name} · NexGen Capital</p>
+      <div class="hero"><div class="label">Estimated Monthly Payment</div><div class="amount">${formatUSD(result.totalMonthly, 2)}</div></div>
+      <h2>Loan Details</h2>
+      <table>
+        <tr><td class="label">Loan Type</td><td style="text-align:right">${loanTypeLabel}</td></tr>
+        <tr><td class="label">Home Price</td><td style="text-align:right">${formatUSD(homePrice)}</td></tr>
+        <tr><td class="label">Down Payment</td><td style="text-align:right">${formatUSD(downPaymentDollars)} (${((downPaymentDollars / homePrice) * 100).toFixed(1)}%)</td></tr>
+        <tr><td class="label">Loan Amount</td><td style="text-align:right">${formatUSD(result.loanAmount)}</td></tr>
+        <tr><td class="label">Term</td><td style="text-align:right">${loanTermYears} years</td></tr>
+        <tr><td class="label">Interest Rate</td><td style="text-align:right">${rate.toFixed(3)}%</td></tr>
+      </table>
+      <h2>Monthly Breakdown</h2>
+      <table>
+        <tr><td>Principal &amp; Interest</td><td style="text-align:right">${formatUSD(result.monthlyPI, 2)}</td></tr>
+        <tr><td>Property Tax</td><td style="text-align:right">${formatUSD(result.monthlyTax, 2)}</td></tr>
+        <tr><td>Homeowners Insurance</td><td style="text-align:right">${formatUSD(result.monthlyInsurance, 2)}</td></tr>
+        ${pmiRow}
+        <tr class="total"><td>Total Monthly</td><td style="text-align:right">${formatUSD(result.totalMonthly, 2)}</td></tr>
+      </table>
+      <p style="font-size:13px;color:#475569;">Total Interest Paid: <strong>${formatUSD(result.totalInterest)}</strong></p>
+      <footer>Estimates only. Not a loan commitment. NexGen Capital · NMLS #1766649</footer>
+      <script>window.onload=()=>{setTimeout(()=>window.print(),250);}</script>
+      </body></html>`);
+    w.document.close();
+  };
+
+  const handleAction = async (action: "quote" | "email" | "print", e?: React.FormEvent) => {
+    e?.preventDefault();
     if (!leadName.trim() || !leadEmail.trim()) {
       toast.error("Name and email are required");
       return;
     }
-    setSubmitting(true);
+    setSubmitting(action);
     try {
       const parts = leadName.trim().split(/\s+/);
       const first_name = parts[0];
       const last_name = parts.slice(1).join(" ") || "—";
       const loanTypeLabel = LOAN_TYPES.find((l) => l.value === loanType)?.label || loanType;
-
-      const summary = [
-        `Source: Mortgage Calculator`,
-        `Loan Type: ${loanTypeLabel}`,
-        `Home Price: ${formatUSD(homePrice)}`,
-        `Down Payment: ${formatUSD(downPaymentDollars)} (${((downPaymentDollars / homePrice) * 100).toFixed(1)}%)`,
-        `Loan Amount: ${formatUSD(result.loanAmount)}`,
-        `Term: ${loanTermYears} years`,
-        `Rate: ${rate.toFixed(3)}%`,
-        `Estimated Monthly Payment: ${formatUSD(result.totalMonthly, 2)}`,
-        `  • P&I: ${formatUSD(result.monthlyPI, 2)}`,
-        `  • Tax: ${formatUSD(result.monthlyTax, 2)}/mo`,
-        `  • Insurance: ${formatUSD(result.monthlyInsurance, 2)}/mo`,
-        result.pmiRequired ? `  • PMI: ${formatUSD(result.monthlyPMI, 2)}/mo` : null,
-        `Total Interest: ${formatUSD(result.totalInterest)}`,
-      ]
-        .filter(Boolean)
-        .join("\n");
+      const sourceMap = { quote: "calculator", email: "calculator_email", print: "calculator_print" } as const;
 
       const { data, error } = await supabase.functions.invoke("submit-lead", {
         body: {
@@ -127,8 +180,8 @@ const MortgageCalculator = ({ open, onOpenChange }: MortgageCalculatorProps) => 
           phone: leadPhone.trim() || undefined,
           loan_purpose: loanTypeLabel,
           property_value: homePrice,
-          source: "calculator",
-          notes: summary,
+          source: sourceMap[action],
+          notes: buildSummary(loanTypeLabel),
           intent_tag: loanType.includes("fha")
             ? "FHA"
             : loanType.includes("va")
@@ -141,6 +194,37 @@ const MortgageCalculator = ({ open, onOpenChange }: MortgageCalculatorProps) => 
         throw new Error((data as { error?: string })?.error || error?.message || "Submission failed");
       }
 
+      if (action === "email") {
+        const { error: emailErr } = await supabase.functions.invoke("email-quote", {
+          body: {
+            to: leadEmail.trim(),
+            name: first_name,
+            loanType: loanTypeLabel,
+            homePrice,
+            downPayment: downPaymentDollars,
+            downPaymentPct: homePrice > 0 ? (downPaymentDollars / homePrice) * 100 : 0,
+            loanAmount: result.loanAmount,
+            termYears: loanTermYears,
+            rate,
+            monthlyPI: result.monthlyPI,
+            monthlyTax: result.monthlyTax,
+            monthlyInsurance: result.monthlyInsurance,
+            monthlyPMI: result.monthlyPMI,
+            pmiRequired: result.pmiRequired,
+            totalMonthly: result.totalMonthly,
+            totalInterest: result.totalInterest,
+          },
+        });
+        if (emailErr) {
+          toast.error("We saved your info, but the email failed to send. A loan officer will reach out.");
+        } else {
+          toast.success("Quote sent to your inbox!");
+        }
+      } else if (action === "print") {
+        printQuote(first_name, loanTypeLabel);
+        toast.success("Opening print preview…");
+      }
+
       setSubmitted(first_name);
       setLeadName("");
       setLeadEmail("");
@@ -149,7 +233,7 @@ const MortgageCalculator = ({ open, onOpenChange }: MortgageCalculatorProps) => 
       console.error(err);
       toast.error(err instanceof Error ? err.message : "Failed to submit. Please try again.");
     } finally {
-      setSubmitting(false);
+      setSubmitting(null);
     }
   };
 
@@ -427,22 +511,44 @@ const MortgageCalculator = ({ open, onOpenChange }: MortgageCalculatorProps) => 
 
           {/* Lead capture */}
           {!showLeadForm && !submitted && (
-            <Button
-              size="lg"
-              className="btn-shadow w-full"
-              onClick={() => setShowLeadForm(true)}
-            >
-              <MessageCircle className="mr-2 h-4 w-4" />
-              Talk to a Loan Officer
-            </Button>
+            <div className="space-y-2">
+              <Button
+                size="lg"
+                className="btn-shadow w-full"
+                onClick={() => { setPendingAction("quote"); setShowLeadForm(true); }}
+              >
+                <MessageCircle className="mr-2 h-4 w-4" />
+                Talk to a Loan Officer
+              </Button>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => { setPendingAction("email"); setShowLeadForm(true); }}
+                >
+                  <Mail className="mr-2 h-4 w-4" />
+                  Email Quote
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => { setPendingAction("print"); setShowLeadForm(true); }}
+                >
+                  <Printer className="mr-2 h-4 w-4" />
+                  Print Quote
+                </Button>
+              </div>
+            </div>
           )}
 
           {showLeadForm && !submitted && (
-            <form onSubmit={handleLeadSubmit} className="space-y-4 rounded-lg border bg-muted/30 p-5">
+            <form onSubmit={(e) => handleAction(pendingAction, e)} className="space-y-4 rounded-lg border bg-muted/30 p-5">
               <div>
-                <h3 className="font-display text-base font-semibold">Talk to a Loan Officer</h3>
+                <h3 className="font-display text-base font-semibold">
+                  {pendingAction === "email" ? "Email me my quote" : pendingAction === "print" ? "Print my quote" : "Talk to a Loan Officer"}
+                </h3>
                 <p className="text-xs text-muted-foreground">
-                  Get a personalized rate quote — no credit check.
+                  {pendingAction === "quote"
+                    ? "Get a personalized rate quote — no credit check."
+                    : "We'll save your info so a loan officer can follow up if you have questions."}
                 </p>
               </div>
 
@@ -495,11 +601,19 @@ const MortgageCalculator = ({ open, onOpenChange }: MortgageCalculatorProps) => 
               </div>
 
               <div className="flex gap-2">
-                <Button type="button" variant="ghost" onClick={() => setShowLeadForm(false)} className="flex-1">
+                <Button type="button" variant="ghost" onClick={() => setShowLeadForm(false)} className="flex-1" disabled={!!submitting}>
                   Cancel
                 </Button>
-                <Button type="submit" className="flex-1 btn-shadow" disabled={submitting}>
-                  {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Send My Quote"}
+                <Button type="submit" className="flex-1 btn-shadow" disabled={!!submitting}>
+                  {submitting === pendingAction ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : pendingAction === "email" ? (
+                    <><Mail className="mr-2 h-4 w-4" /> Email Quote</>
+                  ) : pendingAction === "print" ? (
+                    <><Printer className="mr-2 h-4 w-4" /> Print Quote</>
+                  ) : (
+                    "Send My Quote"
+                  )}
                 </Button>
               </div>
             </form>
