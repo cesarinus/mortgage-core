@@ -438,6 +438,51 @@ export type Database = {
         }
         Relationships: []
       }
+      content_change_log: {
+        Row: {
+          content_hash: string | null
+          created_at: string
+          id: string
+          last_excerpt: string | null
+          last_payload: Json | null
+          last_result: Json | null
+          last_title: string | null
+          last_triggered_at: string | null
+          last_type: string | null
+          trigger_count: number
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          content_hash?: string | null
+          created_at?: string
+          id?: string
+          last_excerpt?: string | null
+          last_payload?: Json | null
+          last_result?: Json | null
+          last_title?: string | null
+          last_triggered_at?: string | null
+          last_type?: string | null
+          trigger_count?: number
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          content_hash?: string | null
+          created_at?: string
+          id?: string
+          last_excerpt?: string | null
+          last_payload?: Json | null
+          last_result?: Json | null
+          last_title?: string | null
+          last_triggered_at?: string | null
+          last_type?: string | null
+          trigger_count?: number
+          updated_at?: string
+          url?: string
+        }
+        Relationships: []
+      }
       deal_stage_history: {
         Row: {
           changed_at: string
