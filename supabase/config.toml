@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.auto-publish-social]
 verify_jwt = false
+
+[functions.content-ping]
+verify_jwt = false

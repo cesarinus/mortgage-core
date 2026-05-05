@@ -14,7 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Sparkles, Trash2, Eye, Pencil, BarChart3 } from "lucide-react";
+import { Loader2, Sparkles, Trash2, Eye, Pencil, BarChart3, Send } from "lucide-react";
 import { Link } from "react-router-dom";
 import BlogOptimization from "@/components/blog/BlogOptimization";
 
@@ -126,6 +126,27 @@ const BlogAdmin = () => {
     } else {
       toast({ title: `Post ${newStatus}` });
       fetchPosts();
+    }
+  };
+
+  const handleDistribute = async (post: BlogPost) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast({ title: "Please log in", variant: "destructive" });
+        return;
+      }
+      const { data, error } = await supabase.functions.invoke("admin-trigger-ping", {
+        body: { postId: post.id, type: "update" },
+      });
+      if (error) throw error;
+      const r = (data as any)?.results || {};
+      toast({
+        title: "Distribution triggered",
+        description: `Pingomatic: ${(r.pingomatic as any)?.ok ? "✓" : "✗"} • Webhook: ${(r.webhook as any)?.ok ? "✓" : (r.webhook as any)?.skipped ? "skipped" : "✗"} • Social draft: ${(r.socialDraft as any)?.id ? "queued" : "skipped"}`,
+      });
+    } catch (e: any) {
+      toast({ title: "Distribute failed", description: e.message, variant: "destructive" });
     }
   };
 
@@ -259,6 +280,16 @@ const BlogAdmin = () => {
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
+                    {post.status === "published" && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDistribute(post)}
+                        title="Distribute (ping + webhook + social draft)"
+                      >
+                        <Send className="h-4 w-4" />
+                      </Button>
+                    )}
                     {post.status === "published" && (
                       <Button variant="ghost" size="icon" asChild>
                         <Link to={`/blog/${post.slug}`} target="_blank">
