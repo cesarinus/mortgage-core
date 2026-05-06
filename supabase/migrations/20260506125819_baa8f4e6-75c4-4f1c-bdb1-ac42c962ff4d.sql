@@ -107,9 +107,9 @@ VALUES (
 <hr style="border:none;border-top:1px solid #eee;margin:0 0 20px;"/>
 <p style="font-size:13px;line-height:1.6;color:#666;margin:0;">
 <strong style="color:#1f1f1f;">Cesar A Martinez</strong><br/>
-NexGen Capital Corp · NMLS 256062<br/>
+NexGen Capital Corp · NMLS 1766649<br/>
 <a href="mailto:cmartinez@ngcapital.net" style="color:#ea7c3a;text-decoration:none;">cmartinez@ngcapital.net</a><br/>
-501 Goodlette Rd N Ste D100, Naples, FL 34102
+3960 Radio Rd Ste 105, Naples, FL 34104
 </p>
 </td></tr>
 </table>
