@@ -568,6 +568,114 @@ export type Database = {
           },
         ]
       }
+      email_logs: {
+        Row: {
+          clicked_at: string | null
+          error_message: string | null
+          id: string
+          lead_id: string | null
+          metadata: Json | null
+          opened_at: string | null
+          provider_message_id: string | null
+          recipient_email: string
+          sent_at: string
+          status: string
+          subject: string | null
+          subscriber_id: string | null
+          template_alias: string | null
+          template_id: string | null
+        }
+        Insert: {
+          clicked_at?: string | null
+          error_message?: string | null
+          id?: string
+          lead_id?: string | null
+          metadata?: Json | null
+          opened_at?: string | null
+          provider_message_id?: string | null
+          recipient_email: string
+          sent_at?: string
+          status?: string
+          subject?: string | null
+          subscriber_id?: string | null
+          template_alias?: string | null
+          template_id?: string | null
+        }
+        Update: {
+          clicked_at?: string | null
+          error_message?: string | null
+          id?: string
+          lead_id?: string | null
+          metadata?: Json | null
+          opened_at?: string | null
+          provider_message_id?: string | null
+          recipient_email?: string
+          sent_at?: string
+          status?: string
+          subject?: string | null
+          subscriber_id?: string | null
+          template_alias?: string | null
+          template_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_logs_subscriber_id_fkey"
+            columns: ["subscriber_id"]
+            isOneToOne: false
+            referencedRelation: "subscribers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_logs_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "email_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_templates: {
+        Row: {
+          alias: string | null
+          category: string | null
+          created_at: string
+          created_by: string | null
+          html_content: string
+          id: string
+          is_system: boolean
+          name: string
+          subject: string
+          text_content: string
+          updated_at: string
+        }
+        Insert: {
+          alias?: string | null
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          html_content?: string
+          id?: string
+          is_system?: boolean
+          name: string
+          subject?: string
+          text_content?: string
+          updated_at?: string
+        }
+        Update: {
+          alias?: string | null
+          category?: string | null
+          created_at?: string
+          created_by?: string | null
+          html_content?: string
+          id?: string
+          is_system?: boolean
+          name?: string
+          subject?: string
+          text_content?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       lead_events: {
         Row: {
           created_at: string
@@ -1103,6 +1211,48 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           post_type?: Database["public"]["Enums"]["social_post_type"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      subscribers: {
+        Row: {
+          created_at: string
+          email: string
+          first_name: string | null
+          id: string
+          last_name: string | null
+          lead_id: string | null
+          notes: string | null
+          source: string | null
+          status: string
+          tags: string[]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          lead_id?: string | null
+          notes?: string | null
+          source?: string | null
+          status?: string
+          tags?: string[]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          lead_id?: string | null
+          notes?: string | null
+          source?: string | null
+          status?: string
+          tags?: string[]
           updated_at?: string
         }
         Relationships: []

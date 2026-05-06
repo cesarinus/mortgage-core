@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Plus } from "lucide-react";
+import { Plus, Mail } from "lucide-react";
 import type { Tables, Enums } from "@/integrations/supabase/types";
 import { Constants } from "@/integrations/supabase/types";
 
@@ -86,6 +86,22 @@ export default function Pipeline() {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
       load();
+    }
+  };
+
+  const sendReviewRequest = async (deal: Deal) => {
+    const c = contacts.find((x) => x.id === deal.contact_id);
+    if (!c?.email) {
+      toast({ title: "No contact email", description: "Link a contact with an email to this deal first.", variant: "destructive" });
+      return;
+    }
+    const { data, error } = await supabase.functions.invoke("send-review-request", {
+      body: { email: c.email, first_name: c.first_name, last_name: c.last_name, lead_id: deal.contact_id },
+    });
+    if (error || (data as any)?.error) {
+      toast({ title: "Send failed", description: error?.message || (data as any)?.error, variant: "destructive" });
+    } else {
+      toast({ title: "Review request sent", description: c.email });
     }
   };
 
@@ -176,6 +192,12 @@ export default function Pipeline() {
                           </button>
                         ))}
                       </div>
+                      {deal.stage === "closed" && (
+                        <Button size="sm" variant="outline" className="w-full h-7 text-xs"
+                          onClick={() => sendReviewRequest(deal)}>
+                          <Mail className="mr-1 h-3 w-3" />Send Review Request
+                        </Button>
+                      )}
                     </CardContent>
                   </Card>
                 ))}
