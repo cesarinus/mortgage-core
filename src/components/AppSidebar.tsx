@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, Users, Contact, Kanban, Settings, LogOut, Building2, FileText, TrendingUp, Share2,
+  LayoutDashboard, Users, Contact, Kanban, Settings, LogOut, Building2, FileText, TrendingUp, Share2, Mail, MailPlus,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
@@ -16,6 +16,8 @@ const navItems = [
   { title: "Pipeline", url: "/pipeline", icon: Kanban },
   { title: "Blog Manager", url: "/blog-admin", icon: FileText },
   { title: "Social Media", url: "/admin/social-media", icon: Share2 },
+  { title: "Subscribers", url: "/email/subscribers", icon: Mail },
+  { title: "Email Templates", url: "/email/templates", icon: MailPlus },
   { title: "Lock vs Float", url: "/rate-decision", icon: TrendingUp },
   { title: "Settings", url: "/settings", icon: Settings },
 ];

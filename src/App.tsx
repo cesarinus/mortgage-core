@@ -20,6 +20,8 @@ import BlogAdmin from "@/pages/BlogAdmin";
 import RateDecision from "@/pages/RateDecision";
 import Book from "@/pages/Book";
 import AdminSocialMedia from "@/pages/AdminSocialMedia";
+import Subscribers from "@/pages/Subscribers";
+import EmailTemplates from "@/pages/EmailTemplates";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -53,6 +55,8 @@ const App = () => (
                 <Route path="/blog-admin" element={<BlogAdmin />} />
                 <Route path="/rate-decision" element={<RateDecision />} />
                 <Route path="/admin/social-media" element={<AdminSocialMedia />} />
+                <Route path="/email/subscribers" element={<Subscribers />} />
+                <Route path="/email/templates" element={<EmailTemplates />} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
