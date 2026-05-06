@@ -20,7 +20,7 @@ const SAMPLE_VARS = {
   last_name: "Doe",
   full_name: "Jane Doe",
   email: "jane@example.com",
-  google_review_link: "https://g.page/r/your-business/review",
+  google_review_link: "https://g.page/r/CfDh9HCvSE-WEBE/review",
 };
 
 function renderMerge(s: string, vars: Record<string, string>) {
@@ -38,25 +38,38 @@ export default function EmailTemplates() {
 
   const load = async () => {
     const { data, error } = await supabase
-      .from("email_templates").select("*").order("created_at", { ascending: false });
+      .from("email_templates")
+      .select("*")
+      .order("created_at", { ascending: false });
     if (error) toast({ title: "Load failed", description: error.message, variant: "destructive" });
     else setItems(data ?? []);
   };
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+  }, []);
 
   const startCreate = () => {
     setEditing({
-      id: "", name: "", alias: "", subject: "",
+      id: "",
+      name: "",
+      alias: "",
+      subject: "",
       html_content: "<p>Hi {{first_name}},</p><p>Write your message here.</p>",
       text_content: "Hi {{first_name}},\n\nWrite your message here.",
-      category: "general", is_system: false, created_by: null,
-      created_at: "", updated_at: "",
+      category: "general",
+      is_system: false,
+      created_by: null,
+      created_at: "",
+      updated_at: "",
     } as any);
   };
 
   const save = async () => {
     if (!editing) return;
-    if (!editing.name?.trim()) { toast({ title: "Name required", variant: "destructive" }); return; }
+    if (!editing.name?.trim()) {
+      toast({ title: "Name required", variant: "destructive" });
+      return;
+    }
     const payload: any = {
       name: editing.name.trim(),
       alias: editing.alias?.trim() || null,
@@ -69,20 +82,31 @@ export default function EmailTemplates() {
       ? await supabase.from("email_templates").update(payload).eq("id", editing.id)
       : await supabase.from("email_templates").insert(payload);
     if (error) toast({ title: "Save failed", description: error.message, variant: "destructive" });
-    else { toast({ title: editing.id ? "Updated" : "Created" }); setEditing(null); load(); }
+    else {
+      toast({ title: editing.id ? "Updated" : "Created" });
+      setEditing(null);
+      load();
+    }
   };
 
   const remove = async (t: Template) => {
-    if (t.is_system) { toast({ title: "System template can't be deleted" }); return; }
+    if (t.is_system) {
+      toast({ title: "System template can't be deleted" });
+      return;
+    }
     if (!confirm(`Delete "${t.name}"?`)) return;
     const { error } = await supabase.from("email_templates").delete().eq("id", t.id);
     if (error) toast({ title: "Delete failed", description: error.message, variant: "destructive" });
-    else { toast({ title: "Deleted" }); load(); }
+    else {
+      toast({ title: "Deleted" });
+      load();
+    }
   };
 
   const sendTest = async (t: Template) => {
     if (!testEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(testEmail)) {
-      toast({ title: "Enter a valid test email", variant: "destructive" }); return;
+      toast({ title: "Enter a valid test email", variant: "destructive" });
+      return;
     }
     setSending(true);
     const { data, error } = await supabase.functions.invoke("send-review-request", {
@@ -107,9 +131,15 @@ export default function EmailTemplates() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Email Templates</h1>
-          <p className="text-muted-foreground">Reusable HTML emails. Use <code>{"{{first_name}}"}</code>, <code>{"{{google_review_link}}"}</code> as merge fields.</p>
+          <p className="text-muted-foreground">
+            Reusable HTML emails. Use <code>{"{{first_name}}"}</code>, <code>{"{{google_review_link}}"}</code> as merge
+            fields.
+          </p>
         </div>
-        <Button onClick={startCreate}><Plus className="mr-2 h-4 w-4" />New Template</Button>
+        <Button onClick={startCreate}>
+          <Plus className="mr-2 h-4 w-4" />
+          New Template
+        </Button>
       </div>
 
       <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
@@ -121,12 +151,22 @@ export default function EmailTemplates() {
                   <p className="font-semibold truncate">{t.name}</p>
                   <p className="text-xs text-muted-foreground truncate">{t.alias || "—"}</p>
                 </div>
-                {t.is_system && <Badge variant="secondary" className="text-xs">System</Badge>}
+                {t.is_system && (
+                  <Badge variant="secondary" className="text-xs">
+                    System
+                  </Badge>
+                )}
               </div>
               <p className="text-sm text-muted-foreground line-clamp-2">{t.subject || "(no subject)"}</p>
               <div className="flex gap-1">
-                <Button size="sm" variant="outline" onClick={() => setPreviewing(t)}><Eye className="mr-1 h-3.5 w-3.5" />Preview</Button>
-                <Button size="sm" variant="outline" onClick={() => setEditing(t)}><Pencil className="mr-1 h-3.5 w-3.5" />Edit</Button>
+                <Button size="sm" variant="outline" onClick={() => setPreviewing(t)}>
+                  <Eye className="mr-1 h-3.5 w-3.5" />
+                  Preview
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setEditing(t)}>
+                  <Pencil className="mr-1 h-3.5 w-3.5" />
+                  Edit
+                </Button>
                 <Button size="sm" variant="ghost" onClick={() => remove(t)} disabled={t.is_system}>
                   <Trash2 className="h-3.5 w-3.5 text-destructive" />
                 </Button>
@@ -134,15 +174,15 @@ export default function EmailTemplates() {
             </CardContent>
           </Card>
         ))}
-        {items.length === 0 && (
-          <p className="text-sm text-muted-foreground col-span-full">No templates yet.</p>
-        )}
+        {items.length === 0 && <p className="text-sm text-muted-foreground col-span-full">No templates yet.</p>}
       </div>
 
       {/* Editor */}
       <Dialog open={!!editing} onOpenChange={(v) => !v && setEditing(null)}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>{editing?.id ? "Edit Template" : "New Template"}</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>{editing?.id ? "Edit Template" : "New Template"}</DialogTitle>
+          </DialogHeader>
           {editing && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
@@ -152,38 +192,60 @@ export default function EmailTemplates() {
                 </div>
                 <div className="space-y-1">
                   <Label>Alias (slug)</Label>
-                  <Input value={editing.alias ?? ""} placeholder="welcome-email"
-                    onChange={(e) => setEditing({ ...editing, alias: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-") })} />
+                  <Input
+                    value={editing.alias ?? ""}
+                    placeholder="welcome-email"
+                    onChange={(e) =>
+                      setEditing({ ...editing, alias: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-") })
+                    }
+                  />
                 </div>
               </div>
               <div className="space-y-1">
                 <Label>Subject</Label>
-                <Input value={editing.subject ?? ""} onChange={(e) => setEditing({ ...editing, subject: e.target.value })} />
+                <Input
+                  value={editing.subject ?? ""}
+                  onChange={(e) => setEditing({ ...editing, subject: e.target.value })}
+                />
               </div>
 
               <Tabs value={editorMode} onValueChange={(v) => setEditorMode(v as any)}>
                 <TabsList>
                   <TabsTrigger value="rich">Rich editor</TabsTrigger>
-                  <TabsTrigger value="html"><Code2 className="mr-1 h-3.5 w-3.5" />HTML</TabsTrigger>
+                  <TabsTrigger value="html">
+                    <Code2 className="mr-1 h-3.5 w-3.5" />
+                    HTML
+                  </TabsTrigger>
                 </TabsList>
                 <TabsContent value="rich">
-                  <RichTextEditor value={editing.html_content ?? ""} onChange={(html) => setEditing({ ...editing, html_content: html })} />
+                  <RichTextEditor
+                    value={editing.html_content ?? ""}
+                    onChange={(html) => setEditing({ ...editing, html_content: html })}
+                  />
                 </TabsContent>
                 <TabsContent value="html">
-                  <Textarea rows={14} className="font-mono text-xs"
+                  <Textarea
+                    rows={14}
+                    className="font-mono text-xs"
                     value={editing.html_content ?? ""}
-                    onChange={(e) => setEditing({ ...editing, html_content: e.target.value })} />
+                    onChange={(e) => setEditing({ ...editing, html_content: e.target.value })}
+                  />
                 </TabsContent>
               </Tabs>
 
               <div className="space-y-1">
                 <Label>Plain text version (fallback)</Label>
-                <Textarea rows={5} value={editing.text_content ?? ""}
-                  onChange={(e) => setEditing({ ...editing, text_content: e.target.value })} />
+                <Textarea
+                  rows={5}
+                  value={editing.text_content ?? ""}
+                  onChange={(e) => setEditing({ ...editing, text_content: e.target.value })}
+                />
               </div>
 
               <DialogFooter>
-                <Button variant="ghost" onClick={() => setEditing(null)}>Cancel</Button>
+                <Button variant="ghost" onClick={() => setEditing(null)}>
+                  Cancel
+                </Button>
                 <Button onClick={save}>Save</Button>
               </DialogFooter>
             </div>
@@ -194,7 +256,9 @@ export default function EmailTemplates() {
       {/* Preview */}
       <Dialog open={!!previewing} onOpenChange={(v) => !v && setPreviewing(null)}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>{previewing?.name}</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>{previewing?.name}</DialogTitle>
+          </DialogHeader>
           {previewing && (
             <div className="space-y-3">
               <div className="text-sm">
@@ -211,10 +275,13 @@ export default function EmailTemplates() {
               <div className="flex items-center gap-2">
                 <Input placeholder="your@email.com" value={testEmail} onChange={(e) => setTestEmail(e.target.value)} />
                 <Button onClick={() => sendTest(previewing)} disabled={sending}>
-                  <Send className="mr-1 h-3.5 w-3.5" />Send test
+                  <Send className="mr-1 h-3.5 w-3.5" />
+                  Send test
                 </Button>
               </div>
-              <p className="text-xs text-muted-foreground">Test sends use the same template with sample merge values.</p>
+              <p className="text-xs text-muted-foreground">
+                Test sends use the same template with sample merge values.
+              </p>
             </div>
           )}
         </DialogContent>
