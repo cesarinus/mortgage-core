@@ -17,8 +17,9 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Plus, Search, Flame, ThermometerSun, Snowflake, LayoutGrid, List,
   X, Clock, Eye, MousePointerClick, FileText, Tag, ChevronRight,
-  Filter, Zap, Users, UserCheck, AlertTriangle,
+  Filter, Zap, Users, UserCheck, AlertTriangle, ExternalLink,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import type { Tables, Enums } from "@/integrations/supabase/types";
 
 type Lead = Tables<"leads">;
