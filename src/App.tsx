@@ -23,6 +23,7 @@ import AdminSocialMedia from "@/pages/AdminSocialMedia";
 import Subscribers from "@/pages/Subscribers";
 import EmailTemplates from "@/pages/EmailTemplates";
 import NotFound from "@/pages/NotFound";
+import RecordWorkspace from "@/pages/crm/RecordWorkspace";
 
 const queryClient = new QueryClient();
 
@@ -57,6 +58,8 @@ const App = () => (
                 <Route path="/admin/social-media" element={<AdminSocialMedia />} />
                 <Route path="/email/subscribers" element={<Subscribers />} />
                 <Route path="/email/templates" element={<EmailTemplates />} />
+                <Route path="/crm/leads/:id" element={<RecordWorkspace kind="lead" />} />
+                <Route path="/crm/contacts/:id" element={<RecordWorkspace kind="contact" />} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>

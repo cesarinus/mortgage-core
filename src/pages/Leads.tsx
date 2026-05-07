@@ -17,8 +17,9 @@ import { useToast } from "@/hooks/use-toast";
 import {
   Plus, Search, Flame, ThermometerSun, Snowflake, LayoutGrid, List,
   X, Clock, Eye, MousePointerClick, FileText, Tag, ChevronRight,
-  Filter, Zap, Users, UserCheck, AlertTriangle,
+  Filter, Zap, Users, UserCheck, AlertTriangle, ExternalLink,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import type { Tables, Enums } from "@/integrations/supabase/types";
 
 type Lead = Tables<"leads">;
@@ -552,6 +553,12 @@ export default function Leads() {
                         {selectedLead.first_name} {selectedLead.last_name}
                       </SheetTitle>
                       <p className="text-sm text-muted-foreground">{selectedLead.email ?? "No email"}</p>
+                      <Link
+                        to={`/crm/leads/${selectedLead.id}`}
+                        className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-1"
+                      >
+                        Open full workspace <ExternalLink className="h-3 w-3" />
+                      </Link>
                     </div>
                   </div>
                 </div>

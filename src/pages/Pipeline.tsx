@@ -10,7 +10,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Mail } from "lucide-react";
+import { Plus, Mail, ExternalLink } from "lucide-react";
+import { Link } from "react-router-dom";
 import type { Tables, Enums } from "@/integrations/supabase/types";
 import { Constants } from "@/integrations/supabase/types";
 
@@ -174,8 +175,15 @@ export default function Pipeline() {
               <div className="space-y-2 min-h-[200px] rounded-lg bg-muted/50 p-2">
                 {stageDeals.map((deal) => (
                   <Card key={deal.id} className={`border-l-4 ${stageColors[deal.stage]} cursor-default`}>
-                    <CardContent className="p-3 space-y-2">
-                      <p className="font-medium text-sm">{getContactName(deal.contact_id)}</p>
+                     <CardContent className="p-3 space-y-2">
+                       <div className="flex items-center justify-between gap-2">
+                         <p className="font-medium text-sm">{getContactName(deal.contact_id)}</p>
+                         {deal.contact_id && (
+                           <Link to={`/crm/contacts/${deal.contact_id}`} title="Open workspace" className="text-muted-foreground hover:text-primary">
+                             <ExternalLink className="h-3.5 w-3.5" />
+                           </Link>
+                         )}
+                       </div>
                       {deal.loan_amount && (
                         <p className="text-xs text-muted-foreground">
                           ${deal.loan_amount.toLocaleString()} · {deal.loan_type ?? "—"}
