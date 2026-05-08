@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -18,12 +18,13 @@ export default function Auth() {
   const [submitting, setSubmitting] = useState(false);
   const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  const next = params.get("next") || "/dashboard";
   const { toast } = useToast();
 
-  if (user) {
-    navigate("/dashboard", { replace: true });
-    return null;
-  }
+  useEffect(() => {
+    if (user) navigate(next, { replace: true });
+  }, [user, next, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
