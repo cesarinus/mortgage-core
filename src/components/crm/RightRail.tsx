@@ -29,7 +29,7 @@ export function RightRail({ companies, deals, attachments, contacts = [], onUplo
             {contacts.length === 0 && <p className="text-muted-foreground text-xs">No contacts linked.</p>}
             {contacts.map((lc) => (
               <div key={lc.id} className="rounded border p-2">
-                <Link to={`/contacts/${lc.contact?.id}`} className="font-medium hover:underline">
+                <Link to={`/crm/contacts/${lc.contact?.id}`} className="font-medium hover:underline">
                   {lc.contact?.first_name} {lc.contact?.last_name}
                 </Link>
                 <div className="text-xs text-muted-foreground">
