@@ -29,11 +29,17 @@ export function LinkContactModal({ open, onClose, leadId, onDone }: BaseProps) {
 
   const link = async (contactId: string, role?: string) => {
     if (!leadId) return;
-    const { error } = await supabase.from("lead_contacts").insert({
-      lead_id: leadId, contact_id: contactId, role: role || null, created_by: user!.id,
-    });
-    if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
-    else { toast({ title: "Contact linked" }); onDone(); onClose(); }
+    const { error } = await supabase.from("lead_contacts").upsert(
+      { lead_id: leadId, contact_id: contactId, role: role || null, created_by: user!.id },
+      { onConflict: "lead_id,contact_id", ignoreDuplicates: false }
+    );
+    if (error) {
+      if ((error as any).code === "23505") {
+        toast({ title: "Already linked", description: "This contact is already on the lead.", variant: "destructive" });
+      } else {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+      }
+    } else { toast({ title: "Contact linked" }); onDone(); onClose(); }
   };
 
   const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
