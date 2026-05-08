@@ -136,6 +136,22 @@ Deno.serve(async (req) => {
 
     if (insertError) throw insertError;
 
+    // Fire-and-forget image generation so the post appears with a visual automatically.
+    const imagePrompt = parsed.image_placeholder || parsed.post_text || "";
+    if (imagePrompt) {
+      const fnUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/generate-social-image`;
+      const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      // Don't await — keep the response fast; image will populate via update.
+      fetch(fnUrl, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${serviceKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ prompt: imagePrompt, postId: post.id }),
+      }).catch((e) => console.error("auto image gen failed:", e));
+    }
+
     return new Response(JSON.stringify({ success: true, post }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
