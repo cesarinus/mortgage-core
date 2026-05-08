@@ -73,3 +73,28 @@ export async function fetchCompanies(leadId?: string, contactId?: string) {
   const { data } = await q;
   return data ?? [];
 }
+
+export async function fetchLeadContacts(leadId: string) {
+  const { data } = await supabase
+    .from("lead_contacts")
+    .select("id, role, contact_id, contact:contacts(*)")
+    .eq("lead_id", leadId)
+    .order("created_at", { ascending: false });
+  return data ?? [];
+}
+
+export async function fetchAllContacts() {
+  const { data } = await supabase
+    .from("contacts")
+    .select("id, first_name, last_name, email, contact_type")
+    .order("first_name", { ascending: true });
+  return data ?? [];
+}
+
+export async function fetchAllCompanies() {
+  const { data } = await supabase
+    .from("crm_companies")
+    .select("id, name, industry, is_self_employed")
+    .order("name", { ascending: true });
+  return data ?? [];
+}

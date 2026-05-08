@@ -1,0 +1,183 @@
+import { useEffect, useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import { fetchAllContacts, fetchAllCompanies } from "@/lib/crm/queries";
+
+interface BaseProps {
+  open: boolean;
+  onClose: () => void;
+  leadId?: string;
+  contactId?: string;
+  onDone: () => void;
+}
+
+export function LinkContactModal({ open, onClose, leadId, onDone }: BaseProps) {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [all, setAll] = useState<any[]>([]);
+  const [search, setSearch] = useState("");
+  const [tab, setTab] = useState("link");
+
+  useEffect(() => { if (open) fetchAllContacts().then(setAll); }, [open]);
+
+  const link = async (contactId: string, role?: string) => {
+    if (!leadId) return;
+    const { error } = await supabase.from("lead_contacts").insert({
+      lead_id: leadId, contact_id: contactId, role: role || null, created_by: user!.id,
+    });
+    if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
+    else { toast({ title: "Contact linked" }); onDone(); onClose(); }
+  };
+
+  const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    const { data, error } = await supabase.from("contacts").insert({
+      first_name: fd.get("first_name") as string,
+      last_name: fd.get("last_name") as string,
+      email: (fd.get("email") as string) || null,
+      phone: (fd.get("phone") as string) || null,
+      contact_type: (fd.get("contact_type") as any) || "borrower",
+      created_by: user!.id,
+    }).select("id").maybeSingle();
+    if (error || !data) { toast({ title: "Error", description: error?.message, variant: "destructive" }); return; }
+    await link(data.id, fd.get("role") as string);
+  };
+
+  const filtered = all.filter(c =>
+    `${c.first_name} ${c.last_name} ${c.email ?? ""}`.toLowerCase().includes(search.toLowerCase())
+  );
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Add Contact</DialogTitle></DialogHeader>
+        <Tabs value={tab} onValueChange={setTab}>
+          <TabsList className="grid grid-cols-2 w-full">
+            <TabsTrigger value="link">Link existing</TabsTrigger>
+            <TabsTrigger value="new">Create new</TabsTrigger>
+          </TabsList>
+          <TabsContent value="link" className="space-y-3 mt-4">
+            <Input placeholder="Search contacts…" value={search} onChange={e => setSearch(e.target.value)} />
+            <div className="max-h-72 overflow-auto space-y-1">
+              {filtered.map(c => (
+                <button key={c.id} onClick={() => link(c.id)}
+                  className="w-full text-left rounded border p-2 hover:bg-muted text-sm">
+                  <div className="font-medium">{c.first_name} {c.last_name}</div>
+                  <div className="text-xs text-muted-foreground">{c.email ?? "—"} · {c.contact_type}</div>
+                </button>
+              ))}
+              {filtered.length === 0 && <p className="text-xs text-muted-foreground p-3 text-center">No contacts found.</p>}
+            </div>
+          </TabsContent>
+          <TabsContent value="new" className="mt-4">
+            <form onSubmit={handleCreate} className="space-y-3">
+              <div className="grid grid-cols-2 gap-2">
+                <div><Label>First name</Label><Input name="first_name" required /></div>
+                <div><Label>Last name</Label><Input name="last_name" required /></div>
+              </div>
+              <div><Label>Email</Label><Input name="email" type="email" /></div>
+              <div><Label>Phone</Label><Input name="phone" /></div>
+              <div className="grid grid-cols-2 gap-2">
+                <div><Label>Type</Label>
+                  <Select name="contact_type" defaultValue="borrower">
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="borrower">Borrower</SelectItem>
+                      <SelectItem value="partner">Partner</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div><Label>Role on lead</Label><Input name="role" placeholder="Co-borrower, agent…" /></div>
+              </div>
+              <Button type="submit" className="w-full">Create &amp; link</Button>
+            </form>
+          </TabsContent>
+        </Tabs>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+export function LinkCompanyModal({ open, onClose, leadId, contactId, onDone }: BaseProps) {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [all, setAll] = useState<any[]>([]);
+  const [search, setSearch] = useState("");
+  const [tab, setTab] = useState("link");
+
+  useEffect(() => { if (open) fetchAllCompanies().then(setAll); }, [open]);
+
+  const link = async (companyId: string, role?: string) => {
+    const { error } = await supabase.from("crm_contact_companies").insert({
+      lead_id: leadId ?? null, contact_id: contactId ?? null, company_id: companyId, role: role || null,
+    });
+    if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
+    else { toast({ title: "Company linked" }); onDone(); onClose(); }
+  };
+
+  const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    const { data, error } = await supabase.from("crm_companies").insert({
+      name: fd.get("name") as string,
+      industry: (fd.get("industry") as string) || null,
+      website: (fd.get("website") as string) || null,
+      is_self_employed: fd.get("self_employed") === "on",
+      created_by: user!.id,
+    }).select("id").maybeSingle();
+    if (error || !data) { toast({ title: "Error", description: error?.message, variant: "destructive" }); return; }
+    await link(data.id, fd.get("role") as string);
+  };
+
+  const filtered = all.filter(c => c.name.toLowerCase().includes(search.toLowerCase()));
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Add Company</DialogTitle></DialogHeader>
+        <Tabs value={tab} onValueChange={setTab}>
+          <TabsList className="grid grid-cols-2 w-full">
+            <TabsTrigger value="link">Link existing</TabsTrigger>
+            <TabsTrigger value="new">Create new</TabsTrigger>
+          </TabsList>
+          <TabsContent value="link" className="space-y-3 mt-4">
+            <Input placeholder="Search companies…" value={search} onChange={e => setSearch(e.target.value)} />
+            <div className="max-h-72 overflow-auto space-y-1">
+              {filtered.map(c => (
+                <button key={c.id} onClick={() => link(c.id)}
+                  className="w-full text-left rounded border p-2 hover:bg-muted text-sm">
+                  <div className="font-medium">{c.name}</div>
+                  <div className="text-xs text-muted-foreground">{c.industry ?? "—"}{c.is_self_employed ? " · Self-employed" : ""}</div>
+                </button>
+              ))}
+              {filtered.length === 0 && <p className="text-xs text-muted-foreground p-3 text-center">No companies found.</p>}
+            </div>
+          </TabsContent>
+          <TabsContent value="new" className="mt-4">
+            <form onSubmit={handleCreate} className="space-y-3">
+              <div><Label>Name</Label><Input name="name" required /></div>
+              <div className="grid grid-cols-2 gap-2">
+                <div><Label>Industry</Label><Input name="industry" /></div>
+                <div><Label>Website</Label><Input name="website" /></div>
+              </div>
+              <div><Label>Role</Label><Input name="role" placeholder="Employer, lender…" /></div>
+              <label className="flex items-center gap-2 text-sm">
+                <input type="checkbox" name="self_employed" /> Self-employed
+              </label>
+              <Button type="submit" className="w-full">Create &amp; link</Button>
+            </form>
+          </TabsContent>
+        </Tabs>
+      </DialogContent>
+    </Dialog>
+  );
+}

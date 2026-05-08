@@ -9,8 +9,9 @@ import { ActivitiesTab } from "@/components/crm/tabs/ActivitiesTab";
 import {
   NoteModal, TaskModal, CallModal, MeetingModal, EmailModal, UploadModal,
 } from "@/components/crm/actions/ActionModals";
+import { LinkContactModal, LinkCompanyModal } from "@/components/crm/actions/LinkContactCompanyModals";
 import {
-  fetchActivities, fetchAttachments, fetchCompanies, fetchContact, fetchDeals,
+  fetchActivities, fetchAttachments, fetchCompanies, fetchContact, fetchDeals, fetchLeadContacts,
   fetchDocCategories, fetchEmailLogs, fetchLead, fetchMortgageProfile, fetchSentiment, fetchTags,
 } from "@/lib/crm/queries";
 import { useToast } from "@/hooks/use-toast";
@@ -27,11 +28,12 @@ export default function RecordWorkspace({ kind }: Props) {
   const [attachments, setAttachments] = useState<any[]>([]);
   const [companies, setCompanies] = useState<any[]>([]);
   const [deals, setDeals] = useState<any[]>([]);
+  const [linkedContacts, setLinkedContacts] = useState<any[]>([]);
   const [tags, setTags] = useState<any[]>([]);
   const [mortgage, setMortgage] = useState<any | null>(null);
   const [sentiment, setSentiment] = useState<any | null>(null);
   const [categories, setCategories] = useState<any[]>([]);
-  const [modal, setModal] = useState<null | "note" | "email" | "call" | "task" | "meeting" | "upload">(null);
+  const [modal, setModal] = useState<null | "note" | "email" | "call" | "task" | "meeting" | "upload" | "linkContact" | "linkCompany">(null);
   const { toast } = useToast();
 
   const loadAll = useCallback(async () => {
@@ -46,19 +48,20 @@ export default function RecordWorkspace({ kind }: Props) {
       const leadId = kind === "lead" ? id : (rec as any).lead_id ?? undefined;
       const contactId = kind === "contact" ? id : undefined;
       const safe = <T,>(p: Promise<T>, fallback: T) => p.catch(() => fallback);
-      const [acts, mails, atts, cos, dls, tgs, mp, st, cats] = await Promise.all([
+      const [acts, mails, atts, cos, dls, lcs, tgs, mp, st, cats] = await Promise.all([
         safe(fetchActivities({ leadId, contactId }), [] as any[]),
         leadId ? safe(fetchEmailLogs(leadId), [] as any[]) : Promise.resolve([] as any[]),
         leadId ? safe(fetchAttachments(leadId), [] as any[]) : Promise.resolve([] as any[]),
         safe(fetchCompanies(leadId, contactId), [] as any[]),
         safe(fetchDeals(contactId ?? (rec as any).contact_id), [] as any[]),
+        leadId ? safe(fetchLeadContacts(leadId), [] as any[]) : Promise.resolve([] as any[]),
         leadId ? safe(fetchTags(leadId), [] as any[]) : Promise.resolve([] as any[]),
         leadId ? safe(fetchMortgageProfile(leadId), null) : Promise.resolve(null),
         leadId ? safe(fetchSentiment(leadId), null) : Promise.resolve(null),
         safe(fetchDocCategories(), [] as any[]),
       ]);
       setActivities(acts); setEmailLogs(mails); setAttachments(atts);
-      setCompanies(cos); setDeals(dls); setTags(tgs);
+      setCompanies(cos); setDeals(dls); setLinkedContacts(lcs); setTags(tgs);
       setMortgage(mp); setSentiment(st); setCategories(cats);
     } catch (e: any) {
       toast({ title: "Failed to load workspace", description: e?.message, variant: "destructive" });
@@ -132,9 +135,11 @@ export default function RecordWorkspace({ kind }: Props) {
           <RightRail
             companies={companies}
             deals={deals}
+            contacts={linkedContacts}
             attachments={attachments}
             onUpload={() => setModal("upload")}
-            onAddCompany={() => toast({ title: "Coming soon", description: "Company linker UI coming in next slice." })}
+            onAddCompany={() => setModal("linkCompany")}
+            onAddContact={kind === "lead" ? () => setModal("linkContact") : undefined}
             onSignedUrl={onSignedUrl}
           />
         </aside>
@@ -147,6 +152,8 @@ export default function RecordWorkspace({ kind }: Props) {
       <MeetingModal open={modal === "meeting"} onClose={() => setModal(null)} leadId={kind === "lead" ? id : undefined} contactId={kind === "contact" ? id : undefined} onDone={loadAll} />
       <EmailModal open={modal === "email"} onClose={() => setModal(null)} leadId={kind === "lead" ? id : undefined} contactId={kind === "contact" ? id : undefined} onDone={loadAll} recipientEmail={record?.email ?? undefined} />
       <UploadModal open={modal === "upload"} onClose={() => setModal(null)} leadId={kind === "lead" ? id : undefined} contactId={kind === "contact" ? id : undefined} onDone={loadAll} categories={categories} />
+      <LinkContactModal open={modal === "linkContact"} onClose={() => setModal(null)} leadId={kind === "lead" ? id : undefined} onDone={loadAll} />
+      <LinkCompanyModal open={modal === "linkCompany"} onClose={() => setModal(null)} leadId={kind === "lead" ? id : undefined} contactId={kind === "contact" ? id : undefined} onDone={loadAll} />
     </div>
   );
 }

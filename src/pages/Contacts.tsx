@@ -26,6 +26,7 @@ export default function Contacts() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState<Contact | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -36,10 +37,10 @@ export default function Contacts() {
 
   useEffect(() => { load(); }, []);
 
-  const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
-    const { error } = await supabase.from("contacts").insert({
+    const payload = {
       first_name: fd.get("first_name") as string,
       last_name: fd.get("last_name") as string,
       email: (fd.get("email") as string) || null,
@@ -47,16 +48,22 @@ export default function Contacts() {
       address: (fd.get("address") as string) || null,
       contact_type: (fd.get("contact_type") as Enums<"contact_type">) || "borrower",
       notes: (fd.get("notes") as string) || null,
-      created_by: user!.id,
-    });
+    };
+    const { error } = editing
+      ? await supabase.from("contacts").update(payload).eq("id", editing.id)
+      : await supabase.from("contacts").insert({ ...payload, created_by: user!.id });
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Contact created" });
+      toast({ title: editing ? "Contact updated" : "Contact created" });
       setOpen(false);
+      setEditing(null);
       load();
     }
   };
+
+  const openNew = () => { setEditing(null); setOpen(true); };
+  const openEdit = (c: Contact) => { setEditing(c); setOpen(true); };
 
   const filtered = contacts.filter((c) =>
     `${c.first_name} ${c.last_name} ${c.email ?? ""}`.toLowerCase().includes(search.toLowerCase())
@@ -69,38 +76,38 @@ export default function Contacts() {
           <h1 className="text-2xl font-bold tracking-tight">Contacts</h1>
           <p className="text-muted-foreground">Borrowers, partners, and relationships</p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
           <DialogTrigger asChild>
-            <Button><Plus className="mr-2 h-4 w-4" />Add Contact</Button>
+            <Button onClick={openNew}><Plus className="mr-2 h-4 w-4" />Add Contact</Button>
           </DialogTrigger>
           <DialogContent>
-            <DialogHeader><DialogTitle>New Contact</DialogTitle></DialogHeader>
-            <form onSubmit={handleCreate} className="space-y-4">
+            <DialogHeader><DialogTitle>{editing ? "Edit Contact" : "New Contact"}</DialogTitle></DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-4" key={editing?.id ?? "new"}>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <Label htmlFor="first_name">First name</Label>
-                  <Input id="first_name" name="first_name" required />
+                  <Input id="first_name" name="first_name" required defaultValue={editing?.first_name ?? ""} />
                 </div>
                 <div className="space-y-1">
                   <Label htmlFor="last_name">Last name</Label>
-                  <Input id="last_name" name="last_name" required />
+                  <Input id="last_name" name="last_name" required defaultValue={editing?.last_name ?? ""} />
                 </div>
               </div>
               <div className="space-y-1">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" name="email" type="email" />
+                <Input id="email" name="email" type="email" defaultValue={editing?.email ?? ""} />
               </div>
               <div className="space-y-1">
                 <Label htmlFor="phone">Phone</Label>
-                <Input id="phone" name="phone" />
+                <Input id="phone" name="phone" defaultValue={editing?.phone ?? ""} />
               </div>
               <div className="space-y-1">
                 <Label htmlFor="address">Address</Label>
-                <Input id="address" name="address" />
+                <Input id="address" name="address" defaultValue={editing?.address ?? ""} />
               </div>
               <div className="space-y-1">
                 <Label>Type</Label>
-                <Select name="contact_type" defaultValue="borrower">
+                <Select name="contact_type" defaultValue={editing?.contact_type ?? "borrower"}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="borrower">Borrower</SelectItem>
@@ -111,9 +118,9 @@ export default function Contacts() {
               </div>
               <div className="space-y-1">
                 <Label htmlFor="notes">Notes</Label>
-                <Textarea id="notes" name="notes" rows={3} />
+                <Textarea id="notes" name="notes" rows={3} defaultValue={editing?.notes ?? ""} />
               </div>
-              <Button type="submit" className="w-full">Create Contact</Button>
+              <Button type="submit" className="w-full">{editing ? "Save Changes" : "Create Contact"}</Button>
             </form>
           </DialogContent>
         </Dialog>
@@ -141,7 +148,7 @@ export default function Contacts() {
               {filtered.length === 0 ? (
                 <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">No contacts found</TableCell></TableRow>
               ) : filtered.map((c) => (
-                <TableRow key={c.id}>
+                <TableRow key={c.id} className="cursor-pointer" onClick={() => openEdit(c)}>
                   <TableCell className="font-medium">{c.first_name} {c.last_name}</TableCell>
                   <TableCell>{c.email ?? "—"}</TableCell>
                   <TableCell>{c.phone ?? "—"}</TableCell>
