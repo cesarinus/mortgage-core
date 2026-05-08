@@ -9,6 +9,8 @@ import {
   type CarouselApi,
 } from "@/components/ui/carousel";
 import Autoplay from "embla-carousel-autoplay";
+import { supabase } from "@/integrations/supabase/client";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const benefits = [
   "Licensed mortgage professionals",
@@ -19,65 +21,70 @@ const benefits = [
 ];
 
 type Review = {
-  name: string;
-  initials: string;
-  role: string;
-  quote: string;
+  author_name: string;
+  profile_photo_url?: string;
+  author_url?: string;
   rating: number;
+  relative_time_description: string;
+  text: string;
+  time: number;
 };
 
-const reviews: Review[] = [
-  {
-    name: "Maria J.",
-    initials: "MJ",
-    role: "First-Time Homebuyer, Fort Myers",
-    rating: 5,
-    quote:
-      "NexGen Capital made the entire mortgage process seamless. From pre-approval to closing, they were with us every step of the way. Highly recommend!",
-  },
-  {
-    name: "David & Allison R.",
-    initials: "DR",
-    role: "Refinance, Cape Coral",
-    rating: 5,
-    quote:
-      "Cesar and his team made our refinance painless. Clear communication, great rate, and we closed in under 3 weeks. Couldn't be happier.",
-  },
-  {
-    name: "Jonathan P.",
-    initials: "JP",
-    role: "VA Loan, Naples",
-    rating: 5,
-    quote:
-      "As a veteran, I appreciated how thoroughly they walked me through my VA loan benefits. True professionals who actually care about their clients.",
-  },
-  {
-    name: "Sofia M.",
-    initials: "SM",
-    role: "FHA Loan, Lehigh Acres",
-    rating: 5,
-    quote:
-      "I never thought I could buy a home this fast. NexGen Capital answered every question, every time. Felt like family by closing day.",
-  },
-  {
-    name: "Ryan T.",
-    initials: "RT",
-    role: "Investment Property, Bonita Springs",
-    rating: 5,
-    quote:
-      "Smooth process from start to finish. The local market knowledge was a huge edge — they knew exactly how to structure the deal.",
-  },
-];
+type ReviewsPayload = {
+  place_name?: string;
+  rating?: number;
+  user_ratings_total?: number;
+  url?: string;
+  reviews: Review[];
+};
+
+const initials = (name: string) =>
+  name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase() ?? "")
+    .join("");
 
 const WhyChooseUsSection = () => {
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
+  const [data, setData] = useState<ReviewsPayload | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data, error } = await supabase.functions.invoke("google-reviews");
+        if (cancelled) return;
+        if (error) throw error;
+        // Filter out empty-text reviews so cards always show a quote
+        const filtered = {
+          ...data,
+          reviews: (data.reviews ?? []).filter((r: Review) => r.text?.trim()),
+        } as ReviewsPayload;
+        setData(filtered);
+      } catch (err) {
+        console.error("Failed to load Google reviews", err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!api) return;
     setCurrent(api.selectedScrollSnap());
     api.on("select", () => setCurrent(api.selectedScrollSnap()));
   }, [api]);
+
+  const reviews = data?.reviews ?? [];
+  const googleUrl =
+    data?.url ?? "https://g.page/r/CfDh9HCvSE-WEBM/review";
 
   return (
     <section id="about" className="bg-dotted py-16 md:py-24">
@@ -105,6 +112,26 @@ const WhyChooseUsSection = () => {
 
           {/* Google Reviews carousel */}
           <div className="relative">
+            {loading ? (
+              <div className="card-elevated p-8">
+                <Skeleton className="h-5 w-28" />
+                <Skeleton className="mt-4 h-4 w-full" />
+                <Skeleton className="mt-2 h-4 w-11/12" />
+                <Skeleton className="mt-2 h-4 w-9/12" />
+                <div className="mt-6 flex items-center gap-3">
+                  <Skeleton className="h-10 w-10 rounded-full" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-3 w-32" />
+                    <Skeleton className="h-3 w-48" />
+                  </div>
+                </div>
+              </div>
+            ) : reviews.length === 0 ? (
+              <div className="card-elevated p-8 text-center text-sm text-muted-foreground">
+                Reviews are loading from Google. Please check back soon.
+              </div>
+            ) : (
+              <>
             <Carousel
               setApi={setApi}
               opts={{ loop: true, align: "start" }}
@@ -113,7 +140,7 @@ const WhyChooseUsSection = () => {
             >
               <CarouselContent>
                 {reviews.map((review) => (
-                  <CarouselItem key={review.name}>
+                  <CarouselItem key={`${review.author_name}-${review.time}`}>
                     <div className="card-elevated relative p-8">
                       <div className="absolute -right-2 -top-2 h-16 w-16 rounded-full bg-primary/10" />
                       <div className="flex items-center justify-between">
@@ -123,7 +150,7 @@ const WhyChooseUsSection = () => {
                           ))}
                         </div>
                         <a
-                          href="https://www.google.com/search?q=NexGen+Capital+Fort+Myers+reviews"
+                          href={googleUrl}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:text-primary"
@@ -138,16 +165,39 @@ const WhyChooseUsSection = () => {
                           Google
                         </a>
                       </div>
-                      <blockquote className="mt-4 text-lg font-medium italic leading-relaxed">
-                        "{review.quote}"
+                      <blockquote className="mt-4 line-clamp-6 text-base font-medium italic leading-relaxed md:text-lg">
+                        "{review.text}"
                       </blockquote>
                       <div className="mt-6 flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary font-display text-sm font-bold text-primary-foreground">
-                          {review.initials}
-                        </div>
+                        {review.profile_photo_url ? (
+                          <img
+                            src={review.profile_photo_url}
+                            alt={review.author_name}
+                            loading="lazy"
+                            referrerPolicy="no-referrer"
+                            className="h-10 w-10 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary font-display text-sm font-bold text-primary-foreground">
+                            {initials(review.author_name)}
+                          </div>
+                        )}
                         <div>
-                          <p className="text-sm font-semibold">{review.name}</p>
-                          <p className="text-xs text-muted-foreground">{review.role}</p>
+                          {review.author_url ? (
+                            <a
+                              href={review.author_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm font-semibold hover:text-primary"
+                            >
+                              {review.author_name}
+                            </a>
+                          ) : (
+                            <p className="text-sm font-semibold">{review.author_name}</p>
+                          )}
+                          <p className="text-xs text-muted-foreground">
+                            {review.relative_time_description} · Google review
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -171,6 +221,15 @@ const WhyChooseUsSection = () => {
                 />
               ))}
             </div>
+
+            {data?.rating && data?.user_ratings_total ? (
+              <p className="mt-3 text-center text-xs text-muted-foreground">
+                <span className="font-semibold text-foreground">{data.rating.toFixed(1)}★</span>
+                {" "}from {data.user_ratings_total} Google reviews
+              </p>
+            ) : null}
+              </>
+            )}
           </div>
         </div>
       </div>
