@@ -36,26 +36,35 @@ export default function RecordWorkspace({ kind }: Props) {
 
   const loadAll = useCallback(async () => {
     if (!id) return;
-    const rec = kind === "lead" ? await fetchLead(id) : await fetchContact(id);
-    setRecord(rec);
-    if (!rec) { setLoading(false); return; }
-    const leadId = kind === "lead" ? id : (rec as any).lead_id ?? undefined;
-    const contactId = kind === "contact" ? id : undefined;
-    const [acts, mails, atts, cos, dls, tgs, mp, st, cats] = await Promise.all([
-      fetchActivities({ leadId, contactId }),
-      leadId ? fetchEmailLogs(leadId) : Promise.resolve([]),
-      leadId ? fetchAttachments(leadId) : Promise.resolve([]),
-      fetchCompanies(leadId, contactId),
-      fetchDeals(contactId ?? (rec as any).contact_id),
-      leadId ? fetchTags(leadId) : Promise.resolve([]),
-      leadId ? fetchMortgageProfile(leadId) : Promise.resolve(null),
-      leadId ? fetchSentiment(leadId) : Promise.resolve(null),
-      fetchDocCategories(),
-    ]);
-    setActivities(acts); setEmailLogs(mails); setAttachments(atts);
-    setCompanies(cos); setDeals(dls); setTags(tgs);
-    setMortgage(mp); setSentiment(st); setCategories(cats);
-    setLoading(false);
+    setLoading(true);
+    try {
+      const rec = kind === "lead"
+        ? await fetchLead(id).catch(() => null)
+        : await fetchContact(id).catch(() => null);
+      setRecord(rec);
+      if (!rec) return;
+      const leadId = kind === "lead" ? id : (rec as any).lead_id ?? undefined;
+      const contactId = kind === "contact" ? id : undefined;
+      const safe = <T,>(p: Promise<T>, fallback: T) => p.catch(() => fallback);
+      const [acts, mails, atts, cos, dls, tgs, mp, st, cats] = await Promise.all([
+        safe(fetchActivities({ leadId, contactId }), [] as any[]),
+        leadId ? safe(fetchEmailLogs(leadId), [] as any[]) : Promise.resolve([] as any[]),
+        leadId ? safe(fetchAttachments(leadId), [] as any[]) : Promise.resolve([] as any[]),
+        safe(fetchCompanies(leadId, contactId), [] as any[]),
+        safe(fetchDeals(contactId ?? (rec as any).contact_id), [] as any[]),
+        leadId ? safe(fetchTags(leadId), [] as any[]) : Promise.resolve([] as any[]),
+        leadId ? safe(fetchMortgageProfile(leadId), null) : Promise.resolve(null),
+        leadId ? safe(fetchSentiment(leadId), null) : Promise.resolve(null),
+        safe(fetchDocCategories(), [] as any[]),
+      ]);
+      setActivities(acts); setEmailLogs(mails); setAttachments(atts);
+      setCompanies(cos); setDeals(dls); setTags(tgs);
+      setMortgage(mp); setSentiment(st); setCategories(cats);
+    } catch (e: any) {
+      toast({ title: "Failed to load workspace", description: e?.message, variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
   }, [id, kind]);
 
   useEffect(() => { loadAll(); }, [loadAll]);
