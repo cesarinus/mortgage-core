@@ -126,12 +126,60 @@ export default function RecordWorkspace({ kind }: Props) {
             .from("lead_contacts")
             .select("contact_id")
             .eq("lead_id", id);
-          const contactIds = Array.from(new Set((lcs ?? []).map((r: any) => r.contact_id).filter(Boolean)));
+          let contactIds = Array.from(new Set((lcs ?? []).map((r: any) => r.contact_id).filter(Boolean)));
+
+          // If the lead has no linked contact yet, create one from the lead data
+          // so a deal can exist on the Pipeline kanban.
+          if (contactIds.length === 0) {
+            const lead: any = record ?? {};
+            const { data: newContact, error: contactErr } = await supabase
+              .from("contacts")
+              .insert({
+                first_name: lead.first_name ?? "Unknown",
+                last_name: lead.last_name ?? "Lead",
+                email: lead.email ?? null,
+                phone: lead.phone ?? null,
+                lead_id: id,
+              })
+              .select("id")
+              .single();
+            if (!contactErr && newContact?.id) {
+              await supabase.from("lead_contacts").insert({
+                lead_id: id,
+                contact_id: newContact.id,
+                role: "borrower",
+              });
+              contactIds = [newContact.id];
+            }
+          }
+
           if (contactIds.length > 0) {
-            await supabase
+            // Update existing deals for these contacts
+            const { data: existingDeals } = await supabase
               .from("deals")
-              .update({ stage: mappedStage as any })
+              .select("id, contact_id")
               .in("contact_id", contactIds);
+            const dealContactIds = new Set((existingDeals ?? []).map((d: any) => d.contact_id));
+            if ((existingDeals ?? []).length > 0) {
+              await supabase
+                .from("deals")
+                .update({ stage: mappedStage as any })
+                .in("contact_id", contactIds);
+            }
+            // Create deals for contacts that don't have one yet
+            const missing = contactIds.filter((cid) => !dealContactIds.has(cid));
+            if (missing.length > 0) {
+              const lead: any = record ?? {};
+              await supabase.from("deals").insert(
+                missing.map((cid) => ({
+                  contact_id: cid,
+                  stage: mappedStage as any,
+                  loan_type: lead.loan_purpose ?? null,
+                  loan_amount: lead.loan_amount ?? null,
+                  property_address: lead.property_address ?? null,
+                }))
+              );
+            }
           }
         } catch (e) {
           console.error("Failed to sync deal stage from lead status", e);
