@@ -1445,10 +1445,12 @@ export type Database = {
           dues: number | null
           hoi: number | null
           id: string
+          interest_rate: number | null
           label: string
           lead_id: string
           lien_position: string | null
           loan_amount: number | null
+          loan_term_years: number | null
           ltv: number | null
           mi: number | null
           mortgage_type: string | null
@@ -1458,6 +1460,7 @@ export type Database = {
           property_address: string | null
           property_taxes: number | null
           purchase_price: number | null
+          rate_source: string | null
           sublabel: string | null
           supplemental: number | null
           total_piti: number | null
@@ -1471,10 +1474,12 @@ export type Database = {
           dues?: number | null
           hoi?: number | null
           id?: string
+          interest_rate?: number | null
           label?: string
           lead_id: string
           lien_position?: string | null
           loan_amount?: number | null
+          loan_term_years?: number | null
           ltv?: number | null
           mi?: number | null
           mortgage_type?: string | null
@@ -1484,6 +1489,7 @@ export type Database = {
           property_address?: string | null
           property_taxes?: number | null
           purchase_price?: number | null
+          rate_source?: string | null
           sublabel?: string | null
           supplemental?: number | null
           total_piti?: number | null
@@ -1497,10 +1503,12 @@ export type Database = {
           dues?: number | null
           hoi?: number | null
           id?: string
+          interest_rate?: number | null
           label?: string
           lead_id?: string
           lien_position?: string | null
           loan_amount?: number | null
+          loan_term_years?: number | null
           ltv?: number | null
           mi?: number | null
           mortgage_type?: string | null
@@ -1510,6 +1518,7 @@ export type Database = {
           property_address?: string | null
           property_taxes?: number | null
           purchase_price?: number | null
+          rate_source?: string | null
           sublabel?: string | null
           supplemental?: number | null
           total_piti?: number | null
