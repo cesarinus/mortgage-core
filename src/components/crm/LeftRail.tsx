@@ -3,6 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
 import {
   StickyNote, Mail, Phone, ListChecks, CalendarDays, Upload, MoreHorizontal, ArrowLeft,
@@ -16,6 +17,7 @@ interface Props {
   kind: "lead" | "contact";
   tags?: { tag: string }[];
   onAction: (k: ActionKey) => void;
+  onStatusChange?: (status: string) => void;
 }
 
 const actionList: { key: ActionKey; label: string; Icon: any }[] = [
@@ -27,7 +29,13 @@ const actionList: { key: ActionKey; label: string; Icon: any }[] = [
   { key: "upload", label: "Upload", Icon: Upload },
 ];
 
-export function LeftRail({ record, kind, tags = [], onAction }: Props) {
+const LEAD_STATUSES = [
+  "new", "contacted", "qualified", "pre_qualified",
+  "application_started", "underwriting", "approved",
+  "closed", "converted", "lost", "unqualified",
+];
+
+export function LeftRail({ record, kind, tags = [], onAction, onStatusChange }: Props) {
   const fullName = `${record?.first_name ?? ""} ${record?.last_name ?? ""}`.trim() || "(Unnamed)";
   const initials = `${record?.first_name?.[0] ?? ""}${record?.last_name?.[0] ?? ""}`.toUpperCase() || "?";
   return (
@@ -47,6 +55,22 @@ export function LeftRail({ record, kind, tags = [], onAction }: Props) {
             )}
           </div>
         </div>
+
+        {kind === "lead" && onStatusChange && (
+          <div>
+            <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">Status</div>
+            <Select value={record?.status ?? "new"} onValueChange={onStatusChange}>
+              <SelectTrigger className="h-8 capitalize">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {LEAD_STATUSES.map((s) => (
+                  <SelectItem key={s} value={s} className="capitalize">{s.replace(/_/g, " ")}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         <div className="grid grid-cols-3 gap-1.5">
           {actionList.map(({ key, label, Icon }) => (
