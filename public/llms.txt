@@ -1,0 +1,15 @@
+# NexGen Capital
+
+> Southwest Florida mortgage lender offering Conventional, FHA, VA, USDA, Jumbo, Refinance, and Home Equity loans with fast pre-approvals and competitive rates.
+
+NexGen Capital serves homebuyers and homeowners across Cape Coral, Fort Myers, Naples, and the surrounding Southwest Florida region. The site provides loan information, an online application hub, a mortgage calculator, a market-aware rate lock decision tool, and an educational blog.
+
+## Pages
+
+- [Home](/): Overview of loan products, services, and how to start an application.
+- [Blog](/blog): Mortgage insights, rate updates, and homebuying guides for Southwest Florida.
+- [Book a Meeting](/book): Schedule a free 30-minute mortgage consultation by phone or Zoom.
+
+## Optional
+
+- [Blog Post](/blog/): Individual articles on rates, refinancing, first-time homebuying, and loan programs.

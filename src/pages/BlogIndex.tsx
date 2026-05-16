@@ -54,6 +54,11 @@ const BlogIndex = () => {
         <meta name="keywords" content={BLOG_KEYWORDS_STRING} />
         <meta name="robots" content="index, follow" />
         <link rel="canonical" href={`${SITE_URL}/blog`} />
+        <meta property="og:title" content="Mortgage Blog | NexGen Capital" />
+        <meta property="og:description" content="Expert mortgage insights, rate updates, and homebuying guides for Southwest Florida." />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={`${SITE_URL}/blog`} />
+        <meta property="og:site_name" content="NexGen Capital" />
       </Helmet>
       <Navbar />
 

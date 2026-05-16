@@ -58,6 +58,8 @@ export default function Book() {
         <meta property="og:title" content="Book a Meeting | NexGen Capital" />
         <meta property="og:description" content="Schedule your free mortgage consultation with NexGen Capital." />
         <meta property="og:type" content="website" />
+        <meta property="og:url" content={`${SITE_URL_FALLBACK}/book`} />
+        <meta property="og:site_name" content="NexGen Capital" />
       </Helmet>
 
       <Navbar />

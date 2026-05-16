@@ -25,10 +25,24 @@ const LandingPage = () => {
     <div className="min-h-screen">
       <Helmet>
         <title>NexGen Capital | Southwest Florida Mortgage Lending</title>
-        <meta name="description" content="NexGen Capital — Your trusted mortgage partner in Southwest Florida. Fast pre-approvals, competitive rates, and personalized service for Conventional, FHA, VA, and Refinance loans." />
+        <meta name="description" content="Southwest Florida mortgage lender. Fast pre-approvals and competitive rates on Conventional, FHA, VA, and Refinance loans." />
         <meta name="keywords" content={HOMEPAGE_KEYWORDS_STRING} />
         <meta name="robots" content="index, follow" />
         <link rel="canonical" href={SITE_URL} />
+        <script type="application/ld+json">{JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "LocalBusiness",
+          name: "NexGen Capital",
+          telephone: "(239) 645-4580",
+          url: SITE_URL,
+          address: {
+            "@type": "PostalAddress",
+            addressLocality: "Naples",
+            addressRegion: "FL",
+            addressCountry: "US",
+          },
+          areaServed: "Southwest Florida",
+        })}</script>
       </Helmet>
       <Navbar onGetStarted={() => openHub()} />
       <HeroSection onApplyNow={() => openHub()} onCalculate={() => setCalcOpen(true)} />

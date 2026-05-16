@@ -14,3 +14,4 @@ User-agent: *
 Allow: /
 
 Sitemap: https://ngcapital.net/sitemap.xml
+Sitemap: https://steady-mortgage-grid.lovable.app/sitemap.xml
