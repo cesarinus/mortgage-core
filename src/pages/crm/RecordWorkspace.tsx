@@ -105,6 +105,38 @@ export default function RecordWorkspace({ kind }: Props) {
       toast({ title: "Failed to update status", description: error.message, variant: "destructive" });
     } else {
       toast({ title: "Status updated", description: newStatus.replace(/_/g, " ") });
+      // Sync any linked deals' stage so the Pipeline kanban reflects this change.
+      const leadToDealStage: Record<string, string> = {
+        new: "new_lead",
+        contacted: "contacted",
+        pre_qualified: "contacted",
+        qualified: "contacted",
+        application_started: "application_sent",
+        underwriting: "underwriting",
+        approved: "approved",
+        converted: "closed",
+        closed: "closed",
+        lost: "lost",
+        unqualified: "lost",
+      };
+      const mappedStage = leadToDealStage[newStatus];
+      if (mappedStage) {
+        try {
+          const { data: lcs } = await supabase
+            .from("lead_contacts")
+            .select("contact_id")
+            .eq("lead_id", id);
+          const contactIds = Array.from(new Set((lcs ?? []).map((r: any) => r.contact_id).filter(Boolean)));
+          if (contactIds.length > 0) {
+            await supabase
+              .from("deals")
+              .update({ stage: mappedStage as any })
+              .in("contact_id", contactIds);
+          }
+        } catch (e) {
+          console.error("Failed to sync deal stage from lead status", e);
+        }
+      }
       loadAll();
     }
   };
