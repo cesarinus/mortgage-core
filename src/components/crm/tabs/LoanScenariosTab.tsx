@@ -11,9 +11,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { BarChart2, Pencil, Trash2, Plus, Download, Mail, Star, ArrowDown, ArrowUp } from "lucide-react";
+import { BarChart2, Pencil, Trash2, Plus, Download, Mail, Star, ArrowDown, ArrowUp, RotateCcw, Zap } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { calculatePI, getMndRate } from "@/lib/calculatePI";
 
 interface Props {
   leadId: string;
@@ -44,6 +45,9 @@ type Scenario = {
   other_label: string | null;
   total_piti: number | null;
   created_at: string;
+  loan_term_years: number | null;
+  interest_rate: number | null;
+  rate_source: string | null;
 };
 
 const DEFAULTS = {
@@ -105,6 +109,7 @@ export function LoanScenariosTab({ leadId, lead, onActivity }: Props) {
       property_taxes: DEFAULTS.property_taxes, mi: 0, dues: 0,
       other_amount: 0, other_label: "", total_piti: 0,
       created_at: new Date().toISOString(),
+      loan_term_years: 30, interest_rate: null, rate_source: "mnd_live",
     });
     setDrawerOpen(true);
   };
