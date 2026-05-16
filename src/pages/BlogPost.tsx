@@ -158,6 +158,20 @@ const BlogPost = () => {
         {post.featured_image && <meta name="twitter:image" content={post.featured_image} />}
         <meta property="article:published_time" content={post.created_at} />
         <meta property="article:author" content={post.author} />
+        <script type="application/ld+json">{JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "Article",
+          headline: post.meta_title || post.title,
+          description: post.meta_description || post.excerpt || undefined,
+          image: post.featured_image || undefined,
+          datePublished: post.created_at,
+          author: { "@type": "Person", name: post.author },
+          publisher: {
+            "@type": "Organization",
+            name: "NexGen Capital",
+          },
+          mainEntityOfPage: `${SITE_URL}/blog/${post.slug}`,
+        })}</script>
       </Helmet>
 
       <Navbar />
