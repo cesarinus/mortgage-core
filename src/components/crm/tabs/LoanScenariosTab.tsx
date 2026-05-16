@@ -11,7 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { BarChart2, Pencil, Trash2, Plus, Download, Mail, Star, ArrowDown, ArrowUp, RotateCcw, Zap } from "lucide-react";
+import { BarChart2, Pencil, Trash2, Plus, Download, Mail, Star, ArrowDown, ArrowUp, RotateCcw, Zap, Info } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { calculatePI, getMndRate } from "@/lib/calculatePI";
@@ -48,6 +50,14 @@ type Scenario = {
   loan_term_years: number | null;
   interest_rate: number | null;
   rate_source: string | null;
+  buydown_mode?: boolean | null;
+  points_budget?: number | null;
+  points_purchasable?: number | null;
+  rate_reduction_pct?: number | null;
+  reduction_per_point?: number | null;
+  bought_down_rate?: number | null;
+  breakeven_vs_a_months?: number | null;
+  breakeven_vs_b_months?: number | null;
 };
 
 const DEFAULTS = {
@@ -217,6 +227,57 @@ export function LoanScenariosTab({ leadId, lead, onActivity }: Props) {
     });
     y += 90;
 
+    // Rate Buydown Summary (if any scenario has buydown_mode)
+    const buyScen = scenarios.find(s => s.buydown_mode);
+    const sA = scenarios[0];
+    const sB = scenarios[1];
+    if (buyScen && sA && sB) {
+      pdf.setTextColor(15, 27, 61);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(13);
+      pdf.text("Rate Buydown Summary", 40, y);
+      const baseRate = (num(buyScen.bought_down_rate) + num(buyScen.rate_reduction_pct));
+      const savingsA = num(sA.pi) - num(buyScen.pi);
+      const savingsB = num(sB.pi) - num(buyScen.pi);
+      autoTable(pdf, {
+        startY: y + 5,
+        head: [["Metric", "Value"]],
+        body: [
+          ["Down Payment Delta (B − A)", fmt(buyScen.points_budget)],
+          ["Option C Loan Amount", fmt(buyScen.loan_amount)],
+          ["Cost Per Discount Point", fmt(num(buyScen.loan_amount) * 0.01)],
+          ["Points Purchased", `${Number(buyScen.points_purchasable ?? 0).toFixed(2)} pts`],
+          ["Rate Reduction", `−${Number(buyScen.rate_reduction_pct ?? 0).toFixed(3)}%`],
+          ["Base Rate (MND at save time)", `${baseRate.toFixed(3)}%`],
+          ["Effective Bought-Down Rate", `${Number(buyScen.bought_down_rate ?? 0).toFixed(3)}%`],
+          ["Monthly P&I Savings vs Option A", `${fmt(savingsA)}/mo`],
+          ["Monthly P&I Savings vs Option B", `${fmt(savingsB)}/mo`],
+          ["Break-Even vs Option A", buyScen.breakeven_vs_a_months ? `${buyScen.breakeven_vs_a_months} months` : "—"],
+          ["Break-Even vs Option B", buyScen.breakeven_vs_b_months ? `${buyScen.breakeven_vs_b_months} months` : "—"],
+        ],
+        headStyles: { fillColor: [15, 27, 61], textColor: 255 },
+        alternateRowStyles: { fillColor: [245, 245, 250] },
+        styles: { fontSize: 10 },
+      });
+      y = (pdf as any).lastAutoTable.finalY + 15;
+      pdf.setDrawColor(212, 175, 55);
+      pdf.setLineWidth(1.2);
+      pdf.setFillColor(253, 248, 230);
+      pdf.roundedRect(40, y, W - 80, 50, 6, 6, "FD");
+      pdf.setTextColor(15, 27, 61);
+      pdf.setFont("helvetica", "italic");
+      pdf.setFontSize(9);
+      pdf.text(
+        "Option C achieves the same total cash outlay as Option B by redirecting the down payment",
+        55, y + 20,
+      );
+      pdf.text(
+        "difference into discount points — permanently lowering the rate and monthly payment for the life of the loan.",
+        55, y + 34,
+      );
+      y += 70;
+    }
+
     pdf.setTextColor(15, 27, 61);
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(13);
@@ -302,7 +363,12 @@ export function LoanScenariosTab({ leadId, lead, onActivity }: Props) {
                     )}
                     <div className="flex items-start justify-between mb-2">
                       <div>
-                        <div className="font-semibold">{s.label}</div>
+                        <div className="font-semibold flex items-center gap-2">
+                          {s.label}
+                          {s.buydown_mode && (
+                            <Badge className="bg-amber-500 hover:bg-amber-500 text-white text-[10px]">Rate Buydown</Badge>
+                          )}
+                        </div>
                         <div className="text-xs text-muted-foreground">{s.sublabel}</div>
                       </div>
                       <div className="flex gap-1">
@@ -321,9 +387,15 @@ export function LoanScenariosTab({ leadId, lead, onActivity }: Props) {
                       <div className="flex justify-between text-lg font-semibold mt-2"><span>P&I</span><span>{fmt(s.pi)}</span></div>
                       <div className="text-xs text-muted-foreground text-right">
                         {s.interest_rate != null
-                          ? `@ ${Number(s.interest_rate).toFixed(3)}% · ${s.loan_term_years ?? 30}yr · ${s.rate_source === "manual" ? "Manual" : "Live rate"}`
+                          ? `@ ${Number(s.interest_rate).toFixed(3)}%${s.buydown_mode ? " (bought down)" : ""} · ${s.loan_term_years ?? 30}yr · ${s.rate_source === "manual" ? "Manual" : "Live rate"}`
                           : "—"}
                       </div>
+                      {s.buydown_mode && (
+                        <div className="text-[11px] text-muted-foreground text-right">
+                          Points: {Number(s.points_purchasable ?? 0).toFixed(2)} pts · {fmt(s.points_budget)} budget
+                          {s.breakeven_vs_a_months ? <><br/>Break-even: {s.breakeven_vs_a_months} mo vs Option A</> : null}
+                        </div>
+                      )}
                       <div className="flex justify-between font-bold border-t pt-1"><span>PITI</span><span>{fmt(s.total_piti)}</span></div>
                     </div>
                   </div>
@@ -397,6 +469,7 @@ export function LoanScenariosTab({ leadId, lead, onActivity }: Props) {
         scenario={editing}
         leadId={leadId}
         userId={user?.id}
+        allScenarios={scenarios}
         onSaved={() => { setDrawerOpen(false); setEditing(null); load(); }}
       />
 
@@ -414,19 +487,38 @@ export function LoanScenariosTab({ leadId, lead, onActivity }: Props) {
 }
 
 function ScenarioDrawer({
-  open, onClose, scenario, leadId, userId, onSaved,
+  open, onClose, scenario, leadId, userId, allScenarios, onSaved,
 }: {
   open: boolean; onClose: () => void; scenario: Scenario | null;
-  leadId: string; userId?: string; onSaved: () => void;
+  leadId: string; userId?: string; allScenarios: Scenario[]; onSaved: () => void;
 }) {
   const { toast } = useToast();
   const [form, setForm] = useState<Partial<Scenario>>({});
   const [piManual, setPiManual] = useState(false);
+  const [buydownOn, setBuydownOn] = useState(false);
+  const [reductionPerPoint, setReductionPerPoint] = useState<number>(0.25);
 
   useEffect(() => {
     setForm(scenario ?? {});
     setPiManual((scenario?.rate_source ?? "mnd_live") === "manual");
+    setReductionPerPoint(num(scenario?.reduction_per_point) || 0.25);
   }, [scenario]);
+
+  // Identify Option A and B (first 2 saved scenarios, by creation order)
+  const savedOthers = useMemo(
+    () => allScenarios.filter(s => s.id && s.id !== scenario?.id),
+    [allScenarios, scenario?.id],
+  );
+  const scenarioA = savedOthers[0];
+  const scenarioB = savedOthers[1];
+  const isThirdSlot = !scenario?.id && allScenarios.length >= 2;
+  const buydownAvailable = isThirdSlot && !!scenarioA && !!scenarioB;
+
+  // Auto-enable buydown when opening the 3rd new scenario
+  useEffect(() => {
+    if (open && buydownAvailable) setBuydownOn(true);
+    if (open && !buydownAvailable) setBuydownOn(!!scenario?.buydown_mode);
+  }, [open, buydownAvailable, scenario?.buydown_mode]);
 
   const set = (k: keyof Scenario, v: any) => setForm(f => ({ ...f, [k]: v }));
 
@@ -435,9 +527,22 @@ function ScenarioDrawer({
     [form.mortgage_type],
   );
   const termYears = num(form.loan_term_years) || 30;
+
+  // Rate Buydown calculations
+  const buydownActive = buydownOn && buydownAvailable;
+  const pointsBudget = buydownActive
+    ? Math.max(0, num(scenarioB?.down_payment_amt) - num(scenarioA?.down_payment_amt))
+    : 0;
+  const costPerPoint = num(form.loan_amount) * 0.01;
+  const pointsPurchasable = buydownActive && costPerPoint > 0 ? pointsBudget / costPerPoint : 0;
+  const rateReductionPct = +(pointsPurchasable * reductionPerPoint).toFixed(4);
+  const effectiveRateForPI = buydownActive
+    ? Math.max(0, +(rateInfo.effectiveRate - rateReductionPct).toFixed(4))
+    : rateInfo.effectiveRate;
+
   const autoPI = useMemo(
-    () => calculatePI(num(form.loan_amount), rateInfo.effectiveRate, termYears),
-    [form.loan_amount, rateInfo.effectiveRate, termYears],
+    () => calculatePI(num(form.loan_amount), effectiveRateForPI, termYears),
+    [form.loan_amount, effectiveRateForPI, termYears],
   );
 
   // Push auto-calculated P&I into form when not in manual mode
@@ -469,6 +574,19 @@ function ScenarioDrawer({
     [form, effectivePI],
   );
 
+  // Savings & break-even vs A and B
+  const piA = num(scenarioA?.pi);
+  const piB = num(scenarioB?.pi);
+  const savingsVsA = buydownActive ? +(piA - effectivePI).toFixed(2) : 0;
+  const savingsVsB = buydownActive ? +(piB - effectivePI).toFixed(2) : 0;
+  const breakevenAMonths = buydownActive && savingsVsA > 0 ? Math.round(pointsBudget / savingsVsA) : 0;
+  const breakevenBMonths = buydownActive && savingsVsB > 0 ? Math.round(pointsBudget / savingsVsB) : 0;
+  const monthsToYrs = (m: number) => {
+    const y = Math.floor(m / 12);
+    const r = m % 12;
+    return `${y} yr${y === 1 ? "" : "s"}${r ? ` ${r} mo` : ""}`;
+  };
+
   const save = async () => {
     const payload = {
       lead_id: leadId,
@@ -490,8 +608,16 @@ function ScenarioDrawer({
       total_piti: total,
       created_by: userId,
       loan_term_years: termYears,
-      interest_rate: +rateInfo.effectiveRate.toFixed(4),
+      interest_rate: +effectiveRateForPI.toFixed(4),
       rate_source: piManual ? "manual" : "mnd_live",
+      buydown_mode: buydownActive,
+      points_budget: buydownActive ? +pointsBudget.toFixed(2) : null,
+      points_purchasable: buydownActive ? +pointsPurchasable.toFixed(4) : null,
+      rate_reduction_pct: buydownActive ? rateReductionPct : null,
+      reduction_per_point: buydownActive ? reductionPerPoint : null,
+      bought_down_rate: buydownActive ? +effectiveRateForPI.toFixed(4) : null,
+      breakeven_vs_a_months: buydownActive && breakevenAMonths ? breakevenAMonths : null,
+      breakeven_vs_b_months: buydownActive && breakevenBMonths ? breakevenBMonths : null,
     };
     const op = scenario?.id
       ? supabase.from("loan_scenarios").update(payload).eq("id", scenario.id)
@@ -580,6 +706,82 @@ function ScenarioDrawer({
             </Select>
           </div>
 
+          {(buydownAvailable || scenario?.buydown_mode) && (
+            <div className="flex items-center justify-between rounded-md border bg-muted/40 px-3 py-2">
+              <div className="text-sm flex items-center gap-2">
+                <span>💡</span>
+                <span>Apply rate buydown from down payment delta</span>
+              </div>
+              <Switch checked={buydownOn} onCheckedChange={setBuydownOn} />
+            </div>
+          )}
+
+          {buydownActive && (
+            <div className="rounded-md border-l-4 border-amber-400 bg-amber-50 p-3 text-xs space-y-2 text-foreground">
+              <div className="font-semibold text-sm flex items-center gap-1">💰 Rate Buydown Calculator</div>
+              <div className="grid grid-cols-2 gap-y-1">
+                <span>Option B Down Payment</span><span className="text-right">{fmt(scenarioB?.down_payment_amt)}</span>
+                <span>Option A Down Payment</span><span className="text-right">− {fmt(scenarioA?.down_payment_amt)}</span>
+                <span className="font-semibold border-t pt-1">Points Budget</span><span className="text-right font-semibold border-t pt-1">{fmt(pointsBudget)}</span>
+                <span className="pt-1">Loan Amount (Option C)</span><span className="text-right pt-1">{fmt(form.loan_amount)}</span>
+                <span>Cost per Point (1%)</span><span className="text-right">{fmt(costPerPoint)}</span>
+                <span>Points Purchasable</span><span className="text-right">{pointsPurchasable.toFixed(2)} pts</span>
+                <span>Rate Reduction</span><span className="text-right">− {rateReductionPct.toFixed(3)}% (@ {reductionPerPoint}% / pt)</span>
+                <span className="pt-1">Base Rate (MND Live)</span><span className="text-right pt-1">{rateInfo.effectiveRate.toFixed(3)}%</span>
+                <span className="font-semibold">Effective Bought-Down Rate</span><span className="text-right font-semibold">{effectiveRateForPI.toFixed(3)}% ← used for P&amp;I</span>
+              </div>
+              <div className="flex items-center gap-2 pt-2 border-t">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="cursor-help inline-flex items-center gap-1">Reduction per point (industry std: 0.25%) <Info className="h-3 w-3" /></span>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs text-xs">
+                      Each discount point costs 1% of the loan amount. The rate reduction per point varies by lender and market. 0.25% is the common industry estimate.
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <Input
+                  type="number" min={0.10} max={0.50} step={0.0625}
+                  className="h-7 w-20 ml-auto"
+                  value={reductionPerPoint}
+                  onChange={e => setReductionPerPoint(Math.min(0.5, Math.max(0.1, num(e.target.value) || 0.25)))}
+                />
+                <span>%</span>
+              </div>
+              {(savingsVsA > 0 || savingsVsB > 0) && (
+                <div className="text-green-700 font-medium pt-2 border-t">
+                  ✅ Saves {fmt(savingsVsA)}/mo vs Option A · {fmt(savingsVsB)}/mo vs Option B
+                </div>
+              )}
+              {(breakevenAMonths > 0 || breakevenBMonths > 0) && (
+                <div className="space-y-0.5 pt-1">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="cursor-help inline-flex items-center gap-1 font-medium">Break-even <Info className="h-3 w-3" /></span>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs text-xs">
+                        If you stay in the home beyond the break-even point, buying down the rate saves money overall. If you move or refinance before then, the upfront point cost outweighs the monthly savings.
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  {breakevenAMonths > 0 && (
+                    <div>vs Option A: {fmt(pointsBudget)} ÷ {fmt(savingsVsA)}/mo = {breakevenAMonths} months (~{monthsToYrs(breakevenAMonths)})</div>
+                  )}
+                  {breakevenBMonths > 0 && (
+                    <div>vs Option B: {fmt(pointsBudget)} ÷ {fmt(savingsVsB)}/mo = {breakevenBMonths} months (~{monthsToYrs(breakevenBMonths)})</div>
+                  )}
+                </div>
+              )}
+              <div className="pt-2 border-t text-[11px] leading-snug">
+                📋 Cash to Close (B): {fmt(scenarioB?.down_payment_amt)} + closing costs<br/>
+                Cash to Close (C): {fmt(scenarioA?.down_payment_amt)} + {fmt(pointsBudget)} points + closing costs<br/>
+                <span className="text-green-700 font-medium">✅ Same total cash outlay — different allocation</span>
+              </div>
+            </div>
+          )}
+
           <div className="rounded-md bg-muted/60 border px-3 py-2 text-xs flex flex-wrap items-center gap-x-4 gap-y-1">
             <span><span className="text-muted-foreground">Current Rate (MND):</span> <strong>{rateInfo.baseRate.toFixed(3)}%</strong></span>
             <span className="text-muted-foreground">|</span>
@@ -607,7 +809,10 @@ function ScenarioDrawer({
                     {piManual ? (
                       <><Pencil className="h-3 w-3" /> Manual override — click Restore Auto to revert</>
                     ) : (
-                      <><Zap className="h-3 w-3" /> Auto — {rateInfo.effectiveRate.toFixed(3)}% · {termYears}yr</>
+                      <>
+                        <Zap className="h-3 w-3" /> Auto — {effectiveRateForPI.toFixed(3)}%
+                        {buydownActive && <span className="text-amber-600"> (bought down)</span>} · {termYears}yr
+                      </>
                     )}
                   </div>
                 </div>
