@@ -644,6 +644,82 @@ function ScenarioDrawer({
             </Select>
           </div>
 
+          {(buydownAvailable || scenario?.buydown_mode) && (
+            <div className="flex items-center justify-between rounded-md border bg-muted/40 px-3 py-2">
+              <div className="text-sm flex items-center gap-2">
+                <span>💡</span>
+                <span>Apply rate buydown from down payment delta</span>
+              </div>
+              <Switch checked={buydownOn} onCheckedChange={setBuydownOn} />
+            </div>
+          )}
+
+          {buydownActive && (
+            <div className="rounded-md border-l-4 border-amber-400 bg-amber-50 p-3 text-xs space-y-2 text-foreground">
+              <div className="font-semibold text-sm flex items-center gap-1">💰 Rate Buydown Calculator</div>
+              <div className="grid grid-cols-2 gap-y-1">
+                <span>Option B Down Payment</span><span className="text-right">{fmt(scenarioB?.down_payment_amt)}</span>
+                <span>Option A Down Payment</span><span className="text-right">− {fmt(scenarioA?.down_payment_amt)}</span>
+                <span className="font-semibold border-t pt-1">Points Budget</span><span className="text-right font-semibold border-t pt-1">{fmt(pointsBudget)}</span>
+                <span className="pt-1">Loan Amount (Option C)</span><span className="text-right pt-1">{fmt(form.loan_amount)}</span>
+                <span>Cost per Point (1%)</span><span className="text-right">{fmt(costPerPoint)}</span>
+                <span>Points Purchasable</span><span className="text-right">{pointsPurchasable.toFixed(2)} pts</span>
+                <span>Rate Reduction</span><span className="text-right">− {rateReductionPct.toFixed(3)}% (@ {reductionPerPoint}% / pt)</span>
+                <span className="pt-1">Base Rate (MND Live)</span><span className="text-right pt-1">{rateInfo.effectiveRate.toFixed(3)}%</span>
+                <span className="font-semibold">Effective Bought-Down Rate</span><span className="text-right font-semibold">{effectiveRateForPI.toFixed(3)}% ← used for P&amp;I</span>
+              </div>
+              <div className="flex items-center gap-2 pt-2 border-t">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="cursor-help inline-flex items-center gap-1">Reduction per point (industry std: 0.25%) <Info className="h-3 w-3" /></span>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs text-xs">
+                      Each discount point costs 1% of the loan amount. The rate reduction per point varies by lender and market. 0.25% is the common industry estimate.
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <Input
+                  type="number" min={0.10} max={0.50} step={0.0625}
+                  className="h-7 w-20 ml-auto"
+                  value={reductionPerPoint}
+                  onChange={e => setReductionPerPoint(Math.min(0.5, Math.max(0.1, num(e.target.value) || 0.25)))}
+                />
+                <span>%</span>
+              </div>
+              {(savingsVsA > 0 || savingsVsB > 0) && (
+                <div className="text-green-700 font-medium pt-2 border-t">
+                  ✅ Saves {fmt(savingsVsA)}/mo vs Option A · {fmt(savingsVsB)}/mo vs Option B
+                </div>
+              )}
+              {(breakevenAMonths > 0 || breakevenBMonths > 0) && (
+                <div className="space-y-0.5 pt-1">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="cursor-help inline-flex items-center gap-1 font-medium">Break-even <Info className="h-3 w-3" /></span>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-xs text-xs">
+                        If you stay in the home beyond the break-even point, buying down the rate saves money overall. If you move or refinance before then, the upfront point cost outweighs the monthly savings.
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  {breakevenAMonths > 0 && (
+                    <div>vs Option A: {fmt(pointsBudget)} ÷ {fmt(savingsVsA)}/mo = {breakevenAMonths} months (~{monthsToYrs(breakevenAMonths)})</div>
+                  )}
+                  {breakevenBMonths > 0 && (
+                    <div>vs Option B: {fmt(pointsBudget)} ÷ {fmt(savingsVsB)}/mo = {breakevenBMonths} months (~{monthsToYrs(breakevenBMonths)})</div>
+                  )}
+                </div>
+              )}
+              <div className="pt-2 border-t text-[11px] leading-snug">
+                📋 Cash to Close (B): {fmt(scenarioB?.down_payment_amt)} + closing costs<br/>
+                Cash to Close (C): {fmt(scenarioA?.down_payment_amt)} + {fmt(pointsBudget)} points + closing costs<br/>
+                <span className="text-green-700 font-medium">✅ Same total cash outlay — different allocation</span>
+              </div>
+            </div>
+          )}
+
           <div className="rounded-md bg-muted/60 border px-3 py-2 text-xs flex flex-wrap items-center gap-x-4 gap-y-1">
             <span><span className="text-muted-foreground">Current Rate (MND):</span> <strong>{rateInfo.baseRate.toFixed(3)}%</strong></span>
             <span className="text-muted-foreground">|</span>
@@ -671,7 +747,10 @@ function ScenarioDrawer({
                     {piManual ? (
                       <><Pencil className="h-3 w-3" /> Manual override — click Restore Auto to revert</>
                     ) : (
-                      <><Zap className="h-3 w-3" /> Auto — {rateInfo.effectiveRate.toFixed(3)}% · {termYears}yr</>
+                      <>
+                        <Zap className="h-3 w-3" /> Auto — {effectiveRateForPI.toFixed(3)}%
+                        {buydownActive && <span className="text-amber-600"> (bought down)</span>} · {termYears}yr
+                      </>
                     )}
                   </div>
                 </div>
