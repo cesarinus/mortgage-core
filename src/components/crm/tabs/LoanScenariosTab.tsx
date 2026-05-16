@@ -227,6 +227,57 @@ export function LoanScenariosTab({ leadId, lead, onActivity }: Props) {
     });
     y += 90;
 
+    // Rate Buydown Summary (if any scenario has buydown_mode)
+    const buyScen = scenarios.find(s => s.buydown_mode);
+    const sA = scenarios[0];
+    const sB = scenarios[1];
+    if (buyScen && sA && sB) {
+      pdf.setTextColor(15, 27, 61);
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(13);
+      pdf.text("Rate Buydown Summary", 40, y);
+      const baseRate = (num(buyScen.bought_down_rate) + num(buyScen.rate_reduction_pct));
+      const savingsA = num(sA.pi) - num(buyScen.pi);
+      const savingsB = num(sB.pi) - num(buyScen.pi);
+      autoTable(pdf, {
+        startY: y + 5,
+        head: [["Metric", "Value"]],
+        body: [
+          ["Down Payment Delta (B − A)", fmt(buyScen.points_budget)],
+          ["Option C Loan Amount", fmt(buyScen.loan_amount)],
+          ["Cost Per Discount Point", fmt(num(buyScen.loan_amount) * 0.01)],
+          ["Points Purchased", `${Number(buyScen.points_purchasable ?? 0).toFixed(2)} pts`],
+          ["Rate Reduction", `−${Number(buyScen.rate_reduction_pct ?? 0).toFixed(3)}%`],
+          ["Base Rate (MND at save time)", `${baseRate.toFixed(3)}%`],
+          ["Effective Bought-Down Rate", `${Number(buyScen.bought_down_rate ?? 0).toFixed(3)}%`],
+          ["Monthly P&I Savings vs Option A", `${fmt(savingsA)}/mo`],
+          ["Monthly P&I Savings vs Option B", `${fmt(savingsB)}/mo`],
+          ["Break-Even vs Option A", buyScen.breakeven_vs_a_months ? `${buyScen.breakeven_vs_a_months} months` : "—"],
+          ["Break-Even vs Option B", buyScen.breakeven_vs_b_months ? `${buyScen.breakeven_vs_b_months} months` : "—"],
+        ],
+        headStyles: { fillColor: [15, 27, 61], textColor: 255 },
+        alternateRowStyles: { fillColor: [245, 245, 250] },
+        styles: { fontSize: 10 },
+      });
+      y = (pdf as any).lastAutoTable.finalY + 15;
+      pdf.setDrawColor(212, 175, 55);
+      pdf.setLineWidth(1.2);
+      pdf.setFillColor(253, 248, 230);
+      pdf.roundedRect(40, y, W - 80, 50, 6, 6, "FD");
+      pdf.setTextColor(15, 27, 61);
+      pdf.setFont("helvetica", "italic");
+      pdf.setFontSize(9);
+      pdf.text(
+        "Option C achieves the same total cash outlay as Option B by redirecting the down payment",
+        55, y + 20,
+      );
+      pdf.text(
+        "difference into discount points — permanently lowering the rate and monthly payment for the life of the loan.",
+        55, y + 34,
+      );
+      y += 70;
+    }
+
     pdf.setTextColor(15, 27, 61);
     pdf.setFont("helvetica", "bold");
     pdf.setFontSize(13);
