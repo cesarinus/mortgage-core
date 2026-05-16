@@ -31,3 +31,6 @@ verify_jwt = true
 verify_jwt = true
 [functions.google-reviews]
 verify_jwt = false
+
+[functions.send-loan-comparison]
+verify_jwt = true

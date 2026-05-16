@@ -6,6 +6,8 @@ import { LeftRail } from "@/components/crm/LeftRail";
 import { RightRail } from "@/components/crm/RightRail";
 import { CatchUpTab } from "@/components/crm/tabs/CatchUpTab";
 import { ActivitiesTab } from "@/components/crm/tabs/ActivitiesTab";
+import { LoanScenariosTab } from "@/components/crm/tabs/LoanScenariosTab";
+import { BarChart2 } from "lucide-react";
 import {
   NoteModal, TaskModal, CallModal, MeetingModal, EmailModal, UploadModal,
 } from "@/components/crm/actions/ActionModals";
@@ -111,9 +113,14 @@ export default function RecordWorkspace({ kind }: Props) {
 
         <main className="col-span-12 lg:col-span-6">
           <Tabs defaultValue="catch-up">
-            <TabsList className="w-full grid grid-cols-2">
+            <TabsList className="w-full grid grid-cols-3">
               <TabsTrigger value="catch-up">Catch-up</TabsTrigger>
               <TabsTrigger value="activities">Activities</TabsTrigger>
+              {kind === "lead" && (
+                <TabsTrigger value="scenarios" className="flex items-center gap-1.5">
+                  <BarChart2 className="h-3.5 w-3.5" /> Loan Scenarios
+                </TabsTrigger>
+              )}
             </TabsList>
             <TabsContent value="catch-up" className="mt-4">
               <CatchUpTab
@@ -128,6 +135,11 @@ export default function RecordWorkspace({ kind }: Props) {
             <TabsContent value="activities" className="mt-4">
               <ActivitiesTab activities={activities} />
             </TabsContent>
+            {kind === "lead" && (
+              <TabsContent value="scenarios" className="mt-4">
+                <LoanScenariosTab leadId={id} lead={record} onActivity={loadAll} />
+              </TabsContent>
+            )}
           </Tabs>
         </main>
 

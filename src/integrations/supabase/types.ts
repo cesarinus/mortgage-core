@@ -1436,6 +1436,95 @@ export type Database = {
           },
         ]
       }
+      loan_scenarios: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          down_payment_amt: number | null
+          down_payment_pct: number | null
+          dues: number | null
+          hoi: number | null
+          id: string
+          label: string
+          lead_id: string
+          lien_position: string | null
+          loan_amount: number | null
+          ltv: number | null
+          mi: number | null
+          mortgage_type: string | null
+          other_amount: number | null
+          other_label: string | null
+          pi: number | null
+          property_address: string | null
+          property_taxes: number | null
+          purchase_price: number | null
+          sublabel: string | null
+          supplemental: number | null
+          total_piti: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          down_payment_amt?: number | null
+          down_payment_pct?: number | null
+          dues?: number | null
+          hoi?: number | null
+          id?: string
+          label?: string
+          lead_id: string
+          lien_position?: string | null
+          loan_amount?: number | null
+          ltv?: number | null
+          mi?: number | null
+          mortgage_type?: string | null
+          other_amount?: number | null
+          other_label?: string | null
+          pi?: number | null
+          property_address?: string | null
+          property_taxes?: number | null
+          purchase_price?: number | null
+          sublabel?: string | null
+          supplemental?: number | null
+          total_piti?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          down_payment_amt?: number | null
+          down_payment_pct?: number | null
+          dues?: number | null
+          hoi?: number | null
+          id?: string
+          label?: string
+          lead_id?: string
+          lien_position?: string | null
+          loan_amount?: number | null
+          ltv?: number | null
+          mi?: number | null
+          mortgage_type?: string | null
+          other_amount?: number | null
+          other_label?: string | null
+          pi?: number | null
+          property_address?: string | null
+          property_taxes?: number | null
+          purchase_price?: number | null
+          sublabel?: string | null
+          supplemental?: number | null
+          total_piti?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loan_scenarios_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mortgage_profiles: {
         Row: {
           created_at: string
