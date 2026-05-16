@@ -312,7 +312,12 @@ export function LoanScenariosTab({ leadId, lead, onActivity }: Props) {
                     )}
                     <div className="flex items-start justify-between mb-2">
                       <div>
-                        <div className="font-semibold">{s.label}</div>
+                        <div className="font-semibold flex items-center gap-2">
+                          {s.label}
+                          {s.buydown_mode && (
+                            <Badge className="bg-amber-500 hover:bg-amber-500 text-white text-[10px]">Rate Buydown</Badge>
+                          )}
+                        </div>
                         <div className="text-xs text-muted-foreground">{s.sublabel}</div>
                       </div>
                       <div className="flex gap-1">
@@ -331,9 +336,15 @@ export function LoanScenariosTab({ leadId, lead, onActivity }: Props) {
                       <div className="flex justify-between text-lg font-semibold mt-2"><span>P&I</span><span>{fmt(s.pi)}</span></div>
                       <div className="text-xs text-muted-foreground text-right">
                         {s.interest_rate != null
-                          ? `@ ${Number(s.interest_rate).toFixed(3)}% · ${s.loan_term_years ?? 30}yr · ${s.rate_source === "manual" ? "Manual" : "Live rate"}`
+                          ? `@ ${Number(s.interest_rate).toFixed(3)}%${s.buydown_mode ? " (bought down)" : ""} · ${s.loan_term_years ?? 30}yr · ${s.rate_source === "manual" ? "Manual" : "Live rate"}`
                           : "—"}
                       </div>
+                      {s.buydown_mode && (
+                        <div className="text-[11px] text-muted-foreground text-right">
+                          Points: {Number(s.points_purchasable ?? 0).toFixed(2)} pts · {fmt(s.points_budget)} budget
+                          {s.breakeven_vs_a_months ? <><br/>Break-even: {s.breakeven_vs_a_months} mo vs Option A</> : null}
+                        </div>
+                      )}
                       <div className="flex justify-between font-bold border-t pt-1"><span>PITI</span><span>{fmt(s.total_piti)}</span></div>
                     </div>
                   </div>
