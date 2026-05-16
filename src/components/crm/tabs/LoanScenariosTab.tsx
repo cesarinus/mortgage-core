@@ -319,6 +319,11 @@ export function LoanScenariosTab({ leadId, lead, onActivity }: Props) {
                       <div className="flex justify-between"><span className="text-muted-foreground">Loan</span><span>{fmt(s.loan_amount)}</span></div>
                       <div className="flex justify-between"><span className="text-muted-foreground">LTV</span><Badge variant="secondary">{(s.ltv ?? 0).toFixed(2)}%</Badge></div>
                       <div className="flex justify-between text-lg font-semibold mt-2"><span>P&I</span><span>{fmt(s.pi)}</span></div>
+                      <div className="text-xs text-muted-foreground text-right">
+                        {s.interest_rate != null
+                          ? `@ ${Number(s.interest_rate).toFixed(3)}% · ${s.loan_term_years ?? 30}yr · ${s.rate_source === "manual" ? "Manual" : "Live rate"}`
+                          : "—"}
+                      </div>
                       <div className="flex justify-between font-bold border-t pt-1"><span>PITI</span><span>{fmt(s.total_piti)}</span></div>
                     </div>
                   </div>
