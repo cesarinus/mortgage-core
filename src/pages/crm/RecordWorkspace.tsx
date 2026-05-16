@@ -95,6 +95,20 @@ export default function RecordWorkspace({ kind }: Props) {
     else { setSentiment(payload); toast({ title: "Summary refreshed" }); }
   };
 
+  const handleStatusChange = async (newStatus: string) => {
+    if (!id || kind !== "lead") return;
+    const prev = record?.status;
+    setRecord((r: any) => ({ ...r, status: newStatus }));
+    const { error } = await supabase.from("leads").update({ status: newStatus as any }).eq("id", id);
+    if (error) {
+      setRecord((r: any) => ({ ...r, status: prev }));
+      toast({ title: "Failed to update status", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Status updated", description: newStatus.replace(/_/g, " ") });
+      loadAll();
+    }
+  };
+
   if (!id) return <Navigate to="/leads" replace />;
   if (loading) return <div className="p-6 space-y-4"><Skeleton className="h-12 w-1/3" /><Skeleton className="h-64" /></div>;
   if (!record) return <div className="p-10 text-center text-muted-foreground">Record not found.</div>;
@@ -108,6 +122,7 @@ export default function RecordWorkspace({ kind }: Props) {
             kind={kind}
             tags={tags}
             onAction={(k) => setModal(k)}
+            onStatusChange={kind === "lead" ? handleStatusChange : undefined}
           />
         </aside>
 
