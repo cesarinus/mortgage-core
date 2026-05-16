@@ -1438,6 +1438,10 @@ export type Database = {
       }
       loan_scenarios: {
         Row: {
+          bought_down_rate: number | null
+          breakeven_vs_a_months: number | null
+          breakeven_vs_b_months: number | null
+          buydown_mode: boolean | null
           created_at: string
           created_by: string | null
           down_payment_amt: number | null
@@ -1457,16 +1461,24 @@ export type Database = {
           other_amount: number | null
           other_label: string | null
           pi: number | null
+          points_budget: number | null
+          points_purchasable: number | null
           property_address: string | null
           property_taxes: number | null
           purchase_price: number | null
+          rate_reduction_pct: number | null
           rate_source: string | null
+          reduction_per_point: number | null
           sublabel: string | null
           supplemental: number | null
           total_piti: number | null
           updated_at: string
         }
         Insert: {
+          bought_down_rate?: number | null
+          breakeven_vs_a_months?: number | null
+          breakeven_vs_b_months?: number | null
+          buydown_mode?: boolean | null
           created_at?: string
           created_by?: string | null
           down_payment_amt?: number | null
@@ -1486,16 +1498,24 @@ export type Database = {
           other_amount?: number | null
           other_label?: string | null
           pi?: number | null
+          points_budget?: number | null
+          points_purchasable?: number | null
           property_address?: string | null
           property_taxes?: number | null
           purchase_price?: number | null
+          rate_reduction_pct?: number | null
           rate_source?: string | null
+          reduction_per_point?: number | null
           sublabel?: string | null
           supplemental?: number | null
           total_piti?: number | null
           updated_at?: string
         }
         Update: {
+          bought_down_rate?: number | null
+          breakeven_vs_a_months?: number | null
+          breakeven_vs_b_months?: number | null
+          buydown_mode?: boolean | null
           created_at?: string
           created_by?: string | null
           down_payment_amt?: number | null
@@ -1515,10 +1535,14 @@ export type Database = {
           other_amount?: number | null
           other_label?: string | null
           pi?: number | null
+          points_budget?: number | null
+          points_purchasable?: number | null
           property_address?: string | null
           property_taxes?: number | null
           purchase_price?: number | null
+          rate_reduction_pct?: number | null
           rate_source?: string | null
+          reduction_per_point?: number | null
           sublabel?: string | null
           supplemental?: number | null
           total_piti?: number | null

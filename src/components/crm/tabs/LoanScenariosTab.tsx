@@ -11,7 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
-import { BarChart2, Pencil, Trash2, Plus, Download, Mail, Star, ArrowDown, ArrowUp, RotateCcw, Zap } from "lucide-react";
+import { BarChart2, Pencil, Trash2, Plus, Download, Mail, Star, ArrowDown, ArrowUp, RotateCcw, Zap, Info } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { calculatePI, getMndRate } from "@/lib/calculatePI";
@@ -48,6 +50,14 @@ type Scenario = {
   loan_term_years: number | null;
   interest_rate: number | null;
   rate_source: string | null;
+  buydown_mode?: boolean | null;
+  points_budget?: number | null;
+  points_purchasable?: number | null;
+  rate_reduction_pct?: number | null;
+  reduction_per_point?: number | null;
+  bought_down_rate?: number | null;
+  breakeven_vs_a_months?: number | null;
+  breakeven_vs_b_months?: number | null;
 };
 
 const DEFAULTS = {
