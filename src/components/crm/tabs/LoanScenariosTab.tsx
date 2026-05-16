@@ -421,10 +421,31 @@ function ScenarioDrawer({
 }) {
   const { toast } = useToast();
   const [form, setForm] = useState<Partial<Scenario>>({});
+  const [piManual, setPiManual] = useState(false);
 
-  useEffect(() => { setForm(scenario ?? {}); }, [scenario]);
+  useEffect(() => {
+    setForm(scenario ?? {});
+    setPiManual((scenario?.rate_source ?? "mnd_live") === "manual");
+  }, [scenario]);
 
   const set = (k: keyof Scenario, v: any) => setForm(f => ({ ...f, [k]: v }));
+
+  const rateInfo = useMemo(
+    () => getMndRate(form.mortgage_type ?? "Conventional"),
+    [form.mortgage_type],
+  );
+  const termYears = num(form.loan_term_years) || 30;
+  const autoPI = useMemo(
+    () => calculatePI(num(form.loan_amount), rateInfo.effectiveRate, termYears),
+    [form.loan_amount, rateInfo.effectiveRate, termYears],
+  );
+
+  // Push auto-calculated P&I into form when not in manual mode
+  useEffect(() => {
+    if (!piManual) {
+      setForm(f => ({ ...f, pi: +autoPI.toFixed(2) }));
+    }
+  }, [autoPI, piManual]);
 
   const onPriceOrDownChange = (price: number, dpAmt?: number, dpPct?: number) => {
     const p = num(price);
@@ -442,7 +463,11 @@ function ScenarioDrawer({
     }));
   };
 
-  const total = useMemo(() => calcTotal(form), [form]);
+  const effectivePI = piManual ? num(form.pi) : autoPI;
+  const total = useMemo(
+    () => calcTotal({ ...form, pi: effectivePI }),
+    [form, effectivePI],
+  );
 
   const save = async () => {
     const payload = {
@@ -457,12 +482,16 @@ function ScenarioDrawer({
       ltv: num(form.ltv),
       mortgage_type: form.mortgage_type ?? "Conventional",
       lien_position: form.lien_position ?? "First Lien",
-      pi: num(form.pi), hoi: num(form.hoi), supplemental: num(form.supplemental),
+      pi: +effectivePI.toFixed(2),
+      hoi: num(form.hoi), supplemental: num(form.supplemental),
       property_taxes: num(form.property_taxes), mi: num(form.mi),
       dues: num(form.dues), other_amount: num(form.other_amount),
       other_label: form.other_label ?? null,
       total_piti: total,
       created_by: userId,
+      loan_term_years: termYears,
+      interest_rate: +rateInfo.effectiveRate.toFixed(4),
+      rate_source: piManual ? "manual" : "mnd_live",
     };
     const op = scenario?.id
       ? supabase.from("loan_scenarios").update(payload).eq("id", scenario.id)
@@ -541,11 +570,61 @@ function ScenarioDrawer({
             </div>
           </div>
 
+          <div>
+            <Label>Loan Term</Label>
+            <Select value={String(termYears)} onValueChange={v => set("loan_term_years", parseInt(v))}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {[30, 20, 15, 10].map(y => <SelectItem key={y} value={String(y)}>{y} Years</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="rounded-md bg-muted/60 border px-3 py-2 text-xs flex flex-wrap items-center gap-x-4 gap-y-1">
+            <span><span className="text-muted-foreground">Current Rate (MND):</span> <strong>{rateInfo.baseRate.toFixed(3)}%</strong></span>
+            <span className="text-muted-foreground">|</span>
+            <span><span className="text-muted-foreground">Spread:</span> +{rateInfo.spread.toFixed(3)}%</span>
+            <span className="text-muted-foreground">|</span>
+            <span><span className="text-muted-foreground">Effective:</span> <strong>{rateInfo.effectiveRate.toFixed(3)}%</strong></span>
+            <span className="ml-auto text-muted-foreground">As of {new Date(rateInfo.asOf).toLocaleString()}</span>
+          </div>
+
           <div className="pt-2 border-t">
             <h4 className="font-semibold mb-2">Monthly Payment Breakdown</h4>
+            <div className="mb-3">
+              <Label>Principal & Interest</Label>
+              <div className="flex items-start gap-2">
+                <div className="flex-1">
+                  <Input
+                    type="number"
+                    step="0.01"
+                    readOnly={!piManual}
+                    value={piManual ? (form.pi ?? "") as any : autoPI.toFixed(2)}
+                    onChange={e => piManual && set("pi", num(e.target.value))}
+                    className={piManual ? "" : "bg-primary/5 border-primary/30"}
+                  />
+                  <div className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                    {piManual ? (
+                      <><Pencil className="h-3 w-3" /> Manual override — click Restore Auto to revert</>
+                    ) : (
+                      <><Zap className="h-3 w-3" /> Auto — {rateInfo.effectiveRate.toFixed(3)}% · {termYears}yr</>
+                    )}
+                  </div>
+                </div>
+                {piManual ? (
+                  <Button type="button" size="sm" variant="ghost" onClick={() => { setPiManual(false); }}>
+                    <RotateCcw className="h-3.5 w-3.5 mr-1" /> Restore Auto
+                  </Button>
+                ) : (
+                  <Button type="button" size="icon" variant="ghost" onClick={() => { setPiManual(true); set("pi", +autoPI.toFixed(2)); }} title="Edit P&I">
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+              </div>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               {([
-                ["pi", "Principal & Interest"], ["hoi", "Homeowner's Insurance"],
+                ["hoi", "Homeowner's Insurance"],
                 ["supplemental", "Supplemental Insurance"], ["property_taxes", "Property Taxes"],
                 ["mi", "Mortgage Insurance"], ["dues", "Association Dues"],
               ] as [keyof Scenario, string][]).map(([k, lbl]) => (
