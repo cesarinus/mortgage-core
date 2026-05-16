@@ -407,6 +407,7 @@ export function LoanScenariosTab({ leadId, lead, onActivity }: Props) {
         scenario={editing}
         leadId={leadId}
         userId={user?.id}
+        allScenarios={scenarios}
         onSaved={() => { setDrawerOpen(false); setEditing(null); load(); }}
       />
 
