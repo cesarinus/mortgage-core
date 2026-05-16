@@ -425,19 +425,38 @@ export function LoanScenariosTab({ leadId, lead, onActivity }: Props) {
 }
 
 function ScenarioDrawer({
-  open, onClose, scenario, leadId, userId, onSaved,
+  open, onClose, scenario, leadId, userId, allScenarios, onSaved,
 }: {
   open: boolean; onClose: () => void; scenario: Scenario | null;
-  leadId: string; userId?: string; onSaved: () => void;
+  leadId: string; userId?: string; allScenarios: Scenario[]; onSaved: () => void;
 }) {
   const { toast } = useToast();
   const [form, setForm] = useState<Partial<Scenario>>({});
   const [piManual, setPiManual] = useState(false);
+  const [buydownOn, setBuydownOn] = useState(false);
+  const [reductionPerPoint, setReductionPerPoint] = useState<number>(0.25);
 
   useEffect(() => {
     setForm(scenario ?? {});
     setPiManual((scenario?.rate_source ?? "mnd_live") === "manual");
+    setReductionPerPoint(num(scenario?.reduction_per_point) || 0.25);
   }, [scenario]);
+
+  // Identify Option A and B (first 2 saved scenarios, by creation order)
+  const savedOthers = useMemo(
+    () => allScenarios.filter(s => s.id && s.id !== scenario?.id),
+    [allScenarios, scenario?.id],
+  );
+  const scenarioA = savedOthers[0];
+  const scenarioB = savedOthers[1];
+  const isThirdSlot = !scenario?.id && allScenarios.length >= 2;
+  const buydownAvailable = isThirdSlot && !!scenarioA && !!scenarioB;
+
+  // Auto-enable buydown when opening the 3rd new scenario
+  useEffect(() => {
+    if (open && buydownAvailable) setBuydownOn(true);
+    if (open && !buydownAvailable) setBuydownOn(!!scenario?.buydown_mode);
+  }, [open, buydownAvailable, scenario?.buydown_mode]);
 
   const set = (k: keyof Scenario, v: any) => setForm(f => ({ ...f, [k]: v }));
 
@@ -446,9 +465,22 @@ function ScenarioDrawer({
     [form.mortgage_type],
   );
   const termYears = num(form.loan_term_years) || 30;
+
+  // Rate Buydown calculations
+  const buydownActive = buydownOn && buydownAvailable;
+  const pointsBudget = buydownActive
+    ? Math.max(0, num(scenarioB?.down_payment_amt) - num(scenarioA?.down_payment_amt))
+    : 0;
+  const costPerPoint = num(form.loan_amount) * 0.01;
+  const pointsPurchasable = buydownActive && costPerPoint > 0 ? pointsBudget / costPerPoint : 0;
+  const rateReductionPct = +(pointsPurchasable * reductionPerPoint).toFixed(4);
+  const effectiveRateForPI = buydownActive
+    ? Math.max(0, +(rateInfo.effectiveRate - rateReductionPct).toFixed(4))
+    : rateInfo.effectiveRate;
+
   const autoPI = useMemo(
-    () => calculatePI(num(form.loan_amount), rateInfo.effectiveRate, termYears),
-    [form.loan_amount, rateInfo.effectiveRate, termYears],
+    () => calculatePI(num(form.loan_amount), effectiveRateForPI, termYears),
+    [form.loan_amount, effectiveRateForPI, termYears],
   );
 
   // Push auto-calculated P&I into form when not in manual mode
@@ -480,6 +512,19 @@ function ScenarioDrawer({
     [form, effectivePI],
   );
 
+  // Savings & break-even vs A and B
+  const piA = num(scenarioA?.pi);
+  const piB = num(scenarioB?.pi);
+  const savingsVsA = buydownActive ? +(piA - effectivePI).toFixed(2) : 0;
+  const savingsVsB = buydownActive ? +(piB - effectivePI).toFixed(2) : 0;
+  const breakevenAMonths = buydownActive && savingsVsA > 0 ? Math.round(pointsBudget / savingsVsA) : 0;
+  const breakevenBMonths = buydownActive && savingsVsB > 0 ? Math.round(pointsBudget / savingsVsB) : 0;
+  const monthsToYrs = (m: number) => {
+    const y = Math.floor(m / 12);
+    const r = m % 12;
+    return `${y} yr${y === 1 ? "" : "s"}${r ? ` ${r} mo` : ""}`;
+  };
+
   const save = async () => {
     const payload = {
       lead_id: leadId,
@@ -501,8 +546,16 @@ function ScenarioDrawer({
       total_piti: total,
       created_by: userId,
       loan_term_years: termYears,
-      interest_rate: +rateInfo.effectiveRate.toFixed(4),
+      interest_rate: +effectiveRateForPI.toFixed(4),
       rate_source: piManual ? "manual" : "mnd_live",
+      buydown_mode: buydownActive,
+      points_budget: buydownActive ? +pointsBudget.toFixed(2) : null,
+      points_purchasable: buydownActive ? +pointsPurchasable.toFixed(4) : null,
+      rate_reduction_pct: buydownActive ? rateReductionPct : null,
+      reduction_per_point: buydownActive ? reductionPerPoint : null,
+      bought_down_rate: buydownActive ? +effectiveRateForPI.toFixed(4) : null,
+      breakeven_vs_a_months: buydownActive && breakevenAMonths ? breakevenAMonths : null,
+      breakeven_vs_b_months: buydownActive && breakevenBMonths ? breakevenBMonths : null,
     };
     const op = scenario?.id
       ? supabase.from("loan_scenarios").update(payload).eq("id", scenario.id)
