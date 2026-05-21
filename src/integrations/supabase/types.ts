@@ -1150,6 +1150,48 @@ export type Database = {
         }
         Relationships: []
       }
+      financial_statements: {
+        Row: {
+          contact_id: string | null
+          created_at: string
+          created_by: string | null
+          deal_id: string
+          id: string
+          json_data: Json
+          notes: string | null
+          pdf_url: string | null
+          period_end: string | null
+          period_start: string | null
+          statement_type: Database["public"]["Enums"]["financial_statement_type"]
+        }
+        Insert: {
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          deal_id: string
+          id?: string
+          json_data?: Json
+          notes?: string | null
+          pdf_url?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          statement_type: Database["public"]["Enums"]["financial_statement_type"]
+        }
+        Update: {
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          deal_id?: string
+          id?: string
+          json_data?: Json
+          notes?: string | null
+          pdf_url?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          statement_type?: Database["public"]["Enums"]["financial_statement_type"]
+        }
+        Relationships: []
+      }
       lead_contacts: {
         Row: {
           contact_id: string
@@ -1698,6 +1740,54 @@ export type Database = {
         }
         Relationships: []
       }
+      self_employed_profiles: {
+        Row: {
+          borrower_type: Database["public"]["Enums"]["borrower_employment_type"]
+          business_name: string | null
+          business_type: string | null
+          contact_id: string | null
+          created_at: string
+          created_by: string | null
+          deal_id: string
+          id: string
+          line_items: Json
+          period_end: string | null
+          period_start: string | null
+          tax_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          borrower_type?: Database["public"]["Enums"]["borrower_employment_type"]
+          business_name?: string | null
+          business_type?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          deal_id: string
+          id?: string
+          line_items?: Json
+          period_end?: string | null
+          period_start?: string | null
+          tax_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          borrower_type?: Database["public"]["Enums"]["borrower_employment_type"]
+          business_name?: string | null
+          business_type?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          deal_id?: string
+          id?: string
+          line_items?: Json
+          period_end?: string | null
+          period_start?: string | null
+          tax_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       social_account_settings: {
         Row: {
           brand_voice: string | null
@@ -2018,6 +2108,7 @@ export type Database = {
     Enums: {
       app_role: "admin" | "loan_officer" | "processor"
       blog_post_status: "draft" | "published"
+      borrower_employment_type: "employee" | "self_employed"
       contact_type: "borrower" | "partner" | "other"
       deal_stage:
         | "new_lead"
@@ -2029,6 +2120,11 @@ export type Database = {
         | "clear_to_close"
         | "closed"
         | "lost"
+      financial_statement_type:
+        | "pnl"
+        | "balance_sheet"
+        | "cash_flow"
+        | "combined"
       lead_status:
         | "new"
         | "contacted"
@@ -2180,6 +2276,7 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "loan_officer", "processor"],
       blog_post_status: ["draft", "published"],
+      borrower_employment_type: ["employee", "self_employed"],
       contact_type: ["borrower", "partner", "other"],
       deal_stage: [
         "new_lead",
@@ -2191,6 +2288,12 @@ export const Constants = {
         "clear_to_close",
         "closed",
         "lost",
+      ],
+      financial_statement_type: [
+        "pnl",
+        "balance_sheet",
+        "cash_flow",
+        "combined",
       ],
       lead_status: [
         "new",
