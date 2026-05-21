@@ -31,7 +31,8 @@ type BorrowerType = "employee" | "self_employed";
 
 interface Profile {
   id: string;
-  deal_id: string;
+  deal_id: string | null;
+  lead_id: string | null;
   contact_id: string | null;
   borrower_type: BorrowerType;
   business_name: string | null;
@@ -41,7 +42,8 @@ interface Profile {
 }
 
 interface Props {
-  dealId: string;
+  dealId?: string | null;
+  leadId?: string | null;
   contactId: string | null;
   borrowerName: string;
 }
@@ -56,7 +58,7 @@ const SECTIONS: FinanceSection[] = [
   "equity",
 ];
 
-export default function FinancialWorkspace({ dealId, contactId, borrowerName }: Props) {
+export default function FinancialWorkspace({ dealId, leadId, contactId, borrowerName }: Props) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -64,17 +66,21 @@ export default function FinancialWorkspace({ dealId, contactId, borrowerName }: 
   const [saving, setSaving] = useState(false);
   const [snapshots, setSnapshots] = useState<any[]>([]);
 
+  const scopeColumn: "deal_id" | "lead_id" = dealId ? "deal_id" : "lead_id";
+  const scopeId = dealId ?? leadId ?? null;
+
   useEffect(() => {
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dealId]);
+  }, [dealId, leadId]);
 
   async function load() {
+    if (!scopeId) { setLoading(false); return; }
     setLoading(true);
     const { data, error } = await (supabase as any)
       .from("self_employed_profiles")
       .select("*")
-      .eq("deal_id", dealId)
+      .eq(scopeColumn, scopeId)
       .maybeSingle();
     if (error) {
       toast({ title: "Could not load financial profile", description: error.message, variant: "destructive" });
@@ -89,7 +95,8 @@ export default function FinancialWorkspace({ dealId, contactId, borrowerName }: 
     } else {
       setProfile({
         id: "",
-        deal_id: dealId,
+        deal_id: dealId ?? null,
+        lead_id: leadId ?? null,
         contact_id: contactId,
         borrower_type: "employee",
         business_name: null,
@@ -101,7 +108,7 @@ export default function FinancialWorkspace({ dealId, contactId, borrowerName }: 
     const { data: snaps } = await (supabase as any)
       .from("financial_statements")
       .select("id, statement_type, created_at, period_start, period_end")
-      .eq("deal_id", dealId)
+      .eq(scopeColumn, scopeId)
       .order("created_at", { ascending: false })
       .limit(20);
     setSnapshots(snaps ?? []);
@@ -109,12 +116,13 @@ export default function FinancialWorkspace({ dealId, contactId, borrowerName }: 
   }
 
   async function persist(patch: Partial<Profile>) {
-    if (!profile || !user) return;
+    if (!profile || !user || !scopeId) return;
     const next = { ...profile, ...patch };
     setProfile(next);
     setSaving(true);
     const payload: any = {
-      deal_id: dealId,
+      deal_id: dealId ?? null,
+      lead_id: leadId ?? null,
       contact_id: contactId,
       borrower_type: next.borrower_type,
       business_name: next.business_name,
@@ -125,7 +133,7 @@ export default function FinancialWorkspace({ dealId, contactId, borrowerName }: 
     };
     const { data, error } = await (supabase as any)
       .from("self_employed_profiles")
-      .upsert(payload, { onConflict: "deal_id" })
+      .upsert(payload, { onConflict: scopeColumn })
       .select()
       .maybeSingle();
     setSaving(false);
@@ -166,19 +174,21 @@ export default function FinancialWorkspace({ dealId, contactId, borrowerName }: 
   async function logActivity(title: string) {
     if (!user) return;
     await (supabase as any).from("crm_activities").insert({
-      deal_id: dealId,
+      deal_id: dealId ?? null,
+      lead_id: leadId ?? null,
       contact_id: contactId,
       activity_type: "financial",
       actor_id: user.id,
       title,
-      body: `Deal ${dealId.slice(0, 8).toUpperCase()}`,
+      body: dealId ? `Deal ${dealId.slice(0, 8).toUpperCase()}` : `Lead ${(leadId ?? "").slice(0, 8).toUpperCase()}`,
     });
   }
 
   async function saveSnapshot(type: "pnl" | "balance_sheet" | "cash_flow" | "combined", data: any) {
     if (!user) return;
     await (supabase as any).from("financial_statements").insert({
-      deal_id: dealId,
+      deal_id: dealId ?? null,
+      lead_id: leadId ?? null,
       contact_id: contactId,
       statement_type: type,
       json_data: data,
@@ -200,7 +210,7 @@ export default function FinancialWorkspace({ dealId, contactId, borrowerName }: 
   const pdfCtx = {
     borrowerName,
     businessName: profile.business_name,
-    dealId,
+    dealId: dealId ?? leadId ?? "",
     loanOfficer: user?.email ?? null,
     periodLabel: "Year to Date",
   };
