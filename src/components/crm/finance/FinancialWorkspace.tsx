@@ -131,11 +131,42 @@ export default function FinancialWorkspace({ dealId, leadId, contactId, borrower
       line_items: next.line_items,
       created_by: user.id,
     };
-    const { data, error } = await (supabase as any)
-      .from("self_employed_profiles")
-      .upsert(payload, { onConflict: scopeColumn })
-      .select()
-      .maybeSingle();
+    const currentId = next.id || profile.id;
+    let result;
+
+    if (currentId) {
+      result = await (supabase as any)
+        .from("self_employed_profiles")
+        .update(payload)
+        .eq("id", currentId)
+        .select()
+        .maybeSingle();
+    } else {
+      const { data: existing, error: lookupError } = await (supabase as any)
+        .from("self_employed_profiles")
+        .select("id")
+        .eq(scopeColumn, scopeId)
+        .maybeSingle();
+
+      if (lookupError) {
+        result = { data: null, error: lookupError };
+      } else if (existing?.id) {
+        result = await (supabase as any)
+          .from("self_employed_profiles")
+          .update(payload)
+          .eq("id", existing.id)
+          .select()
+          .maybeSingle();
+      } else {
+        result = await (supabase as any)
+          .from("self_employed_profiles")
+          .insert(payload)
+          .select()
+          .maybeSingle();
+      }
+    }
+
+    const { data, error } = result;
     setSaving(false);
     if (error) {
       toast({ title: "Save failed", description: error.message, variant: "destructive" });
