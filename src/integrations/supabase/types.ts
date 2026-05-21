@@ -1155,9 +1155,10 @@ export type Database = {
           contact_id: string | null
           created_at: string
           created_by: string | null
-          deal_id: string
+          deal_id: string | null
           id: string
           json_data: Json
+          lead_id: string | null
           notes: string | null
           pdf_url: string | null
           period_end: string | null
@@ -1168,9 +1169,10 @@ export type Database = {
           contact_id?: string | null
           created_at?: string
           created_by?: string | null
-          deal_id: string
+          deal_id?: string | null
           id?: string
           json_data?: Json
+          lead_id?: string | null
           notes?: string | null
           pdf_url?: string | null
           period_end?: string | null
@@ -1181,9 +1183,10 @@ export type Database = {
           contact_id?: string | null
           created_at?: string
           created_by?: string | null
-          deal_id?: string
+          deal_id?: string | null
           id?: string
           json_data?: Json
+          lead_id?: string | null
           notes?: string | null
           pdf_url?: string | null
           period_end?: string | null
@@ -1748,8 +1751,9 @@ export type Database = {
           contact_id: string | null
           created_at: string
           created_by: string | null
-          deal_id: string
+          deal_id: string | null
           id: string
+          lead_id: string | null
           line_items: Json
           period_end: string | null
           period_start: string | null
@@ -1763,8 +1767,9 @@ export type Database = {
           contact_id?: string | null
           created_at?: string
           created_by?: string | null
-          deal_id: string
+          deal_id?: string | null
           id?: string
+          lead_id?: string | null
           line_items?: Json
           period_end?: string | null
           period_start?: string | null
@@ -1778,8 +1783,9 @@ export type Database = {
           contact_id?: string | null
           created_at?: string
           created_by?: string | null
-          deal_id?: string
+          deal_id?: string | null
           id?: string
+          lead_id?: string | null
           line_items?: Json
           period_end?: string | null
           period_start?: string | null

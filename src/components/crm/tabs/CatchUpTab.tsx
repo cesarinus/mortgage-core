@@ -1,9 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Mail, MessageSquare, FileText, PhoneMissed, Phone, CheckSquare, CalendarDays, AlertTriangle, Sparkles, Info } from "lucide-react";
+import { Mail, MessageSquare, FileText, PhoneMissed, Phone, CheckSquare, CalendarDays, AlertTriangle, Sparkles, Info, BarChart3 } from "lucide-react";
 import { SentimentGauge } from "../SentimentGauge";
 import { format } from "date-fns";
+import FinancialWorkspace from "@/components/crm/finance/FinancialWorkspace";
 
 interface Props {
   activities: any[];
@@ -12,9 +13,11 @@ interface Props {
   mortgage?: any | null;
   record: any;
   onRefreshSentiment?: () => void;
+  leadId?: string;
+  contactId?: string;
 }
 
-export function CatchUpTab({ activities, emailLogs, sentiment, mortgage, record, onRefreshSentiment }: Props) {
+export function CatchUpTab({ activities, emailLogs, sentiment, mortgage, record, onRefreshSentiment, leadId, contactId }: Props) {
   const inbound = activities.filter((a) => ["form_submit", "chat", "inbound_call"].includes(a.activity_type)).slice(0, 5);
   const outbound = activities.filter((a) => ["email", "call", "task", "meeting"].includes(a.activity_type)).slice(0, 6);
 
@@ -107,13 +110,22 @@ export function CatchUpTab({ activities, emailLogs, sentiment, mortgage, record,
         </CardContent>
       </Card>
 
-      <Card className="border-dashed">
-        <CardContent className="p-6 text-center space-y-2">
-          <Info className="h-5 w-5 mx-auto text-muted-foreground" />
-          <div className="font-medium">Income Analysis (Coming Soon)</div>
-          <p className="text-sm text-muted-foreground max-w-md mx-auto">
-            Future-ready: W-2 / self-employed parsing, tax-return OCR, rental income, DTI engine, FHA/VA/Conventional rules.
-          </p>
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <BarChart3 className="h-4 w-4" /> Income Analysis
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {leadId ? (
+            <FinancialWorkspace
+              leadId={leadId}
+              contactId={contactId ?? null}
+              borrowerName={`${record?.first_name ?? ""} ${record?.last_name ?? ""}`.trim() || "Borrower"}
+            />
+          ) : (
+            <p className="text-sm text-muted-foreground">Open a lead workspace to use Income Analysis.</p>
+          )}
         </CardContent>
       </Card>
     </div>
