@@ -1,10 +1,12 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Mail, MessageSquare, FileText, PhoneMissed, Phone, CheckSquare, CalendarDays, AlertTriangle, Sparkles, Info, BarChart3 } from "lucide-react";
+import { Mail, MessageSquare, FileText, PhoneMissed, Phone, CheckSquare, CalendarDays, AlertTriangle, Sparkles, Info, BarChart3, Calculator } from "lucide-react";
 import { SentimentGauge } from "../SentimentGauge";
 import { format } from "date-fns";
 import FinancialWorkspace from "@/components/crm/finance/FinancialWorkspace";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
+import { useState } from "react";
 
 interface Props {
   activities: any[];
@@ -20,6 +22,8 @@ interface Props {
 export function CatchUpTab({ activities, emailLogs, sentiment, mortgage, record, onRefreshSentiment, leadId, contactId }: Props) {
   const inbound = activities.filter((a) => ["form_submit", "chat", "inbound_call"].includes(a.activity_type)).slice(0, 5);
   const outbound = activities.filter((a) => ["email", "call", "task", "meeting"].includes(a.activity_type)).slice(0, 6);
+  const [incomeModalOpen, setIncomeModalOpen] = useState(false);
+  const borrowerName = `${record?.first_name ?? ""} ${record?.last_name ?? ""}`.trim() || "Borrower";
 
   const challenges: string[] = sentiment?.challenges ?? deriveChallenges(record);
   const positives: string[] = sentiment?.positives ?? derivePositives(record);
@@ -112,22 +116,45 @@ export function CatchUpTab({ activities, emailLogs, sentiment, mortgage, record,
 
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <BarChart3 className="h-4 w-4" /> Income Analysis
-          </CardTitle>
+          <div className="flex items-center justify-between gap-2">
+            <CardTitle className="text-base flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" /> Income Analysis
+            </CardTitle>
+            {leadId && (
+              <Button size="sm" variant="outline" onClick={() => setIncomeModalOpen(true)} className="gap-2">
+                <Calculator className="h-4 w-4" /> Borrower Income Classification
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
-          {leadId ? (
+          <p className="text-sm text-muted-foreground">
+            {leadId
+              ? "Classify the borrower as Employee or Self-Employed and build P&L, Balance Sheet, and Cash Flow statements."
+              : "Open a lead workspace to use Income Analysis."}
+          </p>
+        </CardContent>
+      </Card>
+
+      <Dialog open={incomeModalOpen} onOpenChange={setIncomeModalOpen}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Calculator className="h-5 w-5" /> Borrower Income Classification
+            </DialogTitle>
+            <DialogDescription>
+              {borrowerName} — categorize income, enter financials, and generate statements.
+            </DialogDescription>
+          </DialogHeader>
+          {leadId && (
             <FinancialWorkspace
               leadId={leadId}
               contactId={contactId ?? null}
-              borrowerName={`${record?.first_name ?? ""} ${record?.last_name ?? ""}`.trim() || "Borrower"}
+              borrowerName={borrowerName}
             />
-          ) : (
-            <p className="text-sm text-muted-foreground">Open a lead workspace to use Income Analysis.</p>
           )}
-        </CardContent>
-      </Card>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
