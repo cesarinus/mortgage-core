@@ -280,23 +280,27 @@ const BlogAdmin = () => {
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    {post.status === "published" && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDistribute(post)}
-                        title="Distribute (ping + webhook + social draft)"
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleDistribute(post)}
+                      title={
+                        post.status === "published"
+                          ? "Distribute (ping + webhook + social draft)"
+                          : "Distribute draft preview"
+                      }
+                    >
+                      <Send className="h-4 w-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" asChild>
+                      <Link
+                        to={`/blog/${post.slug}${post.status !== "published" ? "?preview=1" : ""}`}
+                        target="_blank"
+                        title={post.status === "published" ? "View" : "Preview draft"}
                       >
-                        <Send className="h-4 w-4" />
-                      </Button>
-                    )}
-                    {post.status === "published" && (
-                      <Button variant="ghost" size="icon" asChild>
-                        <Link to={`/blog/${post.slug}`} target="_blank">
-                          <Eye className="h-4 w-4" />
-                        </Link>
-                      </Button>
-                    )}
+                        <Eye className="h-4 w-4" />
+                      </Link>
+                    </Button>
                     <Button
                       variant="ghost"
                       size="icon"
