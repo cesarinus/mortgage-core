@@ -5,7 +5,7 @@ import { Mail, MessageSquare, FileText, PhoneMissed, Phone, CheckSquare, Calenda
 import { SentimentGauge } from "../SentimentGauge";
 import { format } from "date-fns";
 import FinancialWorkspace from "@/components/crm/finance/FinancialWorkspace";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { useState } from "react";
 
 interface Props {
@@ -136,25 +136,27 @@ export function CatchUpTab({ activities, emailLogs, sentiment, mortgage, record,
         </CardContent>
       </Card>
 
-      <Dialog open={incomeModalOpen} onOpenChange={setIncomeModalOpen}>
-        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+      <Sheet open={incomeModalOpen} onOpenChange={setIncomeModalOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-3xl overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
               <Calculator className="h-5 w-5" /> Borrower Income Classification
-            </DialogTitle>
-            <DialogDescription>
+            </SheetTitle>
+            <SheetDescription>
               {borrowerName} — categorize income, enter financials, and generate statements.
-            </DialogDescription>
-          </DialogHeader>
-          {leadId && (
-            <FinancialWorkspace
-              leadId={leadId}
-              contactId={contactId ?? null}
-              borrowerName={borrowerName}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
+            </SheetDescription>
+          </SheetHeader>
+          <div className="mt-4">
+            {leadId && (
+              <FinancialWorkspace
+                leadId={leadId}
+                contactId={contactId ?? null}
+                borrowerName={borrowerName}
+              />
+            )}
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
