@@ -225,6 +225,8 @@ export default function RecordWorkspace({ kind }: Props) {
                 mortgage={mortgage}
                 record={record}
                 onRefreshSentiment={kind === "lead" ? refreshSentiment : undefined}
+                leadId={kind === "lead" ? id : (record as any)?.lead_id ?? undefined}
+                contactId={kind === "contact" ? id : undefined}
               />
             </TabsContent>
             <TabsContent value="activities" className="mt-4">
