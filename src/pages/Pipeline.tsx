@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -14,6 +15,7 @@ import { Plus, Mail, ExternalLink } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { Tables, Enums } from "@/integrations/supabase/types";
 import { Constants } from "@/integrations/supabase/types";
+import FinancialWorkspace from "@/components/crm/finance/FinancialWorkspace";
 
 type Deal = Tables<"deals">;
 type Contact = Tables<"contacts">;
@@ -46,6 +48,7 @@ export default function Pipeline() {
   const [deals, setDeals] = useState<Deal[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [open, setOpen] = useState(false);
+  const [activeDeal, setActiveDeal] = useState<Deal | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -174,12 +177,21 @@ export default function Pipeline() {
               </div>
               <div className="space-y-2 min-h-[200px] rounded-lg bg-muted/50 p-2">
                 {stageDeals.map((deal) => (
-                  <Card key={deal.id} className={`border-l-4 ${stageColors[deal.stage]} cursor-default`}>
+                  <Card
+                    key={deal.id}
+                    className={`border-l-4 ${stageColors[deal.stage]} cursor-pointer hover:shadow-md transition-shadow`}
+                    onClick={() => setActiveDeal(deal)}
+                  >
                      <CardContent className="p-3 space-y-2">
                        <div className="flex items-center justify-between gap-2">
                          <p className="font-medium text-sm">{getContactName(deal.contact_id)}</p>
                          {deal.contact_id && (
-                           <Link to={`/crm/contacts/${deal.contact_id}`} title="Open workspace" className="text-muted-foreground hover:text-primary">
+                           <Link
+                             to={`/crm/contacts/${deal.contact_id}`}
+                             title="Open workspace"
+                             onClick={(e) => e.stopPropagation()}
+                             className="text-muted-foreground hover:text-primary"
+                           >
                              <ExternalLink className="h-3.5 w-3.5" />
                            </Link>
                          )}
@@ -193,7 +205,7 @@ export default function Pipeline() {
                         {stages.filter(s => s !== deal.stage).slice(0, 3).map(s => (
                           <button
                             key={s}
-                            onClick={() => moveDeal(deal.id, s)}
+                            onClick={(e) => { e.stopPropagation(); moveDeal(deal.id, s); }}
                             className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground hover:bg-primary hover:text-primary-foreground transition-colors"
                           >
                             → {stageLabels[s]}
@@ -202,7 +214,7 @@ export default function Pipeline() {
                       </div>
                       {deal.stage === "closed" && (
                         <Button size="sm" variant="outline" className="w-full h-7 text-xs"
-                          onClick={() => sendReviewRequest(deal)}>
+                          onClick={(e) => { e.stopPropagation(); sendReviewRequest(deal); }}>
                           <Mail className="mr-1 h-3 w-3" />Send Review Request
                         </Button>
                       )}
@@ -214,6 +226,30 @@ export default function Pipeline() {
           );
         })}
       </div>
+
+      <Sheet open={!!activeDeal} onOpenChange={(o) => !o && setActiveDeal(null)}>
+        <SheetContent side="right" className="w-full sm:max-w-3xl overflow-y-auto">
+          {activeDeal && (
+            <>
+              <SheetHeader>
+                <SheetTitle>{getContactName(activeDeal.contact_id)}</SheetTitle>
+                <SheetDescription>
+                  Deal #{activeDeal.id.slice(0, 8).toUpperCase()}
+                  {activeDeal.loan_amount ? ` · $${activeDeal.loan_amount.toLocaleString()}` : ""}
+                  {activeDeal.loan_type ? ` · ${activeDeal.loan_type}` : ""}
+                </SheetDescription>
+              </SheetHeader>
+              <div className="mt-4">
+                <FinancialWorkspace
+                  dealId={activeDeal.id}
+                  contactId={activeDeal.contact_id}
+                  borrowerName={getContactName(activeDeal.contact_id)}
+                />
+              </div>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
