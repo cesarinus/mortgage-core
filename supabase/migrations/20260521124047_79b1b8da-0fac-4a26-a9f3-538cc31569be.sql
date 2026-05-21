@@ -1,0 +1,2 @@
+CREATE UNIQUE INDEX IF NOT EXISTS self_employed_profiles_lead_id_key ON public.self_employed_profiles (lead_id) WHERE lead_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS self_employed_profiles_deal_id_key ON public.self_employed_profiles (deal_id) WHERE deal_id IS NOT NULL;
