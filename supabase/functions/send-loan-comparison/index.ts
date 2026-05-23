@@ -21,6 +21,9 @@ Deno.serve(async (req) => {
     }
 
     const html = `<div style="font-family:Arial,sans-serif;color:#0f1b3d;line-height:1.6">
+      <p style="background:#fff7ed;padding:8px 12px;border-radius:6px;color:#9a3412;font-size:12px">
+        Sandbox mode — intended recipient: <strong>${to}</strong>
+      </p>
       ${(message ?? "").split("\n").map((l: string) => `<p>${l}</p>`).join("")}
       <hr style="border:none;border-top:1px solid #eee;margin:24px 0" />
       <p style="color:#888;font-size:12px">NexGen Capital — Informational only. Not a commitment to lend.</p>
@@ -35,7 +38,8 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         from: "NexGen Capital <onboarding@resend.dev>",
-        to: [to],
+        to: ["avantifundings@gmail.com"],
+        reply_to: to,
         subject: subject ?? "Loan Scenario Comparison",
         html,
         attachments: [{ filename: filename ?? "Loan_Comparison.pdf", content: pdf_base64 }],
