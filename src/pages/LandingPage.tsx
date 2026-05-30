@@ -24,24 +24,47 @@ const LandingPage = () => {
   return (
     <div className="min-h-screen">
       <Helmet>
-        <title>NexGen Capital | Southwest Florida Mortgage Lending</title>
-        <meta name="description" content="Southwest Florida mortgage lender. Fast pre-approvals and competitive rates on Conventional, FHA, VA, and Refinance loans." />
+        <title>Naples FL Mortgage Broker | NexGen Capital — SW Florida Home Loans</title>
+        <meta name="description" content="Top-rated Naples, FL mortgage broker. Fast pre-approvals and competitive rates on Conventional, FHA, VA, USDA, Jumbo, and Refinance loans across Southwest Florida." />
         <meta name="keywords" content={HOMEPAGE_KEYWORDS_STRING} />
         <meta name="robots" content="index, follow" />
         <link rel="canonical" href={SITE_URL} />
+        <meta property="og:title" content="Naples FL Mortgage Broker | NexGen Capital" />
+        <meta property="og:description" content="Top-rated Naples mortgage broker serving Cape Coral, Fort Myers, and all of Southwest Florida. Fast pre-approvals, competitive rates." />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={SITE_URL} />
         <script type="application/ld+json">{JSON.stringify({
           "@context": "https://schema.org",
-          "@type": "LocalBusiness",
+          "@type": ["LocalBusiness", "MortgageBroker", "FinancialService"],
+          "@id": `${SITE_URL}/#business`,
           name: "NexGen Capital",
+          image: `${SITE_URL}/og-default.jpg`,
+          priceRange: "$$",
           telephone: "(239) 645-4580",
           url: SITE_URL,
           address: {
             "@type": "PostalAddress",
             addressLocality: "Naples",
             addressRegion: "FL",
+            postalCode: "34108",
             addressCountry: "US",
           },
-          areaServed: "Southwest Florida",
+          geo: { "@type": "GeoCoordinates", latitude: 26.1420, longitude: -81.7948 },
+          areaServed: [
+            { "@type": "City", name: "Naples" },
+            { "@type": "City", name: "Cape Coral" },
+            { "@type": "City", name: "Fort Myers" },
+            { "@type": "City", name: "Bonita Springs" },
+            { "@type": "City", name: "Estero" },
+          ],
+          openingHoursSpecification: [{
+            "@type": "OpeningHoursSpecification",
+            dayOfWeek: ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"],
+            opens: "00:00", closes: "23:59",
+          }],
+          sameAs: [
+            "https://www.google.com/maps/search/?api=1&query=NexGen+Capital+Naples+FL",
+          ],
         })}</script>
       </Helmet>
       <Navbar onGetStarted={() => openHub()} />
