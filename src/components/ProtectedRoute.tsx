@@ -1,5 +1,6 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import MfaGate from "@/components/auth/MfaGate";
 
 export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -18,5 +19,5 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
     return <Navigate to={`/auth?next=${encodeURIComponent(next)}`} replace />;
   }
 
-  return <>{children}</>;
+  return <MfaGate signOutRedirect="/auth">{children}</MfaGate>;
 }
