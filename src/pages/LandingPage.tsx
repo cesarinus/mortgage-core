@@ -77,6 +77,7 @@ const LandingPage = () => {
       <ApplicationHub open={hubOpen} onClose={() => setHubOpen(false)} prefillPurpose={prefillPurpose} />
       <MortgageCalculator open={calcOpen} onOpenChange={setCalcOpen} />
       <FloatingCalculatorButton onClick={() => setCalcOpen(true)} />
+      <AccessibilityToolbar />
     </div>
   );
 };
