@@ -80,9 +80,6 @@ export function LeftRail({ record, kind, tags = [], onAction, onStatusChange }: 
             </Button>
           ))}
         </div>
-        <Button variant="ghost" size="sm" className="w-full">
-          <MoreHorizontal className="h-4 w-4 mr-2" /> More actions
-        </Button>
 
         <Separator />
         <div className="space-y-2 text-sm">
