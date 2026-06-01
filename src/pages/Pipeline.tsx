@@ -109,7 +109,7 @@ export default function Pipeline() {
 
   const sendReviewRequest = async (deal: Deal) => {
     const borrower = resolveBorrower(deal);
-    if (!borrower.email) {
+    if (!borrower?.email) {
       toast({ title: "No contact email", description: "Link a contact with an email to this deal first.", variant: "destructive" });
       return;
     }
