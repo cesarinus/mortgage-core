@@ -1,56 +1,60 @@
-# CRM Audit & Fix Plan
+# Borrower / Client Portal
 
-I ran a full audit of the CRM (record workspace, leads/contacts/deals, blog admin, edge functions, auth/RLS). Found **21 concrete bugs** grouped by severity. No DB schema changes are required — all fixes are in frontend code + edge functions.
+A separate authenticated area at `/portal` where borrowers can track their loan, upload documents, review and acknowledge loan scenarios, and message their loan officer. CRM stays untouched — the portal is an extension.
 
-## P0 — Silent data loss (fix first)
+## How a borrower gets in
 
-Every CRM write below is missing the `created_by` (or equivalent) column that RLS `WITH CHECK` policies require, so the insert is silently rejected. This is why "nothing happens" on many actions.
+1. Loan officer clicks **Invite to Portal** on a deal in the CRM. This generates a one-time, signed invite token tied to that `deal_id` and the borrower's email.
+2. Borrower receives an email (via existing Resend connector) with a link: `/portal/accept?token=…`.
+3. Accept page asks them to sign up (Email/password or Google). On signup, the token is consumed and a `portal_users` row is created that binds their `auth.user.id` to the specific deal/lead/contact. No email-matching guesswork — the LO controls the link.
+4. Subsequent visits: borrower signs in at `/portal/login` and lands on their dashboard.
 
-1. **Auto-create contact** — `RecordWorkspace.tsx` `handleStatusChange`: add `created_by: user.id`.
-2. **Auto-create deals** — same function: add `created_by` and `loan_officer_id` to each mapped row.
-3. **Auto-link `lead_contacts`** — same function: add `created_by: user.id`.
-4. **Email logging** — `ActionModals.tsx` `EmailModal`: add `created_by` to `email_logs` insert; only log the `crm_activities` row if the email_log insert succeeded.
-5. **Blog Admin generate** — `BlogAdmin.tsx`: replace raw `fetch` + manual headers with `supabase.functions.invoke()` so auth/anon-key headers are always correct.
-6. **`generate-blog-post` lockout** — allow `loan_officer` in addition to `admin` in the role check.
-7. **Link company modal** — `LinkContactCompanyModals.tsx`: add `created_by: user.id` to `crm_contact_companies` insert.
+## What's in the portal
 
-## P1 — Degraded behavior (the user-reported issues)
+```text
+/portal/login              Email/password + Google
+/portal/accept             Token redemption + signup
+/portal                    Dashboard: status timeline, next step
+/portal/documents          Required docs checklist + upload
+/portal/scenarios          Loan options prepared by the LO + acknowledge
+/portal/messages           Thread with assigned loan officer
+```
 
-8. **Blog drafts can't be edited** — Pencil icon currently only toggles publish status. Add an "Edit" action that opens an edit sheet (title, slug, excerpt, content_html, tags, featured_image, meta). View (Eye) and Distribute (Send) already exist — verify both work after fix #5.
-9. **Contacts list → workspace** — add an "Open workspace" link button on each row in `Contacts.tsx` pointing to `/crm/contacts/:id` (parity with Leads).
-10. **Dead "More actions" button** in `LeftRail.tsx` — remove until wired.
-11. **Tabs grid mismatch** — `RecordWorkspace.tsx`: use `grid-cols-2` for contact-kind, `grid-cols-3` for lead-kind.
-12. **Loan comparison email goes to wrong recipient** — `send-loan-comparison/index.ts` is hardcoded to `avantifundings@gmail.com`. Change `to` to the borrower's email and BCC the office address.
-13. **Lead tag insert missing `created_by`** — `Leads.tsx`.
-14. **Contact-kind workspace can't resolve its lead** — `RecordWorkspace.tsx:50` reads non-existent `rec.lead_id`. Resolve via a `lead_contacts` join so emails/attachments/tags load for contact workspaces.
-15. **Contact-kind workspace can't load deals** — same root cause. Fetch deals through `lead_contacts → deals` for lead-kind, and directly by `contact_id` for contact-kind.
+- **Status timeline** — Reads `deals.stage` + `deal_stage_history`. Visual stepper through the 6 pipeline stages with timestamps.
+- **Documents** — Lists categories from `crm_document_categories`, shows what's uploaded vs. missing, lets the borrower upload to `crm-documents` storage. Files are recorded in `crm_attachments` so the LO sees them in the CRM workspace automatically.
+- **Scenarios** — Read-only view of `loan_scenarios` for their lead. Borrower can press **Acknowledge** (stored in a new `loan_scenario_acknowledgements` table — not e-sign, just a recorded acknowledgement).
+- **Messages** — Lightweight thread (new `portal_messages` table) with realtime updates; the LO sees the same thread inside the existing CRM record workspace.
 
-## P2 — Polish
+## Backend changes (additive only)
 
-16. **Admin-only nav items shown to all roles** — gate Blog Manager, Social Media, Subscribers, Email Templates in `AppSidebar.tsx` behind `role === 'admin'`.
-17. **Source filter mismatch** in `Leads.tsx` — normalize on `lead_sources.name`.
-18. **Upload blocked for contact-only workspaces** — `ActionModals.tsx`: allow upload with `contactId` alone.
-19. **Dashboard `.not("stage","in",...)`** — switch to array syntax.
-20. **In-memory rate limiter** in `submit-lead` — note as known limitation (durable fix requires a `rate_limits` table; out of scope since "no schema changes").
-21. **Verify Gemini model name** in `generate-blog-post`.
+New tables (with RLS + GRANTs):
 
-## What I will NOT touch
+- `portal_invites` — `id, deal_id, lead_id, contact_id, email, token_hash, expires_at, accepted_at, accepted_by, created_by`
+- `portal_users` — `user_id (pk), deal_id, lead_id, contact_id, created_at` — the binding row that authorizes a borrower
+- `portal_messages` — `id, deal_id, sender_user_id, sender_role ('borrower'|'officer'), body, created_at, read_at`
+- `loan_scenario_acknowledgements` — `id, scenario_id, deal_id, user_id, acknowledged_at, ip, user_agent`
 
-- Database schema, RLS policies, triggers, edge function auth config (`config.toml`).
-- The Mortgage Application Hub, Rate Lock Engine, Blog A/B engine, Booking flow, Landing page.
-- Anything in `src/integrations/supabase/` (auto-generated).
+Helper RPC `portal_user_deal()` → returns the deal the signed-in borrower owns. Used in RLS on the four tables above and to scope reads of `deals`, `deal_stage_history`, `loan_scenarios`, `crm_attachments`, `crm_document_categories`.
 
-## Verification
+Two new edge functions:
 
-After each batch I'll:
-- Build the project (auto-run).
-- Read modified files to confirm `created_by` is present and `useAuth().user.id` is in scope.
-- For edge functions: redeploy + `supabase--curl_edge_functions` smoke test for `send-loan-comparison` and `generate-blog-post`.
+- `portal-invite-create` — LO-only. Generates token, stores hash, emails the borrower.
+- `portal-invite-accept` — Validates token, links the newly signed-up user to the deal via `portal_users`, marks invite consumed.
 
-## Out of scope (call out, don't fix)
+Storage: reuse the existing `crm-documents` bucket. Add RLS allowing the bound borrower to upload/read files for their own deal only.
 
-- "Restructure CRM data model" (rejected in the scope question).
-- Borrower portal.
-- Migrating off the existing CRM to Twenty (covered in prior analysis).
+## CRM side (minimal)
 
-Approve to start with the P0 batch.
+- New **Invite to Portal** button on the deal record workspace → calls `portal-invite-create`.
+- Messages panel in the record workspace reads/writes `portal_messages` so the LO can reply.
+- Everything else (kanban, leads, scenarios editor) is unchanged.
+
+## Auth
+
+Lovable Cloud managed Google + email/password. Borrowers and CRM staff share the same auth pool; access control is purely by RLS: CRM pages already check `has_role`, portal pages check `portal_users.user_id = auth.uid()`. A CRM user without a `portal_users` row simply sees an empty portal — and vice versa.
+
+## Out of scope (this iteration)
+
+- True e-signature (DocuSign-style). The acknowledge button is a recorded click, not legally binding.
+- Conditional document requirements per loan product.
+- Push/SMS notifications — only the existing email channel.
