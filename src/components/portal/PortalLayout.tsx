@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LayoutDashboard, FileText, Calculator, MessageSquare, LogOut, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import MfaGate from "@/components/auth/MfaGate";
 
 const nav = [
   { to: "/portal", label: "Overview", icon: LayoutDashboard, end: true },
@@ -29,6 +30,19 @@ export default function PortalLayout() {
   if (!user) {
     return <Navigate to="/portal/login" replace />;
   }
+
+  // Enforce MFA before showing any portal content (including the "no binding" screen).
+  return (
+    <MfaGate signOutRedirect="/portal/login">
+      <PortalLayoutInner />
+    </MfaGate>
+  );
+}
+
+function PortalLayoutInner() {
+  const { signOut } = useAuth();
+  const { binding } = usePortalBinding();
+  const navigate = useNavigate();
 
   if (!binding) {
     return (
