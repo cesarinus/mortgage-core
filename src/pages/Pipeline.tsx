@@ -10,13 +10,15 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Mail, ExternalLink } from "lucide-react";
+import { Plus, Mail, ExternalLink, MapPin, DollarSign } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { Tables, Enums } from "@/integrations/supabase/types";
 import { Constants } from "@/integrations/supabase/types";
+import { EmailModal } from "@/components/crm/actions/ActionModals";
 
 type Deal = Tables<"deals">;
 type Contact = Tables<"contacts">;
+type LeadContact = Tables<"lead_contacts">;
 
 const stageLabels: Record<Enums<"deal_stage">, string> = {
   new_lead: "New Lead",
@@ -45,17 +47,21 @@ const stageColors: Record<string, string> = {
 export default function Pipeline() {
   const [deals, setDeals] = useState<Deal[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
+  const [leadContacts, setLeadContacts] = useState<LeadContact[]>([]);
   const [open, setOpen] = useState(false);
+  const [emailTarget, setEmailTarget] = useState<{ leadId?: string; contactId?: string; email: string } | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
 
   const load = async () => {
-    const [{ data: d }, { data: c }] = await Promise.all([
+    const [{ data: d }, { data: c }, { data: lc }] = await Promise.all([
       supabase.from("deals").select("*").order("created_at", { ascending: false }),
       supabase.from("contacts").select("*").order("first_name"),
+      supabase.from("lead_contacts").select("*"),
     ]);
     setDeals(d ?? []);
     setContacts(c ?? []);
+    setLeadContacts(lc ?? []);
   };
 
   useEffect(() => { load(); }, []);
@@ -111,11 +117,33 @@ export default function Pipeline() {
     (s) => !hiddenStages.includes(s)
   );
 
-  const getContactName = (contactId: string | null) => {
-    if (!contactId) return "No contact";
-    const c = contacts.find((c) => c.id === contactId);
-    return c ? `${c.first_name} ${c.last_name}` : "Unknown";
+  // Resolve the actual borrower for a deal. The deal.contact_id may point to
+  // a referrer/co-borrower; if so, walk through lead_contacts to find the borrower.
+  const resolveBorrower = (deal: Deal): { contact: Contact | null; leadId: string | null } => {
+    const linked = deal.contact_id ? contacts.find((c) => c.id === deal.contact_id) ?? null : null;
+    if (linked && linked.contact_type === "borrower") {
+      const lcRow = leadContacts.find((r) => r.contact_id === linked.id);
+      return { contact: linked, leadId: lcRow?.lead_id ?? null };
+    }
+    // Find a lead this contact is attached to, then locate the borrower on that lead
+    const lcRow = linked ? leadContacts.find((r) => r.contact_id === linked.id) : undefined;
+    if (lcRow?.lead_id) {
+      const borrowerLink = leadContacts.find(
+        (r) => r.lead_id === lcRow.lead_id && (r.role === "borrower" || r.role === "primary_borrower")
+      );
+      const borrowerContact = borrowerLink
+        ? contacts.find((c) => c.id === borrowerLink.contact_id) ?? null
+        : contacts.find((c) => {
+            const link = leadContacts.find((r) => r.contact_id === c.id && r.lead_id === lcRow.lead_id);
+            return !!link && c.contact_type === "borrower";
+          }) ?? null;
+      return { contact: borrowerContact ?? linked, leadId: lcRow.lead_id };
+    }
+    return { contact: linked, leadId: null };
   };
+
+  const formatCurrency = (n: number | null | undefined) =>
+    n == null ? null : `$${Number(n).toLocaleString()}`;
 
   return (
     <div className="space-y-6">
@@ -176,31 +204,65 @@ export default function Pipeline() {
                 <Badge variant="secondary" className="text-xs">{stageDeals.length}</Badge>
               </div>
               <div className="space-y-2 min-h-[200px] rounded-lg bg-muted/50 p-2">
-                {stageDeals.map((deal) => (
+                {stageDeals.map((deal) => {
+                  const { contact: borrower, leadId } = resolveBorrower(deal);
+                  const borrowerName = borrower
+                    ? `${borrower.first_name} ${borrower.last_name}`.trim()
+                    : "No borrower";
+                  const workspaceId = borrower?.id ?? deal.contact_id;
+                  return (
                   <Card
                     key={deal.id}
-                    className={`border-l-4 ${stageColors[deal.stage]} cursor-pointer hover:shadow-md transition-shadow`}
+                    className={`border-l-4 ${stageColors[deal.stage]} hover:shadow-md transition-shadow`}
                   >
                      <CardContent className="p-3 space-y-2">
                        <div className="flex items-center justify-between gap-2">
-                         <p className="font-medium text-sm">{getContactName(deal.contact_id)}</p>
-                         {deal.contact_id && (
+                         <p className="font-medium text-sm truncate">{borrowerName}</p>
+                         {workspaceId && (
                            <Link
-                             to={`/crm/contacts/${deal.contact_id}`}
+                             to={`/crm/contacts/${workspaceId}`}
                              title="Open workspace"
                              onClick={(e) => e.stopPropagation()}
-                             className="text-muted-foreground hover:text-primary"
+                             className="text-muted-foreground hover:text-primary shrink-0"
                            >
                              <ExternalLink className="h-3.5 w-3.5" />
                            </Link>
                          )}
                        </div>
-                      {deal.loan_amount && (
-                        <p className="text-xs text-muted-foreground">
-                          ${deal.loan_amount.toLocaleString()} · {deal.loan_type ?? "—"}
-                        </p>
-                      )}
-                      <div className="flex gap-1 flex-wrap">
+                       {deal.property_address && (
+                         <p className="text-xs text-muted-foreground flex items-start gap-1">
+                           <MapPin className="h-3 w-3 mt-0.5 shrink-0" />
+                           <span className="truncate">{deal.property_address}</span>
+                         </p>
+                       )}
+                       {(deal.loan_amount || deal.loan_type) && (
+                         <p className="text-xs text-muted-foreground flex items-center gap-1">
+                           <DollarSign className="h-3 w-3 shrink-0" />
+                           <span>
+                             {formatCurrency(deal.loan_amount) ?? "—"}
+                             {deal.loan_type ? ` · ${deal.loan_type}` : ""}
+                           </span>
+                         </p>
+                       )}
+                       {borrower?.email && (
+                         <button
+                           type="button"
+                           onClick={(e) => {
+                             e.stopPropagation();
+                             setEmailTarget({
+                               leadId: leadId ?? undefined,
+                               contactId: borrower.id,
+                               email: borrower.email!,
+                             });
+                           }}
+                           className="text-xs text-primary hover:underline flex items-center gap-1 truncate w-full text-left"
+                           title={`Email ${borrower.email}`}
+                         >
+                           <Mail className="h-3 w-3 shrink-0" />
+                           <span className="truncate">{borrower.email}</span>
+                         </button>
+                       )}
+                       <div className="flex gap-1 flex-wrap pt-1 border-t border-border/50">
                         {stages.filter(s => s !== deal.stage).slice(0, 3).map(s => (
                           <button
                             key={s}
@@ -219,12 +281,24 @@ export default function Pipeline() {
                       )}
                     </CardContent>
                   </Card>
-                ))}
+                  );
+                })}
               </div>
             </div>
           );
         })}
       </div>
+
+      {emailTarget && (
+        <EmailModal
+          open={!!emailTarget}
+          onClose={() => setEmailTarget(null)}
+          leadId={emailTarget.leadId}
+          contactId={emailTarget.contactId}
+          recipientEmail={emailTarget.email}
+          onDone={() => setEmailTarget(null)}
+        />
+      )}
     </div>
   );
 }
