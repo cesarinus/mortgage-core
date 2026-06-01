@@ -124,8 +124,9 @@ export function LinkCompanyModal({ open, onClose, leadId, contactId, onDone }: B
 
   const link = async (companyId: string, role?: string) => {
     const { error } = await supabase.from("crm_contact_companies").insert({
-      lead_id: leadId ?? null, contact_id: contactId ?? null, company_id: companyId, role: role || null,
-    });
+      lead_id: leadId ?? null, contact_id: contactId ?? null, company_id: companyId,
+      role: role || null,
+    } as any);
     if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
     else { toast({ title: "Company linked" }); onDone(); onClose(); }
   };
