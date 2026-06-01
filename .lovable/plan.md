@@ -1,86 +1,56 @@
-## Contact / Lead Record Workspace — Implementation Plan
+# CRM Audit & Fix Plan
 
-A HubSpot-style full-page workspace for any Lead or Contact, with Catch-up + Activities tabs, action rail, deal/document sidebar, and mortgage snapshot. Built additively per the project's change-control rules (no edits to existing core tables; all new schema is extension).
+I ran a full audit of the CRM (record workspace, leads/contacts/deals, blog admin, edge functions, auth/RLS). Found **21 concrete bugs** grouped by severity. No DB schema changes are required — all fixes are in frontend code + edge functions.
 
-### Routes
-- `/crm/leads/:id` — workspace bound to `leads` row
-- `/crm/contacts/:id` — workspace bound to `contacts` row
-- Update Leads list + Pipeline cards to deep-link into these routes
+## P0 — Silent data loss (fix first)
 
-### Layout (3-column, sticky)
+Every CRM write below is missing the `created_by` (or equivalent) column that RLS `WITH CHECK` policies require, so the insert is silently rejected. This is why "nothing happens" on many actions.
 
-```
-┌──────────────┬──────────────────────────────┬──────────────┐
-│ Left rail    │  Tabs: Catch-up | Activities │ Right rail   │
-│ - Avatar     │                              │ - Companies  │
-│ - Identity   │  Catch-up:                   │ - Deals      │
-│ - Owner      │   Inbound / Outbound         │ - Tickets    │
-│ - Loan facts │   Health & Sentiment         │ - Documents  │
-│ - Tags       │   Challenges / Positives     │              │
-│ - Actions    │   Mortgage Snapshot          │              │
-│              │  Activities: timeline+filters│              │
-└──────────────┴──────────────────────────────┴──────────────┘
-```
+1. **Auto-create contact** — `RecordWorkspace.tsx` `handleStatusChange`: add `created_by: user.id`.
+2. **Auto-create deals** — same function: add `created_by` and `loan_officer_id` to each mapped row.
+3. **Auto-link `lead_contacts`** — same function: add `created_by: user.id`.
+4. **Email logging** — `ActionModals.tsx` `EmailModal`: add `created_by` to `email_logs` insert; only log the `crm_activities` row if the email_log insert succeeded.
+5. **Blog Admin generate** — `BlogAdmin.tsx`: replace raw `fetch` + manual headers with `supabase.functions.invoke()` so auth/anon-key headers are always correct.
+6. **`generate-blog-post` lockout** — allow `loan_officer` in addition to `admin` in the role check.
+7. **Link company modal** — `LinkContactCompanyModals.tsx`: add `created_by: user.id` to `crm_contact_companies` insert.
 
-Action rail buttons (each opens a modal/sheet that writes a row + auto-creates a timeline activity):
-Note · Email · Call · Task · Meeting · Upload · More
+## P1 — Degraded behavior (the user-reported issues)
 
-### New database (extension-only, all RLS-locked to record owner / admin)
-- `crm_activities` — unified timeline (type, ref_id, lead_id, contact_id, deal_id, actor, body, metadata, created_at)
-- `crm_notes` — rich-text notes, pinned flag
-- `crm_tasks` — title, due_at, priority, status, assignee
-- `crm_calls` — outcome, duration_sec, follow_up_at, direction
-- `crm_meetings` — start_at, end_at, location, video_link
-- `crm_attachments` — bucket path, category, size, mime, expires_at, version
-- `crm_document_categories` — seed: Tax Return, W-2, Pay Stub, Bank Statement, ID, Credit, VOE, 1099, Business Tax Return, P&L
-- `crm_companies` + `crm_contact_companies` — many-to-many employer/business links
-- `mortgage_profiles` (1:1 with lead) — loan_program, purchase_price, down_payment, occupancy, property_type, est_income, est_dti, est_monthly_payment, stage
-- `lead_sentiment` — temperature (hot/warm/cold/unresponsive/ready), summary, recommendations[], challenges[], positives[], generated_at
+8. **Blog drafts can't be edited** — Pencil icon currently only toggles publish status. Add an "Edit" action that opens an edit sheet (title, slug, excerpt, content_html, tags, featured_image, meta). View (Eye) and Distribute (Send) already exist — verify both work after fix #5.
+9. **Contacts list → workspace** — add an "Open workspace" link button on each row in `Contacts.tsx` pointing to `/crm/contacts/:id` (parity with Leads).
+10. **Dead "More actions" button** in `LeftRail.tsx` — remove until wired.
+11. **Tabs grid mismatch** — `RecordWorkspace.tsx`: use `grid-cols-2` for contact-kind, `grid-cols-3` for lead-kind.
+12. **Loan comparison email goes to wrong recipient** — `send-loan-comparison/index.ts` is hardcoded to `avantifundings@gmail.com`. Change `to` to the borrower's email and BCC the office address.
+13. **Lead tag insert missing `created_by`** — `Leads.tsx`.
+14. **Contact-kind workspace can't resolve its lead** — `RecordWorkspace.tsx:50` reads non-existent `rec.lead_id`. Resolve via a `lead_contacts` join so emails/attachments/tags load for contact workspaces.
+15. **Contact-kind workspace can't load deals** — same root cause. Fetch deals through `lead_contacts → deals` for lead-kind, and directly by `contact_id` for contact-kind.
 
-Existing `deals`, `leads`, `contacts`, `lead_events`, `lead_tags`, `email_logs`, `bookings` are reused as-is.
+## P2 — Polish
 
-Triggers: every insert into notes/tasks/calls/meetings/attachments + lead status / deal stage change writes a `crm_activities` row.
+16. **Admin-only nav items shown to all roles** — gate Blog Manager, Social Media, Subscribers, Email Templates in `AppSidebar.tsx` behind `role === 'admin'`.
+17. **Source filter mismatch** in `Leads.tsx` — normalize on `lead_sources.name`.
+18. **Upload blocked for contact-only workspaces** — `ActionModals.tsx`: allow upload with `contactId` alone.
+19. **Dashboard `.not("stage","in",...)`** — switch to array syntax.
+20. **In-memory rate limiter** in `submit-lead` — note as known limitation (durable fix requires a `rate_limits` table; out of scope since "no schema changes").
+21. **Verify Gemini model name** in `generate-blog-post`.
 
-### Storage
-- New bucket `crm-documents` (private). Path `{lead_id}/{category}/{uuid}-{filename}`. RLS via signed URLs from an edge function; admins + record owners only.
+## What I will NOT touch
 
-### Front-end pieces (all new, no edits to frozen core)
-- `src/pages/crm/RecordWorkspace.tsx` — shell, loads record + tabs
-- `src/components/crm/LeftRail.tsx` — identity + action buttons
-- `src/components/crm/RightRail.tsx` — Companies / Deals / Documents collapsibles
-- `src/components/crm/tabs/CatchUpTab.tsx` — Inbound, Outbound, Sentiment gauge, Challenges, Positives, Mortgage Snapshot, "Income Analysis (Coming Soon)" placeholder
-- `src/components/crm/tabs/ActivitiesTab.tsx` — filtered timeline, expandable cards
-- `src/components/crm/actions/{NoteModal,EmailModal,CallModal,TaskModal,MeetingModal,UploadModal}.tsx` — full CRUD, optimistic React Query
-- `src/components/crm/DocumentCenter.tsx` — drag-drop, preview, category tag, version
-- `src/components/crm/SentimentGauge.tsx` — visualization
-- `src/lib/crm/ai.ts` — thin service layer ready for future Lovable AI calls (sentiment, summary, next-action) — stubbed, returns deterministic fallback today
-- Wire deep-links from `Leads.tsx` row click and `Pipeline.tsx` card click
+- Database schema, RLS policies, triggers, edge function auth config (`config.toml`).
+- The Mortgage Application Hub, Rate Lock Engine, Blog A/B engine, Booking flow, Landing page.
+- Anything in `src/integrations/supabase/` (auto-generated).
 
-### Email sending
-Reuses the existing `send-review-request` pattern → new edge function `crm-send-email` (template-aware, logs to `email_logs` + `crm_activities`). Templates page already exists.
+## Verification
 
-### AI hooks (architecture only, not invoked yet)
-- `crm-generate-sentiment` edge function scaffold (calls Lovable AI Gateway, gemini-2.5-flash) — wired but gated behind a "Refresh AI summary" button so we don't burn credits passively.
-- Income calc / DTI / AUS left as typed interfaces in `src/lib/crm/income.ts` with TODO stubs.
+After each batch I'll:
+- Build the project (auto-run).
+- Read modified files to confirm `created_by` is present and `useAuth().user.id` is in scope.
+- For edge functions: redeploy + `supabase--curl_edge_functions` smoke test for `send-loan-comparison` and `generate-blog-post`.
 
-### Permissions
-Reuses `is_admin()` + record-ownership checks already in `leads`/`deals` policies. New tables follow the same pattern: admin full access; loan officer / processor see rows tied to their leads/deals.
+## Out of scope (call out, don't fix)
 
-### Out of scope for this slice
-- Real Twilio/VAPI calling (logging only)
-- Real OCR / income engine (schema + UI placeholder only)
-- Calendar provider sync (fields stored, no external sync)
-- Dark mode polish (uses existing tokens, will inherit when toggled)
+- "Restructure CRM data model" (rejected in the scope question).
+- Borrower portal.
+- Migrating off the existing CRM to Twenty (covered in prior analysis).
 
-### Sequencing
-1. Migration (all new tables + bucket + RLS + activity triggers) — single approval
-2. Edge functions (`crm-send-email`, `crm-generate-sentiment`, `crm-signed-url`)
-3. Workspace shell + routing + left rail
-4. Catch-up tab + sentiment + mortgage snapshot
-5. Activities tab + all 6 action modals (CRUD wired)
-6. Right rail (Companies, Deals, Document Center)
-7. Deep-link from Leads list and Pipeline
-
-Estimated: large change set, ~15–20 new files. No edits to frozen core modules; existing pages get only deep-link additions.
-
-Approve to proceed and I'll start with the migration.
+Approve to start with the P0 batch.

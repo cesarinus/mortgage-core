@@ -6,7 +6,7 @@ import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
 import {
-  StickyNote, Mail, Phone, ListChecks, CalendarDays, Upload, MoreHorizontal, ArrowLeft,
+  StickyNote, Mail, Phone, ListChecks, CalendarDays, Upload, ArrowLeft,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
@@ -80,9 +80,6 @@ export function LeftRail({ record, kind, tags = [], onAction, onStatusChange }: 
             </Button>
           ))}
         </div>
-        <Button variant="ghost" size="sm" className="w-full">
-          <MoreHorizontal className="h-4 w-4 mr-2" /> More actions
-        </Button>
 
         <Separator />
         <div className="space-y-2 text-sm">

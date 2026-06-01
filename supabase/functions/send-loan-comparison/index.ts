@@ -38,9 +38,12 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         from: "NexGen Capital <onboarding@resend.dev>",
+        // NOTE: Resend sandbox restricts `to` to the verified account email.
+        // Once a custom domain is verified at resend.com/domains, change this
+        // to `to: [to]` and `bcc: ["avantifundings@gmail.com"]`.
         to: ["avantifundings@gmail.com"],
         reply_to: to,
-        subject: subject ?? "Loan Scenario Comparison",
+        subject: `${subject ?? "Loan Scenario Comparison"} — for ${to}`,
         html,
         attachments: [{ filename: filename ?? "Loan_Comparison.pdf", content: pdf_base64 }],
       }),

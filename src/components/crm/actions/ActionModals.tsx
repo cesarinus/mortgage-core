@@ -214,10 +214,11 @@ export function EmailModal({ open, onClose, leadId, contactId, onDone, recipient
       status: "sent", metadata: { html, sent_via: "crm-workspace", sent_by: user?.id },
     });
     if (error) return toast({ title: "Error", description: error.message, variant: "destructive" });
-    await supabase.from("crm_activities").insert({
+    const { error: actErr } = await supabase.from("crm_activities").insert({
       lead_id: leadId, contact_id: contactId, activity_type: "email",
       title: `Email: ${subject}`, body: to, actor_id: user?.id,
     });
+    if (actErr) return toast({ title: "Logged but activity failed", description: actErr.message, variant: "destructive" });
     toast({ title: "Email logged", description: "Delivery via Resend gateway." });
     onDone(); onClose();
   };
@@ -246,14 +247,16 @@ export function UploadModal({ open, onClose, leadId, contactId, onDone, categori
   const { user } = useAuth();
   const { toast } = useToast();
   const save = async () => {
-    if (!file || !leadId) return toast({ title: "Pick a file" });
+    if (!file) return toast({ title: "Pick a file" });
+    if (!leadId && !contactId) return toast({ title: "No record context" });
     setBusy(true);
     try {
-      const path = `${leadId}/${category}/${crypto.randomUUID()}-${file.name}`;
+      const scope = leadId ?? contactId!;
+      const path = `${scope}/${category}/${crypto.randomUUID()}-${file.name}`;
       const up = await supabase.storage.from("crm-documents").upload(path, file, { upsert: false });
       if (up.error) throw up.error;
       const { error } = await supabase.from("crm_attachments").insert({
-        lead_id: leadId, contact_id: contactId, category_slug: category,
+        lead_id: leadId ?? null, contact_id: contactId ?? null, category_slug: category,
         file_name: file.name, file_path: path, mime_type: file.type, size_bytes: file.size,
         uploaded_by: user?.id,
       });

@@ -11,7 +11,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, ExternalLink } from "lucide-react";
+import { Link } from "react-router-dom";
 import type { Tables, Enums } from "@/integrations/supabase/types";
 
 type Contact = Tables<"contacts">;
@@ -158,7 +159,21 @@ export default function Contacts() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-muted-foreground">
-                    {new Date(c.created_at).toLocaleDateString()}
+                    <div className="flex items-center justify-between gap-2">
+                      <span>{new Date(c.created_at).toLocaleDateString()}</span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        asChild
+                        onClick={(e) => e.stopPropagation()}
+                        title="Open workspace"
+                      >
+                        <Link to={`/crm/contacts/${c.id}`}>
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </Link>
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}

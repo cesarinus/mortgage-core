@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams, Navigate } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { LeftRail } from "@/components/crm/LeftRail";
 import { RightRail } from "@/components/crm/RightRail";
 import { CatchUpTab } from "@/components/crm/tabs/CatchUpTab";
@@ -23,6 +24,7 @@ interface Props { kind: "lead" | "contact" }
 
 export default function RecordWorkspace({ kind }: Props) {
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
   const [record, setRecord] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [activities, setActivities] = useState<any[]>([]);
@@ -47,7 +49,19 @@ export default function RecordWorkspace({ kind }: Props) {
         : await fetchContact(id).catch(() => null);
       setRecord(rec);
       if (!rec) return;
-      const leadId = kind === "lead" ? id : (rec as any).lead_id ?? undefined;
+      // For contact kind, resolve the most recent linked lead via lead_contacts
+      let resolvedLeadId: string | undefined = kind === "lead" ? id : undefined;
+      if (kind === "contact" && id) {
+        const { data: lc } = await supabase
+          .from("lead_contacts")
+          .select("lead_id, created_at")
+          .eq("contact_id", id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        resolvedLeadId = (lc as any)?.lead_id ?? undefined;
+      }
+      const leadId = resolvedLeadId;
       const contactId = kind === "contact" ? id : undefined;
       const safe = <T,>(p: Promise<T>, fallback: T) => p.catch(() => fallback);
       const [acts, mails, atts, cos, dls, lcs, tgs, mp, st, cats] = await Promise.all([
@@ -55,7 +69,7 @@ export default function RecordWorkspace({ kind }: Props) {
         leadId ? safe(fetchEmailLogs(leadId), [] as any[]) : Promise.resolve([] as any[]),
         leadId ? safe(fetchAttachments(leadId), [] as any[]) : Promise.resolve([] as any[]),
         safe(fetchCompanies(leadId, contactId), [] as any[]),
-        safe(fetchDeals(contactId ?? (rec as any).contact_id), [] as any[]),
+        safe(fetchDeals(contactId), [] as any[]),
         leadId ? safe(fetchLeadContacts(leadId), [] as any[]) : Promise.resolve([] as any[]),
         leadId ? safe(fetchTags(leadId), [] as any[]) : Promise.resolve([] as any[]),
         leadId ? safe(fetchMortgageProfile(leadId), null) : Promise.resolve(null),
@@ -140,6 +154,7 @@ export default function RecordWorkspace({ kind }: Props) {
                 email: lead.email ?? null,
                 phone: lead.phone ?? null,
                 lead_id: id,
+                created_by: user?.id,
               })
               .select("id")
               .single();
@@ -148,6 +163,7 @@ export default function RecordWorkspace({ kind }: Props) {
                 lead_id: id,
                 contact_id: newContact.id,
                 role: "borrower",
+                created_by: user?.id,
               });
               contactIds = [newContact.id];
             }
@@ -177,6 +193,8 @@ export default function RecordWorkspace({ kind }: Props) {
                   loan_type: lead.loan_purpose ?? null,
                   loan_amount: lead.loan_amount ?? null,
                   property_address: lead.property_address ?? null,
+                  created_by: user?.id,
+                  loan_officer_id: user?.id,
                 }))
               );
             }
@@ -208,7 +226,7 @@ export default function RecordWorkspace({ kind }: Props) {
 
         <main className="col-span-12 lg:col-span-6">
           <Tabs defaultValue="catch-up">
-            <TabsList className="w-full grid grid-cols-3">
+            <TabsList className={`w-full grid ${kind === "lead" ? "grid-cols-3" : "grid-cols-2"}`}>
               <TabsTrigger value="catch-up">Catch-up</TabsTrigger>
               <TabsTrigger value="activities">Activities</TabsTrigger>
               {kind === "lead" && (

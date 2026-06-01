@@ -35,8 +35,11 @@ serve(async (req) => {
       });
     }
 
-    const { data: roleData } = await supabase.rpc("is_admin");
-    if (!roleData) {
+    const [{ data: isAdmin }, { data: isOfficer }] = await Promise.all([
+      supabase.rpc("has_role", { _role: "admin" }),
+      supabase.rpc("has_role", { _role: "loan_officer" }),
+    ]);
+    if (!isAdmin && !isOfficer) {
       return new Response(JSON.stringify({ error: "Admin access required" }), {
         status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
