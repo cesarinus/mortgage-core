@@ -1481,6 +1481,36 @@ export type Database = {
           },
         ]
       }
+      loan_scenario_acknowledgements: {
+        Row: {
+          acknowledged_at: string
+          deal_id: string
+          id: string
+          ip: string | null
+          scenario_id: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          acknowledged_at?: string
+          deal_id: string
+          id?: string
+          ip?: string | null
+          scenario_id: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Update: {
+          acknowledged_at?: string
+          deal_id?: string
+          id?: string
+          ip?: string | null
+          scenario_id?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       loan_scenarios: {
         Row: {
           bought_down_rate: number | null
@@ -1661,6 +1691,105 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      portal_invites: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          contact_id: string | null
+          created_at: string
+          created_by: string
+          deal_id: string
+          email: string
+          expires_at: string
+          id: string
+          lead_id: string | null
+          token_hash: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string
+          deal_id: string
+          email: string
+          expires_at?: string
+          id?: string
+          lead_id?: string | null
+          token_hash: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_by?: string
+          deal_id?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          lead_id?: string | null
+          token_hash?: string
+        }
+        Relationships: []
+      }
+      portal_messages: {
+        Row: {
+          body: string
+          created_at: string
+          deal_id: string
+          id: string
+          read_at: string | null
+          sender_role: string
+          sender_user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          deal_id: string
+          id?: string
+          read_at?: string | null
+          sender_role: string
+          sender_user_id?: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          deal_id?: string
+          id?: string
+          read_at?: string | null
+          sender_role?: string
+          sender_user_id?: string
+        }
+        Relationships: []
+      }
+      portal_users: {
+        Row: {
+          contact_id: string | null
+          created_at: string
+          deal_id: string
+          invite_id: string | null
+          lead_id: string | null
+          user_id: string
+        }
+        Insert: {
+          contact_id?: string | null
+          created_at?: string
+          deal_id: string
+          invite_id?: string | null
+          lead_id?: string | null
+          user_id: string
+        }
+        Update: {
+          contact_id?: string | null
+          created_at?: string
+          deal_id?: string
+          invite_id?: string | null
+          lead_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -2102,12 +2231,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      current_portal_user_deal: { Args: never; Returns: string }
       get_available_slots: { Args: { p_date: string }; Returns: string[] }
       has_role: {
         Args: { _role: Database["public"]["Enums"]["app_role"] }
         Returns: boolean
       }
       is_admin: { Args: never; Returns: boolean }
+      is_portal_user_for_deal: { Args: { _deal_id: string }; Returns: boolean }
       user_owns_contact: { Args: { _contact_id: string }; Returns: boolean }
       user_owns_lead: { Args: { _lead_id: string }; Returns: boolean }
     }
