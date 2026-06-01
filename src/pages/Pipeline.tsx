@@ -123,6 +123,23 @@ export default function Pipeline() {
     }
   };
 
+  const invitePortal = async (deal: Deal, borrower: { email: string; leadId?: string | null; contactId?: string | null }) => {
+    const { data, error } = await supabase.functions.invoke("portal-invite-create", {
+      body: {
+        deal_id: deal.id,
+        email: borrower.email,
+        lead_id: borrower.leadId ?? null,
+        contact_id: borrower.contactId ?? null,
+        app_origin: window.location.origin,
+      },
+    });
+    if (error || (data as any)?.error) {
+      toast({ title: "Invite failed", description: error?.message || (data as any)?.error, variant: "destructive" });
+    } else {
+      toast({ title: "Portal invite sent", description: borrower.email });
+    }
+  };
+
   const hiddenStages: Enums<"deal_stage">[] = ["new_lead", "contacted"];
   const stages = Constants.public.Enums.deal_stage.filter(
     (s) => !hiddenStages.includes(s)
