@@ -254,11 +254,8 @@ export default function Pipeline() {
               </div>
               <div className="space-y-2 min-h-[200px] rounded-lg bg-muted/50 p-2">
                 {stageDeals.map((deal) => {
-                  const { contact: borrower, leadId } = resolveBorrower(deal);
-                  const borrowerName = borrower
-                    ? `${borrower.first_name} ${borrower.last_name}`.trim()
-                    : "No borrower";
-                  const workspaceId = borrower?.id ?? deal.contact_id;
+                  const borrower = resolveBorrower(deal);
+                  const workspaceId = borrower.contactId;
                   return (
                   <Card
                     key={deal.id}
@@ -266,7 +263,7 @@ export default function Pipeline() {
                   >
                      <CardContent className="p-3 space-y-2">
                        <div className="flex items-center justify-between gap-2">
-                         <p className="font-medium text-sm truncate">{borrowerName}</p>
+                          <p className="font-medium text-sm truncate">{borrower.name}</p>
                          {workspaceId && (
                            <Link
                              to={`/crm/contacts/${workspaceId}`}
@@ -293,19 +290,19 @@ export default function Pipeline() {
                            </span>
                          </p>
                        )}
-                       {borrower?.email && (
+                        {borrower.email && (
                          <button
                            type="button"
                            onClick={(e) => {
                              e.stopPropagation();
                              setEmailTarget({
-                               leadId: leadId ?? undefined,
-                               contactId: borrower.id,
-                               email: borrower.email!,
+                                leadId: borrower.leadId ?? undefined,
+                                contactId: borrower.contactId ?? undefined,
+                                email: borrower.email,
                              });
                            }}
                            className="text-xs text-primary hover:underline flex items-center gap-1 truncate w-full text-left"
-                           title={`Email ${borrower.email}`}
+                            title={`Email ${borrower.email}`}
                          >
                            <Mail className="h-3 w-3 shrink-0" />
                            <span className="truncate">{borrower.email}</span>
