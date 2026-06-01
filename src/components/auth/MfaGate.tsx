@@ -69,7 +69,7 @@ export default function MfaGate({ children, signOutRedirect = "/auth" }: Props) 
 
     // No verified factor — force enrollment (mandatory MFA).
     // Clean up any stale unverified factors so enroll() doesn't fail with friendly name conflict.
-    const stale = factorsData?.totp?.find((f) => f.status === "unverified");
+    const stale = factorsData?.totp?.find((f) => (f.status as string) !== "verified");
     if (stale) {
       await supabase.auth.mfa.unenroll({ factorId: stale.id });
     }
