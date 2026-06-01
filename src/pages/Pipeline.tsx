@@ -19,6 +19,14 @@ import { EmailModal } from "@/components/crm/actions/ActionModals";
 type Deal = Tables<"deals">;
 type Contact = Tables<"contacts">;
 type LeadContact = Tables<"lead_contacts">;
+type Lead = Tables<"leads">;
+
+type BorrowerSummary = {
+  name: string;
+  email: string | null;
+  contactId: string | null;
+  leadId: string | null;
+};
 
 const stageLabels: Record<Enums<"deal_stage">, string> = {
   new_lead: "New Lead",
@@ -48,20 +56,23 @@ export default function Pipeline() {
   const [deals, setDeals] = useState<Deal[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [leadContacts, setLeadContacts] = useState<LeadContact[]>([]);
+  const [leads, setLeads] = useState<Lead[]>([]);
   const [open, setOpen] = useState(false);
   const [emailTarget, setEmailTarget] = useState<{ leadId?: string; contactId?: string; email: string } | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
 
   const load = async () => {
-    const [{ data: d }, { data: c }, { data: lc }] = await Promise.all([
+    const [{ data: d }, { data: c }, { data: lc }, { data: l }] = await Promise.all([
       supabase.from("deals").select("*").order("created_at", { ascending: false }),
       supabase.from("contacts").select("*").order("first_name"),
       supabase.from("lead_contacts").select("*"),
+      supabase.from("leads").select("*"),
     ]);
     setDeals(d ?? []);
     setContacts(c ?? []);
     setLeadContacts(lc ?? []);
+    setLeads(l ?? []);
   };
 
   useEffect(() => { load(); }, []);
@@ -97,18 +108,18 @@ export default function Pipeline() {
   };
 
   const sendReviewRequest = async (deal: Deal) => {
-    const c = contacts.find((x) => x.id === deal.contact_id);
-    if (!c?.email) {
+    const borrower = resolveBorrower(deal);
+    if (!borrower.email) {
       toast({ title: "No contact email", description: "Link a contact with an email to this deal first.", variant: "destructive" });
       return;
     }
     const { data, error } = await supabase.functions.invoke("send-review-request", {
-      body: { email: c.email, first_name: c.first_name, last_name: c.last_name, lead_id: deal.contact_id },
+      body: { email: borrower.email, first_name: borrower.name.split(" ")[0] ?? "", last_name: borrower.name.split(" ").slice(1).join(" "), lead_id: borrower.leadId ?? deal.contact_id },
     });
     if (error || (data as any)?.error) {
       toast({ title: "Send failed", description: error?.message || (data as any)?.error, variant: "destructive" });
     } else {
-      toast({ title: "Review request sent", description: c.email });
+      toast({ title: "Review request sent", description: borrower.email });
     }
   };
 
@@ -117,19 +128,35 @@ export default function Pipeline() {
     (s) => !hiddenStages.includes(s)
   );
 
-  // Resolve the actual borrower for a deal. The deal.contact_id may point to
-  // a referrer/co-borrower; if so, walk through lead_contacts to find the borrower.
-  const resolveBorrower = (deal: Deal): { contact: Contact | null; leadId: string | null } => {
+  const leadStatusMatchesDealStage = (lead: Lead, stage: Enums<"deal_stage">) => {
+    if (stage === "application_sent") return lead.status === "qualified";
+    return lead.status === stage;
+  };
+
+  // Resolve the actual borrower for a deal. A deal.contact_id can point to a
+  // referral partner, so prefer the matching lead/borrower over the linked contact.
+  const resolveBorrower = (deal: Deal): BorrowerSummary => {
     const linked = deal.contact_id ? contacts.find((c) => c.id === deal.contact_id) ?? null : null;
     if (linked && linked.contact_type === "borrower") {
       const lcRow = leadContacts.find((r) => r.contact_id === linked.id);
-      return { contact: linked, leadId: lcRow?.lead_id ?? null };
+      return {
+        name: `${linked.first_name} ${linked.last_name}`.trim(),
+        email: linked.email,
+        contactId: linked.id,
+        leadId: lcRow?.lead_id ?? linked.lead_id ?? null,
+      };
     }
-    // Find a lead this contact is attached to, then locate the borrower on that lead
-    const lcRow = linked ? leadContacts.find((r) => r.contact_id === linked.id) : undefined;
+
+    const candidateLeadLinks = linked ? leadContacts.filter((r) => r.contact_id === linked.id) : [];
+    const lcRow =
+      candidateLeadLinks.find((r) => {
+        const lead = leads.find((l) => l.id === r.lead_id);
+        return lead ? leadStatusMatchesDealStage(lead, deal.stage) : false;
+      }) ?? candidateLeadLinks[0];
+
     if (lcRow?.lead_id) {
       const borrowerLink = leadContacts.find(
-        (r) => r.lead_id === lcRow.lead_id && (r.role === "borrower" || r.role === "primary_borrower")
+        (r) => r.lead_id === lcRow.lead_id && ["borrower", "primary_borrower", "applicant", "primary"].includes((r.role ?? "").toLowerCase())
       );
       const borrowerContact = borrowerLink
         ? contacts.find((c) => c.id === borrowerLink.contact_id) ?? null
@@ -137,9 +164,31 @@ export default function Pipeline() {
             const link = leadContacts.find((r) => r.contact_id === c.id && r.lead_id === lcRow.lead_id);
             return !!link && c.contact_type === "borrower";
           }) ?? null;
-      return { contact: borrowerContact ?? linked, leadId: lcRow.lead_id };
+      if (borrowerContact) {
+        return {
+          name: `${borrowerContact.first_name} ${borrowerContact.last_name}`.trim(),
+          email: borrowerContact.email,
+          contactId: borrowerContact.id,
+          leadId: lcRow.lead_id,
+        };
+      }
+
+      const lead = leads.find((l) => l.id === lcRow.lead_id);
+      if (lead) {
+        return {
+          name: `${lead.first_name} ${lead.last_name}`.trim(),
+          email: lead.email,
+          contactId: null,
+          leadId: lead.id,
+        };
+      }
     }
-    return { contact: linked, leadId: null };
+    return {
+      name: linked ? `${linked.first_name} ${linked.last_name}`.trim() : "No borrower",
+      email: linked?.email ?? null,
+      contactId: linked?.id ?? null,
+      leadId: linked?.lead_id ?? null,
+    };
   };
 
   const formatCurrency = (n: number | null | undefined) =>
@@ -205,11 +254,8 @@ export default function Pipeline() {
               </div>
               <div className="space-y-2 min-h-[200px] rounded-lg bg-muted/50 p-2">
                 {stageDeals.map((deal) => {
-                  const { contact: borrower, leadId } = resolveBorrower(deal);
-                  const borrowerName = borrower
-                    ? `${borrower.first_name} ${borrower.last_name}`.trim()
-                    : "No borrower";
-                  const workspaceId = borrower?.id ?? deal.contact_id;
+                  const borrower = resolveBorrower(deal);
+                  const workspaceId = borrower.contactId;
                   return (
                   <Card
                     key={deal.id}
@@ -217,7 +263,7 @@ export default function Pipeline() {
                   >
                      <CardContent className="p-3 space-y-2">
                        <div className="flex items-center justify-between gap-2">
-                         <p className="font-medium text-sm truncate">{borrowerName}</p>
+                          <p className="font-medium text-sm truncate">{borrower.name}</p>
                          {workspaceId && (
                            <Link
                              to={`/crm/contacts/${workspaceId}`}
@@ -244,19 +290,19 @@ export default function Pipeline() {
                            </span>
                          </p>
                        )}
-                       {borrower?.email && (
+                        {borrower.email && (
                          <button
                            type="button"
                            onClick={(e) => {
                              e.stopPropagation();
                              setEmailTarget({
-                               leadId: leadId ?? undefined,
-                               contactId: borrower.id,
-                               email: borrower.email!,
+                                leadId: borrower.leadId ?? undefined,
+                                contactId: borrower.contactId ?? undefined,
+                                email: borrower.email,
                              });
                            }}
                            className="text-xs text-primary hover:underline flex items-center gap-1 truncate w-full text-left"
-                           title={`Email ${borrower.email}`}
+                            title={`Email ${borrower.email}`}
                          >
                            <Mail className="h-3 w-3 shrink-0" />
                            <span className="truncate">{borrower.email}</span>
