@@ -324,6 +324,12 @@ export default function Pipeline() {
                           <Mail className="mr-1 h-3 w-3" />Send Review Request
                         </Button>
                       )}
+                      {borrower.email && (
+                        <Button size="sm" variant="outline" className="w-full h-7 text-xs"
+                          onClick={(e) => { e.stopPropagation(); invitePortal(deal, borrower); }}>
+                          <Mail className="mr-1 h-3 w-3" />Invite to Portal
+                        </Button>
+                      )}
                     </CardContent>
                   </Card>
                   );
