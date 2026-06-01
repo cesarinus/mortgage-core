@@ -9,21 +9,22 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 
-const navItems = [
+const navItems: { title: string; url: string; icon: any; adminOnly?: boolean }[] = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Leads", url: "/leads", icon: Users },
   { title: "Contacts", url: "/contacts", icon: Contact },
   { title: "Pipeline", url: "/pipeline", icon: Kanban },
-  { title: "Blog Manager", url: "/blog-admin", icon: FileText },
-  { title: "Social Media", url: "/admin/social-media", icon: Share2 },
-  { title: "Subscribers", url: "/email/subscribers", icon: Mail },
-  { title: "Email Templates", url: "/email/templates", icon: MailPlus },
+  { title: "Blog Manager", url: "/blog-admin", icon: FileText, adminOnly: true },
+  { title: "Social Media", url: "/admin/social-media", icon: Share2, adminOnly: true },
+  { title: "Subscribers", url: "/email/subscribers", icon: Mail, adminOnly: true },
+  { title: "Email Templates", url: "/email/templates", icon: MailPlus, adminOnly: true },
   { title: "Lock vs Float", url: "/rate-decision", icon: TrendingUp },
   { title: "Settings", url: "/settings", icon: Settings },
 ];
 
 export function AppSidebar() {
   const { signOut, user, role } = useAuth();
+  const visibleItems = navItems.filter((i) => !i.adminOnly || role === "admin");
 
   return (
     <Sidebar className="border-r-0">
@@ -48,7 +49,7 @@ export function AppSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navItems.map((item) => (
+              {visibleItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                      <NavLink
