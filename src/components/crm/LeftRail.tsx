@@ -6,7 +6,7 @@ import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
 import {
-  StickyNote, Mail, Phone, ListChecks, CalendarDays, Upload, MoreHorizontal, ArrowLeft,
+  StickyNote, Mail, Phone, ListChecks, CalendarDays, Upload, ArrowLeft,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
