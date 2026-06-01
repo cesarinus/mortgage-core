@@ -24,6 +24,13 @@ import Subscribers from "@/pages/Subscribers";
 import EmailTemplates from "@/pages/EmailTemplates";
 import NotFound from "@/pages/NotFound";
 import RecordWorkspace from "@/pages/crm/RecordWorkspace";
+import PortalLayout from "@/components/portal/PortalLayout";
+import PortalLogin from "@/pages/portal/PortalLogin";
+import PortalAccept from "@/pages/portal/PortalAccept";
+import PortalDashboard from "@/pages/portal/PortalDashboard";
+import PortalDocuments from "@/pages/portal/PortalDocuments";
+import PortalScenarios from "@/pages/portal/PortalScenarios";
+import PortalMessages from "@/pages/portal/PortalMessages";
 
 const queryClient = new QueryClient();
 
@@ -41,6 +48,14 @@ const App = () => (
               <Route path="/blog" element={<BlogIndex />} />
               <Route path="/blog/:slug" element={<BlogPost />} />
               <Route path="/book" element={<Book />} />
+              <Route path="/portal/login" element={<PortalLogin />} />
+              <Route path="/portal/accept" element={<PortalAccept />} />
+              <Route path="/portal" element={<PortalLayout />}>
+                <Route index element={<PortalDashboard />} />
+                <Route path="documents" element={<PortalDocuments />} />
+                <Route path="scenarios" element={<PortalScenarios />} />
+                <Route path="messages" element={<PortalMessages />} />
+              </Route>
               <Route
                 element={
                   <ProtectedRoute>
