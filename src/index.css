@@ -199,3 +199,27 @@
 .animate-scale-in {
   animation: scale-in 0.4s ease-out forwards;
 }
+
+/* Accessibility overrides */
+.a11y-high-contrast {
+  --background: 0 0% 5% !important;
+  --foreground: 0 0% 100% !important;
+  --card: 0 0% 10% !important;
+  --card-foreground: 0 0% 100% !important;
+  --muted: 0 0% 15% !important;
+  --muted-foreground: 0 0% 85% !important;
+  --border: 0 0% 40% !important;
+  --primary: 50 100% 50% !important;
+  --primary-foreground: 0 0% 0% !important;
+}
+
+.a11y-dyslexia-font,
+.a11y-dyslexia-font * {
+  font-family: 'OpenDyslexic', 'Comic Sans MS', sans-serif !important;
+}
+
+.a11y-highlight-links a {
+  outline: 3px solid hsl(50 100% 50%) !important;
+  outline-offset: 2px;
+  text-decoration: underline !important;
+}
