@@ -106,7 +106,10 @@ export default function Pipeline() {
     }
   };
 
-  const stages = Constants.public.Enums.deal_stage;
+  const hiddenStages: Enums<"deal_stage">[] = ["new_lead", "contacted"];
+  const stages = Constants.public.Enums.deal_stage.filter(
+    (s) => !hiddenStages.includes(s)
+  );
 
   const getContactName = (contactId: string | null) => {
     if (!contactId) return "No contact";
