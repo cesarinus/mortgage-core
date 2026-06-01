@@ -135,60 +135,57 @@ export default function Pipeline() {
 
   // Resolve the actual borrower for a deal. A deal.contact_id can point to a
   // referral partner, so prefer the matching lead/borrower over the linked contact.
-  const resolveBorrower = (deal: Deal): BorrowerSummary => {
+  // Returns null when no lead with a status matching the deal stage can be found
+  // — those deals are stale/mis-staged and should not appear on the kanban.
+  const resolveBorrower = (deal: Deal): BorrowerSummary | null => {
     const linked = deal.contact_id ? contacts.find((c) => c.id === deal.contact_id) ?? null : null;
     if (linked && linked.contact_type === "borrower") {
       const lcRow = leadContacts.find((r) => r.contact_id === linked.id);
+      const lead = lcRow ? leads.find((l) => l.id === lcRow.lead_id) ?? null : null;
+      if (!lead || !leadStatusMatchesDealStage(lead, deal.stage)) return null;
       return {
         name: `${linked.first_name} ${linked.last_name}`.trim(),
         email: linked.email,
         contactId: linked.id,
-        leadId: lcRow?.lead_id ?? linked.lead_id ?? null,
+        leadId: lead.id,
       };
     }
 
     const candidateLeadLinks = linked ? leadContacts.filter((r) => r.contact_id === linked.id) : [];
-    const lcRow =
-      candidateLeadLinks.find((r) => {
-        const lead = leads.find((l) => l.id === r.lead_id);
-        return lead ? leadStatusMatchesDealStage(lead, deal.stage) : false;
-      }) ?? candidateLeadLinks[0];
+    const lcRow = candidateLeadLinks.find((r) => {
+      const lead = leads.find((l) => l.id === r.lead_id);
+      return lead ? leadStatusMatchesDealStage(lead, deal.stage) : false;
+    });
+    if (!lcRow) return null;
 
-    if (lcRow?.lead_id) {
-      const borrowerLink = leadContacts.find(
-        (r) => r.lead_id === lcRow.lead_id && ["borrower", "primary_borrower", "applicant", "primary"].includes((r.role ?? "").toLowerCase())
-      );
-      const borrowerContact = borrowerLink
-        ? contacts.find((c) => c.id === borrowerLink.contact_id) ?? null
-        : contacts.find((c) => {
-            const link = leadContacts.find((r) => r.contact_id === c.id && r.lead_id === lcRow.lead_id);
-            return !!link && c.contact_type === "borrower";
-          }) ?? null;
-      if (borrowerContact) {
-        return {
-          name: `${borrowerContact.first_name} ${borrowerContact.last_name}`.trim(),
-          email: borrowerContact.email,
-          contactId: borrowerContact.id,
-          leadId: lcRow.lead_id,
-        };
-      }
-
-      const lead = leads.find((l) => l.id === lcRow.lead_id);
-      if (lead) {
-        return {
-          name: `${lead.first_name} ${lead.last_name}`.trim(),
-          email: lead.email,
-          contactId: null,
-          leadId: lead.id,
-        };
-      }
+    const borrowerLink = leadContacts.find(
+      (r) => r.lead_id === lcRow.lead_id && ["borrower", "primary_borrower", "applicant", "primary"].includes((r.role ?? "").toLowerCase())
+    );
+    const borrowerContact = borrowerLink
+      ? contacts.find((c) => c.id === borrowerLink.contact_id) ?? null
+      : contacts.find((c) => {
+          const link = leadContacts.find((r) => r.contact_id === c.id && r.lead_id === lcRow.lead_id);
+          return !!link && c.contact_type === "borrower";
+        }) ?? null;
+    if (borrowerContact) {
+      return {
+        name: `${borrowerContact.first_name} ${borrowerContact.last_name}`.trim(),
+        email: borrowerContact.email,
+        contactId: borrowerContact.id,
+        leadId: lcRow.lead_id,
+      };
     }
-    return {
-      name: linked ? `${linked.first_name} ${linked.last_name}`.trim() : "No borrower",
-      email: linked?.email ?? null,
-      contactId: linked?.id ?? null,
-      leadId: linked?.lead_id ?? null,
-    };
+
+    const lead = leads.find((l) => l.id === lcRow.lead_id);
+    if (lead) {
+      return {
+        name: `${lead.first_name} ${lead.last_name}`.trim(),
+        email: lead.email,
+        contactId: null,
+        leadId: lead.id,
+      };
+    }
+    return null;
   };
 
   const formatCurrency = (n: number | null | undefined) =>
@@ -255,6 +252,7 @@ export default function Pipeline() {
               <div className="space-y-2 min-h-[200px] rounded-lg bg-muted/50 p-2">
                 {stageDeals.map((deal) => {
                   const borrower = resolveBorrower(deal);
+                  if (!borrower) return null;
                   const workspaceId = borrower.contactId;
                   return (
                   <Card
