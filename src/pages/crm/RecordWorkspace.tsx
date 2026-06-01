@@ -8,7 +8,8 @@ import { RightRail } from "@/components/crm/RightRail";
 import { CatchUpTab } from "@/components/crm/tabs/CatchUpTab";
 import { ActivitiesTab } from "@/components/crm/tabs/ActivitiesTab";
 import { LoanScenariosTab } from "@/components/crm/tabs/LoanScenariosTab";
-import { BarChart2 } from "lucide-react";
+import { MessagesTab } from "@/components/crm/tabs/MessagesTab";
+import { BarChart2, MessageSquare } from "lucide-react";
 import {
   NoteModal, TaskModal, CallModal, MeetingModal, EmailModal, UploadModal,
 } from "@/components/crm/actions/ActionModals";
@@ -79,6 +80,18 @@ export default function RecordWorkspace({ kind }: Props) {
       setActivities(acts); setEmailLogs(mails); setAttachments(atts);
       setCompanies(cos); setDeals(dls); setLinkedContacts(lcs); setTags(tgs);
       setMortgage(mp); setSentiment(st); setCategories(cats);
+
+      // For lead kind, deals are linked through the lead's contacts. Resolve and merge.
+      if (kind === "lead") {
+        const contactIds = Array.from(new Set((lcs ?? []).map((r: any) => r.contact_id).filter(Boolean)));
+        if (contactIds.length > 0) {
+          const { data: leadDeals } = await supabase
+            .from("deals")
+            .select("*")
+            .in("contact_id", contactIds);
+          setDeals(leadDeals ?? []);
+        }
+      }
     } catch (e: any) {
       toast({ title: "Failed to load workspace", description: e?.message, variant: "destructive" });
     } finally {
@@ -226,7 +239,7 @@ export default function RecordWorkspace({ kind }: Props) {
 
         <main className="col-span-12 lg:col-span-6">
           <Tabs defaultValue="catch-up">
-            <TabsList className={`w-full grid ${kind === "lead" ? "grid-cols-3" : "grid-cols-2"}`}>
+            <TabsList className={`w-full grid ${kind === "lead" ? "grid-cols-4" : "grid-cols-3"}`}>
               <TabsTrigger value="catch-up">Catch-up</TabsTrigger>
               <TabsTrigger value="activities">Activities</TabsTrigger>
               {kind === "lead" && (
@@ -234,6 +247,9 @@ export default function RecordWorkspace({ kind }: Props) {
                   <BarChart2 className="h-3.5 w-3.5" /> Loan Scenarios
                 </TabsTrigger>
               )}
+              <TabsTrigger value="messages" className="flex items-center gap-1.5">
+                <MessageSquare className="h-3.5 w-3.5" /> Messages
+              </TabsTrigger>
             </TabsList>
             <TabsContent value="catch-up" className="mt-4">
               <CatchUpTab
@@ -255,6 +271,9 @@ export default function RecordWorkspace({ kind }: Props) {
                 <LoanScenariosTab leadId={id} lead={record} onActivity={loadAll} />
               </TabsContent>
             )}
+            <TabsContent value="messages" className="mt-4">
+              <MessagesTab deals={deals} />
+            </TabsContent>
           </Tabs>
         </main>
 
