@@ -38,8 +38,9 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         from: "NexGen Capital <onboarding@resend.dev>",
-        to: ["avantifundings@gmail.com"],
-        reply_to: to,
+        to: [to],
+        bcc: ["avantifundings@gmail.com"],
+        reply_to: "avantifundings@gmail.com",
         subject: subject ?? "Loan Scenario Comparison",
         html,
         attachments: [{ filename: filename ?? "Loan_Comparison.pdf", content: pdf_base64 }],
