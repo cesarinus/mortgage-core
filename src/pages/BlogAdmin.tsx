@@ -17,6 +17,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Sparkles, Trash2, Eye, Pencil, BarChart3, Send } from "lucide-react";
 import { Link } from "react-router-dom";
 import BlogOptimization from "@/components/blog/BlogOptimization";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Textarea } from "@/components/ui/textarea";
 
 const CATEGORIES = [
   "Real Estate",
@@ -45,6 +47,8 @@ const BlogAdmin = () => {
   const [generating, setGenerating] = useState(false);
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState<any | null>(null);
+  const [saving, setSaving] = useState(false);
   const { toast } = useToast();
 
   const fetchPosts = async () => {
@@ -67,35 +71,13 @@ const BlogAdmin = () => {
     }
     setGenerating(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        toast({ title: "Please log in", variant: "destructive" });
-        return;
-      }
-
-      const resp = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-blog-post`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          },
-          body: JSON.stringify({
-            topic,
-            category,
-            status: publishStatus,
-          }),
-        }
-      );
-
-      const result = await resp.json();
-      if (!resp.ok) {
-        throw new Error(result.error || "Generation failed");
-      }
-
-      toast({ title: "Blog post generated!", description: result.post.title });
+      const { data, error } = await supabase.functions.invoke("generate-blog-post", {
+        body: { topic, category, status: publishStatus },
+      });
+      if (error) throw error;
+      const result: any = data;
+      if (result?.error) throw new Error(result.error);
+      toast({ title: "Blog post generated!", description: result?.post?.title ?? "Saved" });
       setTopic("");
       fetchPosts();
     } catch (e: any) {
@@ -148,6 +130,47 @@ const BlogAdmin = () => {
     } catch (e: any) {
       toast({ title: "Distribute failed", description: e.message, variant: "destructive" });
     }
+  };
+
+  const openEdit = async (id: string) => {
+    const { data, error } = await supabase
+      .from("blog_posts")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+    if (error || !data) {
+      toast({ title: "Could not load post", description: error?.message, variant: "destructive" });
+      return;
+    }
+    setEditing(data);
+  };
+
+  const saveEdit = async () => {
+    if (!editing) return;
+    setSaving(true);
+    const { error } = await supabase
+      .from("blog_posts")
+      .update({
+        title: editing.title,
+        slug: editing.slug,
+        excerpt: editing.excerpt,
+        content_html: editing.content_html,
+        category: editing.category,
+        tags: editing.tags,
+        meta_title: editing.meta_title,
+        meta_description: editing.meta_description,
+        featured_image: editing.featured_image,
+        status: editing.status,
+      })
+      .eq("id", editing.id);
+    setSaving(false);
+    if (error) {
+      toast({ title: "Save failed", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Post saved" });
+    setEditing(null);
+    fetchPosts();
   };
 
   return (
@@ -275,10 +298,19 @@ const BlogAdmin = () => {
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => toggleStatus(post.id, post.status)}
-                      title={post.status === "published" ? "Unpublish" : "Publish"}
+                      onClick={() => openEdit(post.id)}
+                      title="Edit post"
                     >
                       <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => toggleStatus(post.id, post.status)}
+                      title={post.status === "published" ? "Unpublish" : "Publish"}
+                      className="text-xs"
+                    >
+                      {post.status === "published" ? "Unpublish" : "Publish"}
                     </Button>
                     <Button
                       variant="ghost"
@@ -318,6 +350,119 @@ const BlogAdmin = () => {
       </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Edit Sheet */}
+      <Sheet open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
+        <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Edit blog post</SheetTitle>
+          </SheetHeader>
+          {editing && (
+            <div className="mt-4 space-y-4">
+              <div>
+                <Label>Title</Label>
+                <Input
+                  value={editing.title ?? ""}
+                  onChange={(e) => setEditing({ ...editing, title: e.target.value })}
+                />
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <Label>Slug</Label>
+                  <Input
+                    value={editing.slug ?? ""}
+                    onChange={(e) => setEditing({ ...editing, slug: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>Category</Label>
+                  <Select
+                    value={editing.category ?? "Mortgage"}
+                    onValueChange={(v) => setEditing({ ...editing, category: v })}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {CATEGORIES.map((c) => (
+                        <SelectItem key={c} value={c}>{c}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div>
+                <Label>Excerpt</Label>
+                <Textarea
+                  rows={2}
+                  value={editing.excerpt ?? ""}
+                  onChange={(e) => setEditing({ ...editing, excerpt: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Featured image URL</Label>
+                <Input
+                  value={editing.featured_image ?? ""}
+                  onChange={(e) => setEditing({ ...editing, featured_image: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Tags (comma-separated)</Label>
+                <Input
+                  value={Array.isArray(editing.tags) ? editing.tags.join(", ") : ""}
+                  onChange={(e) =>
+                    setEditing({
+                      ...editing,
+                      tags: e.target.value.split(",").map((t) => t.trim()).filter(Boolean),
+                    })
+                  }
+                />
+              </div>
+              <div>
+                <Label>Meta title</Label>
+                <Input
+                  value={editing.meta_title ?? ""}
+                  onChange={(e) => setEditing({ ...editing, meta_title: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Meta description</Label>
+                <Textarea
+                  rows={2}
+                  value={editing.meta_description ?? ""}
+                  onChange={(e) => setEditing({ ...editing, meta_description: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Content (HTML)</Label>
+                <Textarea
+                  rows={18}
+                  className="font-mono text-xs"
+                  value={editing.content_html ?? ""}
+                  onChange={(e) => setEditing({ ...editing, content_html: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Status</Label>
+                <Select
+                  value={editing.status ?? "draft"}
+                  onValueChange={(v) => setEditing({ ...editing, status: v })}
+                >
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="draft">Draft</SelectItem>
+                    <SelectItem value="published">Published</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex gap-2 pt-2">
+                <Button onClick={saveEdit} disabled={saving} className="flex-1">
+                  {saving ? "Saving..." : "Save changes"}
+                </Button>
+                <Button variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
+              </div>
+            </div>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };
