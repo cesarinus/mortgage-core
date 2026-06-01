@@ -242,7 +242,10 @@ export default function Pipeline() {
 
       <div className="flex gap-3 overflow-x-auto pb-4">
         {stages.map((stage) => {
-          const stageDeals = deals.filter((d) => d.stage === stage);
+          const stageDeals = deals
+            .filter((d) => d.stage === stage)
+            .map((d) => ({ deal: d, borrower: resolveBorrower(d) }))
+            .filter((x): x is { deal: Deal; borrower: BorrowerSummary } => x.borrower !== null);
           return (
             <div key={stage} className="flex-shrink-0 w-72">
               <div className="mb-2 flex items-center justify-between">
@@ -250,9 +253,7 @@ export default function Pipeline() {
                 <Badge variant="secondary" className="text-xs">{stageDeals.length}</Badge>
               </div>
               <div className="space-y-2 min-h-[200px] rounded-lg bg-muted/50 p-2">
-                {stageDeals.map((deal) => {
-                  const borrower = resolveBorrower(deal);
-                  if (!borrower) return null;
+                {stageDeals.map(({ deal, borrower }) => {
                   const workspaceId = borrower.contactId;
                   return (
                   <Card
