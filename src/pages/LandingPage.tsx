@@ -9,6 +9,7 @@ import Footer from "@/components/landing/Footer";
 import ApplicationHub from "@/components/landing/ApplicationHub";
 import MortgageCalculator from "@/components/calculator/MortgageCalculator";
 import FloatingCalculatorButton from "@/components/calculator/FloatingCalculatorButton";
+import { AccessibilityToolbar } from "@/components/accessibility/AccessibilityToolbar";
 import { SITE_URL, HOMEPAGE_KEYWORDS_STRING } from "@/lib/seoConstants";
 
 const LandingPage = () => {
