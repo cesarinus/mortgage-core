@@ -15,6 +15,8 @@ import { Link } from "react-router-dom";
 import type { Tables, Enums } from "@/integrations/supabase/types";
 import { Constants } from "@/integrations/supabase/types";
 import { EmailModal } from "@/components/crm/actions/ActionModals";
+import { isTransitionAllowed, getAllowedNext, recordDealTransition } from "@/lib/crm/stateMachine";
+import { AlertCircle } from "lucide-react";
 
 type Deal = Tables<"deals">;
 type Contact = Tables<"contacts">;
@@ -57,6 +59,7 @@ export default function Pipeline() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [leadContacts, setLeadContacts] = useState<LeadContact[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [missingByDeal, setMissingByDeal] = useState<Record<string, number>>({});
   const [open, setOpen] = useState(false);
   const [emailTarget, setEmailTarget] = useState<{ leadId?: string; contactId?: string; email: string } | null>(null);
   const { user } = useAuth();
@@ -73,6 +76,25 @@ export default function Pipeline() {
     setContacts(c ?? []);
     setLeadContacts(lc ?? []);
     setLeads(l ?? []);
+    // compute missing required docs per deal for compact indicator
+    try {
+      const dealRows = d ?? [];
+      const stages = Array.from(new Set(dealRows.map((x: any) => x.stage)));
+      const [{ data: sd }, { data: dd }] = await Promise.all([
+        (supabase as any).from("stage_documents").select("*").in("stage", stages.length ? stages : ["__none__"]).eq("required", true),
+        (supabase as any).from("deal_documents").select("deal_id, stage_document_id, status").in("deal_id", dealRows.map((x: any) => x.id).length ? dealRows.map((x: any) => x.id) : ["00000000-0000-0000-0000-000000000000"]),
+      ]);
+      const byStage: Record<string, any[]> = {};
+      (sd ?? []).forEach((s: any) => { (byStage[s.stage] ||= []).push(s); });
+      const map: Record<string, number> = {};
+      dealRows.forEach((dl: any) => {
+        const required = byStage[dl.stage] ?? [];
+        if (required.length === 0) { map[dl.id] = 0; return; }
+        const have = new Set((dd ?? []).filter((x: any) => x.deal_id === dl.id && x.status !== "missing").map((x: any) => x.stage_document_id));
+        map[dl.id] = required.filter((r: any) => !have.has(r.id)).length;
+      });
+      setMissingByDeal(map);
+    } catch (e) { console.warn("doc indicator load failed", e); }
   };
 
   useEffect(() => { load(); }, []);
@@ -99,10 +121,23 @@ export default function Pipeline() {
   };
 
   const moveDeal = async (dealId: string, newStage: Enums<"deal_stage">) => {
+    const current = deals.find((d) => d.id === dealId);
+    const from = current?.stage ?? "new_lead";
+    const ok = await isTransitionAllowed("deal", from, newStage);
+    if (!ok) {
+      const next = getAllowedNext("deal", from);
+      toast({
+        title: "Invalid stage change",
+        description: next.length ? `Allowed next: ${next.join(", ")}` : "No further transitions allowed.",
+        variant: "destructive",
+      });
+      return;
+    }
     const { error } = await supabase.from("deals").update({ stage: newStage }).eq("id", dealId);
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
+      await recordDealTransition(dealId, from, newStage, user?.id ?? null);
       load();
     }
   };
@@ -280,16 +315,27 @@ export default function Pipeline() {
                      <CardContent className="p-3 space-y-2">
                        <div className="flex items-center justify-between gap-2">
                           <p className="font-medium text-sm truncate">{borrower.name}</p>
-                         {workspaceId && (
-                           <Link
-                             to={`/crm/contacts/${workspaceId}`}
-                             title="Open workspace"
-                             onClick={(e) => e.stopPropagation()}
-                             className="text-muted-foreground hover:text-primary shrink-0"
-                           >
-                             <ExternalLink className="h-3.5 w-3.5" />
-                           </Link>
-                         )}
+                          <div className="flex items-center gap-1 shrink-0">
+                            {missingByDeal[deal.id] > 0 && (
+                              <span
+                                title={`${missingByDeal[deal.id]} required doc(s) missing`}
+                                className="inline-flex items-center gap-0.5 text-[10px] font-medium text-destructive bg-destructive/10 rounded px-1.5 py-0.5"
+                              >
+                                <AlertCircle className="h-3 w-3" />
+                                {missingByDeal[deal.id]}
+                              </span>
+                            )}
+                            {workspaceId && (
+                              <Link
+                                to={`/crm/contacts/${workspaceId}`}
+                                title="Open workspace"
+                                onClick={(e) => e.stopPropagation()}
+                                className="text-muted-foreground hover:text-primary"
+                              >
+                                <ExternalLink className="h-3.5 w-3.5" />
+                              </Link>
+                            )}
+                          </div>
                        </div>
                        {deal.property_address && (
                          <p className="text-xs text-muted-foreground flex items-start gap-1">

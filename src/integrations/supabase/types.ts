@@ -957,6 +957,80 @@ export type Database = {
           },
         ]
       }
+      deal_documents: {
+        Row: {
+          created_at: string
+          deal_id: string
+          id: string
+          stage_document_id: string
+          status: Database["public"]["Enums"]["deal_document_status"]
+          updated_at: string
+          uploaded_by: string | null
+          url: string | null
+        }
+        Insert: {
+          created_at?: string
+          deal_id: string
+          id?: string
+          stage_document_id: string
+          status?: Database["public"]["Enums"]["deal_document_status"]
+          updated_at?: string
+          uploaded_by?: string | null
+          url?: string | null
+        }
+        Update: {
+          created_at?: string
+          deal_id?: string
+          id?: string
+          stage_document_id?: string
+          status?: Database["public"]["Enums"]["deal_document_status"]
+          updated_at?: string
+          uploaded_by?: string | null
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_documents_stage_document_id_fkey"
+            columns: ["stage_document_id"]
+            isOneToOne: false
+            referencedRelation: "stage_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deal_events: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          deal_id: string
+          event_type: string
+          from_status: string | null
+          id: string
+          metadata: Json
+          to_status: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          deal_id: string
+          event_type: string
+          from_status?: string | null
+          id?: string
+          metadata?: Json
+          to_status?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          deal_id?: string
+          event_type?: string
+          from_status?: string | null
+          id?: string
+          metadata?: Json
+          to_status?: string | null
+        }
+        Relationships: []
+      }
       deal_stage_history: {
         Row: {
           changed_at: string
@@ -2163,6 +2237,63 @@ export type Database = {
         }
         Relationships: []
       }
+      stage_documents: {
+        Row: {
+          created_at: string
+          id: string
+          label: string
+          required: boolean
+          sort_order: number
+          stage: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          label: string
+          required?: boolean
+          sort_order?: number
+          stage: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          label?: string
+          required?: boolean
+          sort_order?: number
+          stage?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      status_transitions: {
+        Row: {
+          created_at: string
+          entity_type: string
+          from_status: string
+          id: string
+          required_fields: Json
+          to_status: string
+        }
+        Insert: {
+          created_at?: string
+          entity_type: string
+          from_status: string
+          id?: string
+          required_fields?: Json
+          to_status: string
+        }
+        Update: {
+          created_at?: string
+          entity_type?: string
+          from_status?: string
+          id?: string
+          required_fields?: Json
+          to_status?: string
+        }
+        Relationships: []
+      }
       subscribers: {
         Row: {
           created_at: string
@@ -2247,6 +2378,7 @@ export type Database = {
       blog_post_status: "draft" | "published"
       borrower_employment_type: "employee" | "self_employed"
       contact_type: "borrower" | "partner" | "other"
+      deal_document_status: "missing" | "uploaded" | "verified"
       deal_stage:
         | "new_lead"
         | "contacted"
@@ -2415,6 +2547,7 @@ export const Constants = {
       blog_post_status: ["draft", "published"],
       borrower_employment_type: ["employee", "self_employed"],
       contact_type: ["borrower", "partner", "other"],
+      deal_document_status: ["missing", "uploaded", "verified"],
       deal_stage: [
         "new_lead",
         "contacted",
