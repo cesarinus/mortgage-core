@@ -20,6 +20,7 @@ import BlogAdmin from "@/pages/BlogAdmin";
 import RateDecision from "@/pages/RateDecision";
 import Book from "@/pages/Book";
 import AdminSocialMedia from "@/pages/AdminSocialMedia";
+import SocialQueue from "@/pages/SocialQueue";
 import Subscribers from "@/pages/Subscribers";
 import EmailTemplates from "@/pages/EmailTemplates";
 import NotFound from "@/pages/NotFound";
@@ -71,6 +72,7 @@ const App = () => (
                 <Route path="/blog-admin" element={<BlogAdmin />} />
                 <Route path="/rate-decision" element={<RateDecision />} />
                 <Route path="/admin/social-media" element={<AdminSocialMedia />} />
+                <Route path="/social-queue" element={<SocialQueue />} />
                 <Route path="/email/subscribers" element={<Subscribers />} />
                 <Route path="/email/templates" element={<EmailTemplates />} />
                 <Route path="/crm/leads/:id" element={<RecordWorkspace kind="lead" />} />
