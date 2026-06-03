@@ -9,7 +9,8 @@ import { CatchUpTab } from "@/components/crm/tabs/CatchUpTab";
 import { ActivitiesTab } from "@/components/crm/tabs/ActivitiesTab";
 import { LoanScenariosTab } from "@/components/crm/tabs/LoanScenariosTab";
 import { MessagesTab } from "@/components/crm/tabs/MessagesTab";
-import { BarChart2, MessageSquare } from "lucide-react";
+import { DocumentsTab } from "@/components/crm/tabs/DocumentsTab";
+import { BarChart2, MessageSquare, FileCheck2 } from "lucide-react";
 import {
   NoteModal, TaskModal, CallModal, MeetingModal, EmailModal, UploadModal,
 } from "@/components/crm/actions/ActionModals";
@@ -20,6 +21,7 @@ import {
 } from "@/lib/crm/queries";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
+import { isTransitionAllowed, getAllowedNext, recordLeadTransition } from "@/lib/crm/stateMachine";
 
 interface Props { kind: "lead" | "contact" }
 
@@ -125,12 +127,26 @@ export default function RecordWorkspace({ kind }: Props) {
   const handleStatusChange = async (newStatus: string) => {
     if (!id || kind !== "lead") return;
     const prev = record?.status;
+    // Strict state machine: validate transition before writing
+    const ok = await isTransitionAllowed("lead", prev ?? "new", newStatus);
+    if (!ok) {
+      const next = getAllowedNext("lead", prev ?? "new");
+      toast({
+        title: "Invalid status change",
+        description: next.length
+          ? `Allowed next: ${next.join(", ")}`
+          : "No further transitions allowed from this status.",
+        variant: "destructive",
+      });
+      return;
+    }
     setRecord((r: any) => ({ ...r, status: newStatus }));
     const { error } = await supabase.from("leads").update({ status: newStatus as any }).eq("id", id);
     if (error) {
       setRecord((r: any) => ({ ...r, status: prev }));
       toast({ title: "Failed to update status", description: error.message, variant: "destructive" });
     } else {
+      await recordLeadTransition(id, prev ?? "new", newStatus);
       toast({ title: "Status updated", description: newStatus.replace(/_/g, " ") });
       // Sync any linked deals' stage so the Pipeline kanban reflects this change.
       const leadToDealStage: Record<string, string> = {
@@ -239,7 +255,7 @@ export default function RecordWorkspace({ kind }: Props) {
 
         <main className="col-span-12 lg:col-span-6">
           <Tabs defaultValue="catch-up">
-            <TabsList className={`w-full grid ${kind === "lead" ? "grid-cols-4" : "grid-cols-3"}`}>
+            <TabsList className={`w-full grid ${kind === "lead" ? "grid-cols-5" : "grid-cols-4"}`}>
               <TabsTrigger value="catch-up">Catch-up</TabsTrigger>
               <TabsTrigger value="activities">Activities</TabsTrigger>
               {kind === "lead" && (
@@ -249,6 +265,9 @@ export default function RecordWorkspace({ kind }: Props) {
               )}
               <TabsTrigger value="messages" className="flex items-center gap-1.5">
                 <MessageSquare className="h-3.5 w-3.5" /> Messages
+              </TabsTrigger>
+              <TabsTrigger value="documents" className="flex items-center gap-1.5">
+                <FileCheck2 className="h-3.5 w-3.5" /> Documents
               </TabsTrigger>
             </TabsList>
             <TabsContent value="catch-up" className="mt-4">
@@ -273,6 +292,9 @@ export default function RecordWorkspace({ kind }: Props) {
             )}
             <TabsContent value="messages" className="mt-4">
               <MessagesTab deals={deals} />
+            </TabsContent>
+            <TabsContent value="documents" className="mt-4">
+              <DocumentsTab deals={deals} />
             </TabsContent>
           </Tabs>
         </main>
