@@ -21,6 +21,7 @@ import { PostEditor } from "@/components/social-media/PostEditor";
 import { ScheduleManager } from "@/components/social-media/ScheduleManager";
 import { SocialAnalytics } from "@/components/social-media/SocialAnalytics";
 import { SocialAccountSettings } from "@/components/social-media/SocialAccountSettings";
+import { SocialQueueTab } from "@/components/social-media/SocialQueueTab";
 
 export type SocialPost = {
   id: string;
@@ -200,10 +201,11 @@ export default function AdminSocialMedia() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-3 md:grid-cols-6">
+          <TabsList className="grid w-full grid-cols-3 md:grid-cols-7">
             <TabsTrigger value="calendar"><Calendar className="mr-1 h-4 w-4" />Calendar</TabsTrigger>
             <TabsTrigger value="generate"><Plus className="mr-1 h-4 w-4" />Generate</TabsTrigger>
             <TabsTrigger value="posts"><MessageSquare className="mr-1 h-4 w-4" />All Posts</TabsTrigger>
+            <TabsTrigger value="queue"><Send className="mr-1 h-4 w-4" />Queue</TabsTrigger>
             <TabsTrigger value="schedule"><Clock className="mr-1 h-4 w-4" />Schedule</TabsTrigger>
             <TabsTrigger value="analytics"><TrendingUp className="mr-1 h-4 w-4" />Analytics</TabsTrigger>
             <TabsTrigger value="settings"><Settings className="mr-1 h-4 w-4" />Settings</TabsTrigger>
@@ -272,6 +274,7 @@ export default function AdminSocialMedia() {
             )}
           </TabsContent>
 
+          <TabsContent value="queue" className="mt-6"><SocialQueueTab /></TabsContent>
           <TabsContent value="schedule" className="mt-6"><ScheduleManager /></TabsContent>
           <TabsContent value="analytics" className="mt-6"><SocialAnalytics /></TabsContent>
           <TabsContent value="settings" className="mt-6"><SocialAccountSettings /></TabsContent>
