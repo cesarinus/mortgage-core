@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { Tables, Enums } from "@/integrations/supabase/types";
+import { SmartLeadForm } from "@/components/crm/SmartLeadForm";
 
 type Lead = Tables<"leads">;
 type LeadSource = Tables<"lead_sources">;
@@ -179,26 +180,7 @@ export default function Leads() {
     else setEvents([]);
   }, [selectedLead?.id]);
 
-  const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-    const { error } = await supabase.from("leads").insert({
-      first_name: fd.get("first_name") as string,
-      last_name: fd.get("last_name") as string,
-      email: (fd.get("email") as string) || null,
-      phone: (fd.get("phone") as string) || null,
-      source_id: (fd.get("source_id") as string) || null,
-      notes: (fd.get("notes") as string) || null,
-      created_by: user!.id,
-    });
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Lead created" });
-      setOpen(false);
-      load();
-    }
-  };
+  // Lead creation handled by <SmartLeadForm /> inside the dialog below.
 
   const handleStatusChange = async (leadId: string, newStatus: Enums<"lead_status">) => {
     const { error } = await supabase.from("leads").update({ status: newStatus }).eq("id", leadId);
@@ -383,44 +365,13 @@ export default function Leads() {
             <DialogTrigger asChild>
               <Button size="sm"><Plus className="mr-1.5 h-3.5 w-3.5" />Add Lead</Button>
             </DialogTrigger>
-            <DialogContent>
-              <DialogHeader><DialogTitle>New Lead</DialogTitle></DialogHeader>
-              <form onSubmit={handleCreate} className="space-y-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <Label htmlFor="first_name">First name</Label>
-                    <Input id="first_name" name="first_name" required />
-                  </div>
-                  <div className="space-y-1">
-                    <Label htmlFor="last_name">Last name</Label>
-                    <Input id="last_name" name="last_name" required />
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="email">Email</Label>
-                  <Input id="email" name="email" type="email" />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="phone">Phone</Label>
-                  <Input id="phone" name="phone" />
-                </div>
-                <div className="space-y-1">
-                  <Label>Source</Label>
-                  <Select name="source_id">
-                    <SelectTrigger><SelectValue placeholder="Select source" /></SelectTrigger>
-                    <SelectContent>
-                      {sources.map(s => (
-                        <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="notes">Notes</Label>
-                  <Textarea id="notes" name="notes" rows={3} />
-                </div>
-                <Button type="submit" className="w-full">Create Lead</Button>
-              </form>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader><DialogTitle>New Lead — Smart Intake</DialogTitle></DialogHeader>
+              <SmartLeadForm
+                sources={sources}
+                onSaved={() => { setOpen(false); load(); }}
+                onCancel={() => setOpen(false)}
+              />
             </DialogContent>
           </Dialog>
         </div>

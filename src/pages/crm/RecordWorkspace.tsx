@@ -13,6 +13,11 @@ import { DocumentsTab } from "@/components/crm/tabs/DocumentsTab";
 import { RelationshipsTab } from "@/components/crm/tabs/RelationshipsTab";
 import { TasksTab } from "@/components/crm/tabs/TasksTab";
 import { BarChart2, MessageSquare, FileCheck2, Users, CheckSquare } from "lucide-react";
+import { Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { SmartLeadForm } from "@/components/crm/SmartLeadForm";
+import { intakeFromLead } from "@/lib/crm/leadIntake";
 import {
   NoteModal, TaskModal, CallModal, MeetingModal, EmailModal, UploadModal,
 } from "@/components/crm/actions/ActionModals";
@@ -46,6 +51,8 @@ export default function RecordWorkspace({ kind }: Props) {
   const [sentiment, setSentiment] = useState<any | null>(null);
   const [categories, setCategories] = useState<any[]>([]);
   const [modal, setModal] = useState<null | "note" | "email" | "call" | "task" | "meeting" | "upload" | "linkContact" | "linkCompany">(null);
+  const [intakeOpen, setIntakeOpen] = useState(false);
+  const [sources, setSources] = useState<{ id: string; name: string }[]>([]);
   const { toast } = useToast();
 
   const loadAll = useCallback(async () => {
@@ -136,6 +143,11 @@ export default function RecordWorkspace({ kind }: Props) {
   }, [id, kind]);
 
   useEffect(() => { loadAll(); }, [loadAll]);
+
+  useEffect(() => {
+    supabase.from("lead_sources").select("id,name").order("name")
+      .then(({ data }) => setSources((data as any) ?? []));
+  }, []);
 
   const onSignedUrl = async (path: string) => {
     const { data, error } = await supabase.storage.from("crm-documents").createSignedUrl(path, 60);
@@ -295,6 +307,13 @@ export default function RecordWorkspace({ kind }: Props) {
         </aside>
 
         <main className="col-span-12 lg:col-span-6">
+          {kind === "lead" && (
+            <div className="flex justify-end mb-2">
+              <Button size="sm" variant="outline" onClick={() => setIntakeOpen(true)}>
+                <Sparkles className="h-3.5 w-3.5 mr-1.5" /> Edit Intake
+              </Button>
+            </div>
+          )}
           <Tabs defaultValue="catch-up">
             <TabsList className={`w-full grid ${kind === "lead" ? "grid-cols-7" : "grid-cols-6"}`}>
               <TabsTrigger value="catch-up">Catch-up</TabsTrigger>
@@ -394,6 +413,23 @@ export default function RecordWorkspace({ kind }: Props) {
       <UploadModal open={modal === "upload"} onClose={() => setModal(null)} leadId={kind === "lead" ? id : undefined} contactId={kind === "contact" ? id : undefined} onDone={loadAll} categories={categories} />
       <LinkContactModal open={modal === "linkContact"} onClose={() => setModal(null)} leadId={kind === "lead" ? id : undefined} onDone={loadAll} />
       <LinkCompanyModal open={modal === "linkCompany"} onClose={() => setModal(null)} leadId={kind === "lead" ? id : undefined} contactId={kind === "contact" ? id : undefined} onDone={loadAll} />
+
+      {kind === "lead" && (
+        <Sheet open={intakeOpen} onOpenChange={setIntakeOpen}>
+          <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
+            <SheetHeader className="mb-4">
+              <SheetTitle>Smart Intake — {record?.first_name} {record?.last_name}</SheetTitle>
+            </SheetHeader>
+            <SmartLeadForm
+              leadId={id}
+              initial={intakeFromLead(record, mortgage)}
+              sources={sources}
+              onSaved={() => { setIntakeOpen(false); loadAll(); }}
+              onCancel={() => setIntakeOpen(false)}
+            />
+          </SheetContent>
+        </Sheet>
+      )}
     </div>
   );
 }
