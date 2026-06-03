@@ -11,7 +11,8 @@ import { LoanScenariosTab } from "@/components/crm/tabs/LoanScenariosTab";
 import { MessagesTab } from "@/components/crm/tabs/MessagesTab";
 import { DocumentsTab } from "@/components/crm/tabs/DocumentsTab";
 import { RelationshipsTab } from "@/components/crm/tabs/RelationshipsTab";
-import { BarChart2, MessageSquare, FileCheck2, Users } from "lucide-react";
+import { TasksTab } from "@/components/crm/tabs/TasksTab";
+import { BarChart2, MessageSquare, FileCheck2, Users, CheckSquare } from "lucide-react";
 import {
   NoteModal, TaskModal, CallModal, MeetingModal, EmailModal, UploadModal,
 } from "@/components/crm/actions/ActionModals";
@@ -23,6 +24,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { isTransitionAllowed, getAllowedNext, recordLeadTransition } from "@/lib/crm/stateMachine";
+import { getStageSuggestions } from "@/lib/crm/stageTasks";
 
 interface Props { kind: "lead" | "contact" }
 
@@ -180,6 +182,13 @@ export default function RecordWorkspace({ kind }: Props) {
     } else {
       await recordLeadTransition(id, prev ?? "new", newStatus);
       toast({ title: "Status updated", description: newStatus.replace(/_/g, " ") });
+      const suggested = getStageSuggestions(newStatus);
+      if (suggested.length > 0) {
+        toast({
+          title: `Suggested ${suggested.length} next action${suggested.length === 1 ? "" : "s"}`,
+          description: "View in Tasks tab",
+        });
+      }
       // Sync any linked deals' stage so the Pipeline kanban reflects this change.
       const leadToDealStage: Record<string, string> = {
         new: "new_lead",
@@ -287,7 +296,7 @@ export default function RecordWorkspace({ kind }: Props) {
 
         <main className="col-span-12 lg:col-span-6">
           <Tabs defaultValue="catch-up">
-            <TabsList className={`w-full grid ${kind === "lead" ? "grid-cols-6" : "grid-cols-5"}`}>
+            <TabsList className={`w-full grid ${kind === "lead" ? "grid-cols-7" : "grid-cols-6"}`}>
               <TabsTrigger value="catch-up">Catch-up</TabsTrigger>
               <TabsTrigger value="activities">Activities</TabsTrigger>
               {kind === "lead" && (
@@ -297,6 +306,9 @@ export default function RecordWorkspace({ kind }: Props) {
               )}
               <TabsTrigger value="messages" className="flex items-center gap-1.5">
                 <MessageSquare className="h-3.5 w-3.5" /> Messages
+              </TabsTrigger>
+              <TabsTrigger value="tasks" className="flex items-center gap-1.5">
+                <CheckSquare className="h-3.5 w-3.5" /> Tasks
               </TabsTrigger>
               <TabsTrigger value="documents" className="flex items-center gap-1.5">
                 <FileCheck2 className="h-3.5 w-3.5" /> Documents
@@ -336,6 +348,13 @@ export default function RecordWorkspace({ kind }: Props) {
             )}
             <TabsContent value="messages" className="mt-4">
               <MessagesTab deals={deals} />
+            </TabsContent>
+            <TabsContent value="tasks" className="mt-4">
+              <TasksTab
+                leadId={kind === "lead" ? id : (record as any)?.lead_id ?? undefined}
+                dealId={deals?.[0]?.id}
+                stage={kind === "lead" ? record?.status : deals?.[0]?.stage}
+              />
             </TabsContent>
             <TabsContent value="documents" className="mt-4">
               <DocumentsTab deals={deals} />
