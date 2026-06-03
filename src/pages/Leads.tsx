@@ -19,7 +19,7 @@ import {
   X, Clock, Eye, MousePointerClick, FileText, Tag, ChevronRight,
   Filter, Zap, Users, UserCheck, AlertTriangle, ExternalLink,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import type { Tables, Enums } from "@/integrations/supabase/types";
 import { SmartLeadForm } from "@/components/crm/SmartLeadForm";
 
