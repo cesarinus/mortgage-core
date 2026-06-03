@@ -2237,6 +2237,51 @@ export type Database = {
         }
         Relationships: []
       }
+      social_posts: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          caption: string
+          created_at: string
+          hashtags: string[] | null
+          id: string
+          media_type: string
+          platform: string
+          published_at: string | null
+          scheduled_for: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          caption?: string
+          created_at?: string
+          hashtags?: string[] | null
+          id?: string
+          media_type?: string
+          platform?: string
+          published_at?: string | null
+          scheduled_for?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          caption?: string
+          created_at?: string
+          hashtags?: string[] | null
+          id?: string
+          media_type?: string
+          platform?: string
+          published_at?: string | null
+          scheduled_for?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       stage_documents: {
         Row: {
           created_at: string
