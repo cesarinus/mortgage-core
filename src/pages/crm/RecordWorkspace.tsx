@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { LeftRail } from "@/components/crm/LeftRail";
 import { RightRail } from "@/components/crm/RightRail";
 import { CatchUpTab } from "@/components/crm/tabs/CatchUpTab";
-import { ActivitiesTab } from "@/components/crm/tabs/ActivitiesTab";
+import { UnifiedTimelineTab } from "@/components/crm/tabs/UnifiedTimelineTab";
 import { LoanScenariosTab } from "@/components/crm/tabs/LoanScenariosTab";
 import { MessagesTab } from "@/components/crm/tabs/MessagesTab";
 import { DocumentsTab } from "@/components/crm/tabs/DocumentsTab";
@@ -31,6 +31,8 @@ export default function RecordWorkspace({ kind }: Props) {
   const [record, setRecord] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [activities, setActivities] = useState<any[]>([]);
+  const [leadEvents, setLeadEvents] = useState<any[]>([]);
+  const [dealEvents, setDealEvents] = useState<any[]>([]);
   const [emailLogs, setEmailLogs] = useState<any[]>([]);
   const [attachments, setAttachments] = useState<any[]>([]);
   const [companies, setCompanies] = useState<any[]>([]);
@@ -84,6 +86,7 @@ export default function RecordWorkspace({ kind }: Props) {
       setMortgage(mp); setSentiment(st); setCategories(cats);
 
       // For lead kind, deals are linked through the lead's contacts. Resolve and merge.
+      let mergedDeals = dls;
       if (kind === "lead") {
         const contactIds = Array.from(new Set((lcs ?? []).map((r: any) => r.contact_id).filter(Boolean)));
         if (contactIds.length > 0) {
@@ -91,9 +94,37 @@ export default function RecordWorkspace({ kind }: Props) {
             .from("deals")
             .select("*")
             .in("contact_id", contactIds);
-          setDeals(leadDeals ?? []);
+          mergedDeals = leadDeals ?? [];
+          setDeals(mergedDeals);
         }
       }
+
+      // Unified timeline sources: lead_events + deal_events
+      const dealIds = (mergedDeals ?? []).map((d: any) => d.id).filter(Boolean);
+      const [le, de] = await Promise.all([
+        leadId
+          ? supabase
+              .from("lead_events")
+              .select("*")
+              .eq("lead_id", leadId)
+              .order("created_at", { ascending: false })
+              .limit(200)
+              .then(({ data }) => data ?? [])
+              .catch(() => [])
+          : Promise.resolve([] as any[]),
+        dealIds.length
+          ? supabase
+              .from("deal_events")
+              .select("*")
+              .in("deal_id", dealIds)
+              .order("created_at", { ascending: false })
+              .limit(200)
+              .then(({ data }) => data ?? [])
+              .catch(() => [])
+          : Promise.resolve([] as any[]),
+      ]);
+      setLeadEvents(le);
+      setDealEvents(de);
     } catch (e: any) {
       toast({ title: "Failed to load workspace", description: e?.message, variant: "destructive" });
     } finally {
@@ -283,7 +314,16 @@ export default function RecordWorkspace({ kind }: Props) {
               />
             </TabsContent>
             <TabsContent value="activities" className="mt-4">
-              <ActivitiesTab activities={activities} />
+              <UnifiedTimelineTab
+                activities={activities}
+                leadEvents={leadEvents}
+                dealEvents={dealEvents}
+                attachments={attachments}
+                sentiment={sentiment}
+                deals={deals}
+                leadId={kind === "lead" ? id : (record as any)?.lead_id ?? undefined}
+                contactId={kind === "contact" ? id : undefined}
+              />
             </TabsContent>
             {kind === "lead" && (
               <TabsContent value="scenarios" className="mt-4">
