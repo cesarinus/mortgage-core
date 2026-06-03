@@ -21,7 +21,7 @@ interface Props {
   leadId?: string | null;
   initial?: IntakeData;
   sources?: { id: string; name: string }[];
-  onSaved?: (leadId: string) => void;
+  onSaved?: (leadId: string, result?: any) => void;
   onCancel?: () => void;
 }
 
@@ -63,10 +63,10 @@ export function SmartLeadForm({ leadId, initial, sources = [], onSaved, onCancel
     if (!user?.id) { toast({ title: "Not authenticated", variant: "destructive" }); return; }
     setSaving(true);
     try {
-      const { leadId: id } = await saveLeadIntake(user.id, leadId ?? null, data);
+      const result = await saveLeadIntake(user.id, leadId ?? null, data);
       try { localStorage.removeItem(DRAFT_KEY(leadId)); } catch {}
-      toast({ title: leadId ? "Intake updated" : "Lead created", description: `Score ${score} · ${temp.toUpperCase()}` });
-      onSaved?.(id);
+      toast({ title: leadId ? "Intake updated" : "Lead created", description: `Score ${result.score} · ${result.temperature.toUpperCase()}` });
+      onSaved?.(result.leadId, result);
     } catch (e: any) {
       toast({ title: "Save failed", description: e?.message, variant: "destructive" });
     } finally { setSaving(false); }

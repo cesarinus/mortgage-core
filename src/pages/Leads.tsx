@@ -19,7 +19,7 @@ import {
   X, Clock, Eye, MousePointerClick, FileText, Tag, ChevronRight,
   Filter, Zap, Users, UserCheck, AlertTriangle, ExternalLink,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import type { Tables, Enums } from "@/integrations/supabase/types";
 import { SmartLeadForm } from "@/components/crm/SmartLeadForm";
 
@@ -141,6 +141,7 @@ export default function Leads() {
   const [newTag, setNewTag] = useState("");
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const load = async () => {
     const [{ data: l }, { data: s }, { data: t }] = await Promise.all([
@@ -369,7 +370,13 @@ export default function Leads() {
               <DialogHeader><DialogTitle>New Lead — Smart Intake</DialogTitle></DialogHeader>
               <SmartLeadForm
                 sources={sources}
-                onSaved={() => { setOpen(false); load(); }}
+                onSaved={(newLeadId) => {
+                  setOpen(false);
+                  load();
+                  // Jump straight into the new lead's workspace so the
+                  // freshly-computed sentiment / mortgage snapshot is visible.
+                  if (newLeadId) navigate(`/crm/leads/${newLeadId}`);
+                }}
                 onCancel={() => setOpen(false)}
               />
             </DialogContent>

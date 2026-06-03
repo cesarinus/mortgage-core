@@ -157,15 +157,23 @@ export default function RecordWorkspace({ kind }: Props) {
 
   const refreshSentiment = async () => {
     if (!id || kind !== "lead") return;
-    // Deterministic local fallback while AI integration is wired downstream
-    const temp = (record?.lead_score ?? 0) >= 60 ? "hot" : (record?.lead_score ?? 0) >= 30 ? "warm" : "cold";
-    const summary = `Borrower ${record?.first_name ?? ""} is currently ${temp}. Loan purpose: ${record?.loan_purpose ?? "n/a"}. Score ${record?.lead_score ?? 0}.`;
+    // Recompute deterministic signals from current lead + mortgage_profile state
+    const { deriveSignals, computeTemperature, computeScore, intakeFromLead } =
+      await import("@/lib/crm/leadIntake");
+    const intake = intakeFromLead(record, mortgage);
+    const signals = deriveSignals(intake);
+    const score = computeScore(intake);
+    const temperature = computeTemperature(score);
     const payload = {
-      lead_id: id, temperature: temp, summary,
-      recommendations: ["Confirm preferred contact time", "Send rate snapshot"],
-      challenges: [], positives: [], generated_at: new Date().toISOString(),
+      lead_id: id,
+      temperature,
+      summary: signals.summary,
+      recommendations: signals.recommendations,
+      challenges: signals.challenges,
+      positives: signals.positives,
+      generated_at: new Date().toISOString(),
     };
-    const { error } = await supabase.from("lead_sentiment").upsert(payload, { onConflict: "lead_id" });
+    const { error } = await supabase.from("lead_sentiment").upsert(payload as any, { onConflict: "lead_id" });
     if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
     else { setSentiment(payload); toast({ title: "Summary refreshed" }); }
   };
@@ -424,7 +432,17 @@ export default function RecordWorkspace({ kind }: Props) {
               leadId={id}
               initial={intakeFromLead(record, mortgage)}
               sources={sources}
-              onSaved={() => { setIntakeOpen(false); loadAll(); }}
+              onSaved={(_lid, result) => {
+                setIntakeOpen(false);
+                // Optimistically populate Lead Health + Mortgage Snapshot immediately,
+                // so the Catch-up tab updates without waiting for the refetch round-trip.
+                if (result) {
+                  setSentiment(result.sentimentRow);
+                  setMortgage((m: any) => ({ ...(m ?? {}), ...result.mortgageRow }));
+                  setRecord((r: any) => ({ ...(r ?? {}), ...result.leadPatch, lead_score: result.score }));
+                }
+                loadAll();
+              }}
               onCancel={() => setIntakeOpen(false)}
             />
           </SheetContent>

@@ -133,7 +133,17 @@ export function deriveSignals(d: IntakeData): Signals {
   return { positives, challenges, recommendations, summary };
 }
 
-export interface SaveResult { leadId: string }
+export interface SaveResult {
+  leadId: string;
+  score: number;
+  temperature: "hot" | "warm" | "cold";
+  dti: number;
+  monthly: number;
+  signals: Signals;
+  sentimentRow: any;
+  mortgageRow: any;
+  leadPatch: Record<string, any>;
+}
 
 export async function saveLeadIntake(
   userId: string,
@@ -199,13 +209,15 @@ export async function saveLeadIntake(
     notes: mpNotes,
   };
   if (existingMp?.id) {
-    await supabase.from("mortgage_profiles").update(mpRow).eq("id", existingMp.id);
+    const { error: mpErr } = await supabase.from("mortgage_profiles").update(mpRow).eq("id", existingMp.id);
+    if (mpErr) throw mpErr;
   } else {
-    await supabase.from("mortgage_profiles").insert(mpRow);
+    const { error: mpErr } = await supabase.from("mortgage_profiles").insert(mpRow);
+    if (mpErr) throw mpErr;
   }
 
   // lead_sentiment upsert
-  await supabase.from("lead_sentiment").upsert({
+  const sentimentRow = {
     lead_id: leadId,
     temperature: temp,
     summary: signals.summary,
@@ -213,17 +225,32 @@ export async function saveLeadIntake(
     challenges: signals.challenges as any,
     recommendations: signals.recommendations as any,
     generated_at: new Date().toISOString(),
-  } as any, { onConflict: "lead_id" });
+  };
+  const { error: sErr } = await supabase
+    .from("lead_sentiment")
+    .upsert(sentimentRow as any, { onConflict: "lead_id" });
+  if (sErr) throw sErr;
 
-  // lead_events
-  await supabase.from("lead_events").insert({
+  // lead_events (non-fatal)
+  const { error: evErr } = await supabase.from("lead_events").insert({
     lead_id: leadId,
     event_type: "intake_completed",
     points: 5,
     metadata: { score, temperature: temp, dti } as any,
   });
+  if (evErr) console.warn("intake_completed event insert failed:", evErr.message);
 
-  return { leadId: leadId! };
+  return {
+    leadId: leadId!,
+    score,
+    temperature: temp,
+    dti,
+    monthly,
+    signals,
+    sentimentRow,
+    mortgageRow: { ...mpRow },
+    leadPatch: leadRow,
+  };
 }
 
 export function intakeFromLead(lead: any, mp: any | null): IntakeData {
