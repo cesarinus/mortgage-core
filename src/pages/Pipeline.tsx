@@ -16,7 +16,8 @@ import type { Tables, Enums } from "@/integrations/supabase/types";
 import { Constants } from "@/integrations/supabase/types";
 import { EmailModal } from "@/components/crm/actions/ActionModals";
 import { isTransitionAllowed, getAllowedNext, recordDealTransition } from "@/lib/crm/stateMachine";
-import { AlertCircle } from "lucide-react";
+import { getStageSuggestions } from "@/lib/crm/stageTasks";
+import { AlertCircle, CheckSquare } from "lucide-react";
 
 type Deal = Tables<"deals">;
 type Contact = Tables<"contacts">;
@@ -60,6 +61,7 @@ export default function Pipeline() {
   const [leadContacts, setLeadContacts] = useState<LeadContact[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [missingByDeal, setMissingByDeal] = useState<Record<string, number>>({});
+  const [taskCountByDeal, setTaskCountByDeal] = useState<Record<string, number>>({});
   const [open, setOpen] = useState(false);
   const [emailTarget, setEmailTarget] = useState<{ leadId?: string; contactId?: string; email: string } | null>(null);
   const { user } = useAuth();
@@ -95,6 +97,23 @@ export default function Pipeline() {
       });
       setMissingByDeal(map);
     } catch (e) { console.warn("doc indicator load failed", e); }
+    // compute open task counts per deal for compact indicator
+    try {
+      const dealIds = (d ?? []).map((x: any) => x.id);
+      if (dealIds.length) {
+        const { data: tks } = await (supabase as any)
+          .from("tasks")
+          .select("deal_id, status")
+          .in("deal_id", dealIds);
+        const counts: Record<string, number> = {};
+        (tks ?? []).forEach((t: any) => {
+          if (t.status !== "completed") counts[t.deal_id] = (counts[t.deal_id] ?? 0) + 1;
+        });
+        setTaskCountByDeal(counts);
+      } else {
+        setTaskCountByDeal({});
+      }
+    } catch (e) { console.warn("task indicator load failed", e); }
   };
 
   useEffect(() => { load(); }, []);
@@ -138,6 +157,13 @@ export default function Pipeline() {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
       await recordDealTransition(dealId, from, newStage, user?.id ?? null);
+      const suggested = getStageSuggestions(newStage);
+      if (suggested.length > 0) {
+        toast({
+          title: `Suggested ${suggested.length} next action${suggested.length === 1 ? "" : "s"}`,
+          description: "View in Tasks tab",
+        });
+      }
       load();
     }
   };
@@ -323,6 +349,15 @@ export default function Pipeline() {
                               >
                                 <AlertCircle className="h-3 w-3" />
                                 {missingByDeal[deal.id]}
+                              </span>
+                            )}
+                            {taskCountByDeal[deal.id] > 0 && (
+                              <span
+                                title={`${taskCountByDeal[deal.id]} open task(s)`}
+                                className="inline-flex items-center gap-0.5 text-[10px] font-medium text-primary bg-primary/10 rounded px-1.5 py-0.5"
+                              >
+                                <CheckSquare className="h-3 w-3" />
+                                {taskCountByDeal[deal.id]}
                               </span>
                             )}
                             {workspaceId && (
