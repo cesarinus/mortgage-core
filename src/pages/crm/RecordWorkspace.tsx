@@ -103,24 +103,24 @@ export default function RecordWorkspace({ kind }: Props) {
       const dealIds = (mergedDeals ?? []).map((d: any) => d.id).filter(Boolean);
       const [le, de] = await Promise.all([
         leadId
-          ? supabase
+          ? (supabase
               .from("lead_events")
               .select("*")
               .eq("lead_id", leadId)
               .order("created_at", { ascending: false })
-              .limit(200)
+              .limit(200) as unknown as Promise<{ data: any[] | null }>)
               .then(({ data }) => data ?? [])
-              .catch(() => [])
+              .catch(() => [] as any[])
           : Promise.resolve([] as any[]),
         dealIds.length
-          ? supabase
+          ? (supabase
               .from("deal_events")
               .select("*")
               .in("deal_id", dealIds)
               .order("created_at", { ascending: false })
-              .limit(200)
+              .limit(200) as unknown as Promise<{ data: any[] | null }>)
               .then(({ data }) => data ?? [])
-              .catch(() => [])
+              .catch(() => [] as any[])
           : Promise.resolve([] as any[]),
       ]);
       setLeadEvents(le);
