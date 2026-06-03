@@ -10,7 +10,8 @@ import { UnifiedTimelineTab } from "@/components/crm/tabs/UnifiedTimelineTab";
 import { LoanScenariosTab } from "@/components/crm/tabs/LoanScenariosTab";
 import { MessagesTab } from "@/components/crm/tabs/MessagesTab";
 import { DocumentsTab } from "@/components/crm/tabs/DocumentsTab";
-import { BarChart2, MessageSquare, FileCheck2 } from "lucide-react";
+import { RelationshipsTab } from "@/components/crm/tabs/RelationshipsTab";
+import { BarChart2, MessageSquare, FileCheck2, Users } from "lucide-react";
 import {
   NoteModal, TaskModal, CallModal, MeetingModal, EmailModal, UploadModal,
 } from "@/components/crm/actions/ActionModals";
@@ -286,7 +287,7 @@ export default function RecordWorkspace({ kind }: Props) {
 
         <main className="col-span-12 lg:col-span-6">
           <Tabs defaultValue="catch-up">
-            <TabsList className={`w-full grid ${kind === "lead" ? "grid-cols-5" : "grid-cols-4"}`}>
+            <TabsList className={`w-full grid ${kind === "lead" ? "grid-cols-6" : "grid-cols-5"}`}>
               <TabsTrigger value="catch-up">Catch-up</TabsTrigger>
               <TabsTrigger value="activities">Activities</TabsTrigger>
               {kind === "lead" && (
@@ -299,6 +300,9 @@ export default function RecordWorkspace({ kind }: Props) {
               </TabsTrigger>
               <TabsTrigger value="documents" className="flex items-center gap-1.5">
                 <FileCheck2 className="h-3.5 w-3.5" /> Documents
+              </TabsTrigger>
+              <TabsTrigger value="relationships" className="flex items-center gap-1.5">
+                <Users className="h-3.5 w-3.5" /> Relationships
               </TabsTrigger>
             </TabsList>
             <TabsContent value="catch-up" className="mt-4">
@@ -335,6 +339,15 @@ export default function RecordWorkspace({ kind }: Props) {
             </TabsContent>
             <TabsContent value="documents" className="mt-4">
               <DocumentsTab deals={deals} />
+            </TabsContent>
+            <TabsContent value="relationships" className="mt-4">
+              <RelationshipsTab
+                kind={kind}
+                recordId={id}
+                linkedContacts={linkedContacts}
+                companies={companies}
+                onChanged={loadAll}
+              />
             </TabsContent>
           </Tabs>
         </main>
