@@ -1,60 +1,46 @@
-# Borrower / Client Portal
+## Plan: `ingest-social-post` edge function (n8n → Lovable proxy)
 
-A separate authenticated area at `/portal` where borrowers can track their loan, upload documents, review and acknowledge loan scenarios, and message their loan officer. CRM stays untouched — the portal is an extension.
+Create a new public edge function that n8n posts to. The function validates a shared bearer token, sanitizes the payload, and inserts into `social_posts` server-side using the auto-injected `SUPABASE_SERVICE_ROLE_KEY` — so RLS is bypassed safely and the service role key never leaves Lovable.
 
-## How a borrower gets in
+### New secret
+- `N8N_INGEST_SECRET` — shared bearer token between n8n and the edge function. You generate any long random string (e.g. `openssl rand -hex 32`) and I'll add it via the secrets tool, then you paste it into n8n's HTTP Request node as `Authorization: Bearer <value>`.
 
-1. Loan officer clicks **Invite to Portal** on a deal in the CRM. This generates a one-time, signed invite token tied to that `deal_id` and the borrower's email.
-2. Borrower receives an email (via existing Resend connector) with a link: `/portal/accept?token=…`.
-3. Accept page asks them to sign up (Email/password or Google). On signup, the token is consumed and a `portal_users` row is created that binds their `auth.user.id` to the specific deal/lead/contact. No email-matching guesswork — the LO controls the link.
-4. Subsequent visits: borrower signs in at `/portal/login` and lands on their dashboard.
+### New edge function: `supabase/functions/ingest-social-post/index.ts`
+- `verify_jwt = false` (registered in `supabase/config.toml`) — n8n won't have a user JWT.
+- CORS preflight handler (in case you ever call it from the browser).
+- Auth check: `Authorization: Bearer ${N8N_INGEST_SECRET}` — else `401`.
+- JSON body validation (manual lightweight checks, matching the existing chat-* function style):
+  - `platform` — required, one of `facebook | instagram | linkedin | twitter | tiktok | youtube` (lowercased).
+  - `caption` — required string, trimmed, max ~5000 chars.
+  - `hashtags` — optional `string[]`, each trimmed, leading `#` stripped, max 30 items.
+  - `media_type` — optional, one of `text | image | video | carousel` (default `text`).
+  - `status` — optional, one of `draft | approved | queued | scheduled | published` (default `draft`).
+  - `scheduled_for` — optional ISO timestamp.
+  - Reject unknown fields silently (don't forward arbitrary keys).
+- Insert with service role client, return `{ id, status }` on success, `4xx/500` with a clear error otherwise.
+- Console-log errors (no payload echo) for debugging via `edge_function_logs`.
 
-## What's in the portal
+### Config
+- Add to `supabase/config.toml`:
+  ```toml
+  [functions.ingest-social-post]
+  verify_jwt = false
+  ```
 
-```text
-/portal/login              Email/password + Google
-/portal/accept             Token redemption + signup
-/portal                    Dashboard: status timeline, next step
-/portal/documents          Required docs checklist + upload
-/portal/scenarios          Loan options prepared by the LO + acknowledge
-/portal/messages           Thread with assigned loan officer
-```
+### What you do in n8n
+Replace the Supabase node with an **HTTP Request** node:
+- Method: `POST`
+- URL: `https://hyskofjwotohgdtocsie.supabase.co/functions/v1/ingest-social-post`
+- Headers:
+  - `Authorization: Bearer <N8N_INGEST_SECRET value>`
+  - `Content-Type: application/json`
+- Body (JSON): `{ "platform": "facebook", "caption": "...", "hashtags": ["swfl","mortgage"], "status": "approved" }`
 
-- **Status timeline** — Reads `deals.stage` + `deal_stage_history`. Visual stepper through the 6 pipeline stages with timestamps.
-- **Documents** — Lists categories from `crm_document_categories`, shows what's uploaded vs. missing, lets the borrower upload to `crm-documents` storage. Files are recorded in `crm_attachments` so the LO sees them in the CRM workspace automatically.
-- **Scenarios** — Read-only view of `loan_scenarios` for their lead. Borrower can press **Acknowledge** (stored in a new `loan_scenario_acknowledgements` table — not e-sign, just a recorded acknowledgement).
-- **Messages** — Lightweight thread (new `portal_messages` table) with realtime updates; the LO sees the same thread inside the existing CRM record workspace.
+### Not changing
+- `social_posts` table schema and RLS policies stay as-is (authenticated CRUD for the app, service role bypass for the function).
+- No frontend changes — the Queue tab already reads `status = 'approved'` rows that this function will create.
 
-## Backend changes (additive only)
+### Testing
+After deploy, I'll curl the function with a sample payload to confirm a row lands in `social_posts` and the Queue tab picks it up.
 
-New tables (with RLS + GRANTs):
-
-- `portal_invites` — `id, deal_id, lead_id, contact_id, email, token_hash, expires_at, accepted_at, accepted_by, created_by`
-- `portal_users` — `user_id (pk), deal_id, lead_id, contact_id, created_at` — the binding row that authorizes a borrower
-- `portal_messages` — `id, deal_id, sender_user_id, sender_role ('borrower'|'officer'), body, created_at, read_at`
-- `loan_scenario_acknowledgements` — `id, scenario_id, deal_id, user_id, acknowledged_at, ip, user_agent`
-
-Helper RPC `portal_user_deal()` → returns the deal the signed-in borrower owns. Used in RLS on the four tables above and to scope reads of `deals`, `deal_stage_history`, `loan_scenarios`, `crm_attachments`, `crm_document_categories`.
-
-Two new edge functions:
-
-- `portal-invite-create` — LO-only. Generates token, stores hash, emails the borrower.
-- `portal-invite-accept` — Validates token, links the newly signed-up user to the deal via `portal_users`, marks invite consumed.
-
-Storage: reuse the existing `crm-documents` bucket. Add RLS allowing the bound borrower to upload/read files for their own deal only.
-
-## CRM side (minimal)
-
-- New **Invite to Portal** button on the deal record workspace → calls `portal-invite-create`.
-- Messages panel in the record workspace reads/writes `portal_messages` so the LO can reply.
-- Everything else (kanban, leads, scenarios editor) is unchanged.
-
-## Auth
-
-Lovable Cloud managed Google + email/password. Borrowers and CRM staff share the same auth pool; access control is purely by RLS: CRM pages already check `has_role`, portal pages check `portal_users.user_id = auth.uid()`. A CRM user without a `portal_users` row simply sees an empty portal — and vice versa.
-
-## Out of scope (this iteration)
-
-- True e-signature (DocuSign-style). The acknowledge button is a recorded click, not legally binding.
-- Conditional document requirements per loan product.
-- Push/SMS notifications — only the existing email channel.
+Approve to build, and confirm whether you want me to generate the `N8N_INGEST_SECRET` value or if you'll supply one.
