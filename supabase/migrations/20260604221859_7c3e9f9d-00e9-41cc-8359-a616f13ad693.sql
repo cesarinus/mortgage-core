@@ -1,0 +1,2 @@
+ALTER TABLE public.social_posts ADD COLUMN IF NOT EXISTS discord_message_id text;
+CREATE UNIQUE INDEX IF NOT EXISTS social_posts_discord_message_id_key ON public.social_posts(discord_message_id) WHERE discord_message_id IS NOT NULL;
