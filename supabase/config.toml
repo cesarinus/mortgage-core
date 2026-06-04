@@ -34,3 +34,6 @@ verify_jwt = false
 
 [functions.send-loan-comparison]
 verify_jwt = true
+
+[functions.ingest-social-post]
+verify_jwt = false
