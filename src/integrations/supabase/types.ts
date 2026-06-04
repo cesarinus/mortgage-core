@@ -2243,6 +2243,7 @@ export type Database = {
           approved_by: string | null
           caption: string
           created_at: string
+          discord_message_id: string | null
           hashtags: string[] | null
           id: string
           media_type: string
@@ -2257,6 +2258,7 @@ export type Database = {
           approved_by?: string | null
           caption?: string
           created_at?: string
+          discord_message_id?: string | null
           hashtags?: string[] | null
           id?: string
           media_type?: string
@@ -2271,6 +2273,7 @@ export type Database = {
           approved_by?: string | null
           caption?: string
           created_at?: string
+          discord_message_id?: string | null
           hashtags?: string[] | null
           id?: string
           media_type?: string
