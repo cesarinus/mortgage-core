@@ -1,108 +1,110 @@
-# AI Assistant for CRM + Borrower Portal
+## Goal
 
-A grounded, ChatGPT-style assistant available inside the CRM RecordWorkspace/Leads pages and inside the Borrower Portal. Each environment gets its own scoped context, suggested prompts, and safety rules. Powered by Lovable AI Gateway via a new edge function `chat-completion`, with threads persisted in Supabase.
+Revert the unified single-stage model. Reinstate two independent enums:
+- **Leads**: `New → Contacted → Qualified → Unqualified` (4 statuses only)
+- **Pipeline/Opportunities**: a NEW `pipeline_opportunities` table with stages `application_sent → underwriting → approved → clear_to_close → closed → lost`
 
-## 1. Database (new migration)
+Pipeline becomes a separate record set, linked to leads via FK. Leads only "convert" into opportunities via a Move-to-Pipeline action.
 
-New tables (both extension-only, no changes to existing tables):
+---
 
-- `chat_threads`
-  - `user_id uuid` (auth.users) — owner (staff or portal user)
-  - `scope text` — `'crm'` or `'portal'`
-  - `record_kind text` — `'lead' | 'contact' | 'deal' | 'portal'` (nullable for general)
-  - `record_id uuid` (nullable)
-  - `title text`
-  - `created_at`, `updated_at`
-- `chat_messages`
-  - `thread_id uuid` → chat_threads
-  - `role text` — `'user' | 'assistant' | 'system'`
-  - `content text`
-  - `created_at`
+## Database changes (additive)
 
-RLS:
-- CRM threads: visible to owner (`auth.uid() = user_id`) AND admin (`is_admin()`).
-- Portal threads: visible only to the portal user that owns them (`auth.uid() = user_id`).
-- Messages inherit thread access via `EXISTS (SELECT 1 FROM chat_threads ...)`.
+**Migration 1 — new opportunity table + LOS queue rebind**
 
-GRANTs to `authenticated` and `service_role` on both tables.
+```sql
+CREATE TABLE public.pipeline_opportunities (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  lead_id uuid NOT NULL UNIQUE,                  -- soft FK to leads.id
+  stage text NOT NULL DEFAULT 'application_sent',
+  loan_amount numeric,
+  property_address text,
+  primary_contact_id uuid,                       -- soft FK to contacts.id
+  title_company_id uuid,                         -- soft FK to crm_companies.id
+  lender_company_id uuid,                        -- soft FK to crm_companies.id
+  close_date timestamptz,
+  created_by uuid,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
 
-## 2. Edge Function: `supabase/functions/chat-completion/index.ts`
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.pipeline_opportunities TO authenticated;
+GRANT ALL ON public.pipeline_opportunities TO service_role;
 
-- `verify_jwt = true` (added to config.toml) — must know who's calling.
-- Inputs: `{ threadId, scope: 'crm'|'portal', recordKind?, recordId?, message }`.
-- Steps:
-  1. Authenticate user via JWT; create user-scoped supabase client + service client.
-  2. Load thread (verify ownership) or create new.
-  3. **Context loader** (server-side, RLS-respecting):
-     - CRM scope + lead/contact: fetch lead, mortgage_profile, lead_sentiment, last 20 crm_activities, lead_events, deals, lead_contacts, companies, tasks, doc checklist via existing tables.
-     - Portal scope: resolve current portal_user → deal → fetch deal, scenarios, documents, portal_messages, tasks. Strip internal-only fields (lead_score, sentiment internals, assigned_to, etc).
-  4. Build system prompt with scope-specific rules ("Ground in supplied JSON only. Say so if data is missing. Never invent fields.").
-  5. Save user message → call Lovable AI Gateway `google/gemini-3-flash-preview` with `streamText` → return `toUIMessageStreamResponse`.
-  6. `onFinish`: persist assistant message.
+ALTER TABLE public.pipeline_opportunities ENABLE ROW LEVEL SECURITY;
 
-Lovable AI Gateway used (no extra secrets required — `LOVABLE_API_KEY` exists).
+-- Admin all access + lead owners can manage their opportunity
+CREATE POLICY "Admins all opportunities" ON public.pipeline_opportunities
+  FOR ALL USING (is_admin()) WITH CHECK (is_admin());
+CREATE POLICY "Lead owners read opportunities" ON public.pipeline_opportunities
+  FOR SELECT USING (user_owns_lead(lead_id));
+CREATE POLICY "Lead owners insert opportunities" ON public.pipeline_opportunities
+  FOR INSERT WITH CHECK (user_owns_lead(lead_id) AND created_by = auth.uid());
+CREATE POLICY "Lead owners update opportunities" ON public.pipeline_opportunities
+  FOR UPDATE USING (user_owns_lead(lead_id));
 
-## 3. Frontend
+CREATE TRIGGER trg_pipeline_opps_updated_at
+  BEFORE UPDATE ON public.pipeline_opportunities
+  FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+```
 
-Note: project is **classic Vite/React Router**, not TanStack Start (despite request wording). Follow classic-ai-chat patterns.
+**Lead status enum rollback**
+- Revert prior unified migration so `lead_status` enum exposes only: `new`, `contacted`, `qualified`, `unqualified` (legacy values stay for safety but unused). Existing rows holding other values are downcast back: `prequalified→qualified`, `application_sent/underwriting/approved/clear_to_close/closed → unqualified` (since they now belong in opportunities — they'll get auto-created opportunity rows in the same migration where stage maps to the matching pipeline stage).
+- Update `auto_progress_lead_pipeline` trigger to only advance through `new → contacted → qualified`, then stop (no auto application_sent etc.).
 
-**Shared components** (`src/components/chat/`):
-- `AssistantPanel.tsx` — collapsible right-side panel on desktop (resizable via existing `Resizable` primitives), bottom `Sheet` on mobile. Uses `useChat` from `@ai-sdk/react` with `DefaultChatTransport` pointed at `${VITE_SUPABASE_URL}/functions/v1/chat-completion` with bearer auth.
-- `AssistantLauncher.tsx` — floating button (bottom-right) to toggle panel.
-- `ThreadList.tsx` — list/create/delete threads scoped to current record/portal.
-- `MessageList.tsx` — renders `message.parts` with `react-markdown` + `remark-gfm` (tables, code blocks). Typewriter feel comes naturally from streaming.
-- `SuggestedPrompts.tsx` — scope-specific starter chips.
-- `useAssistantContext.ts` — hook that builds the small context payload (record id/kind/scope) to send with each message.
+**LOS queue**
+- Keep `los_sync_queue` but repoint `opportunity_id` to `pipeline_opportunities.id` (the table was created in last migration). Add column comment.
 
-**Install** AI Elements primitives: `conversation`, `message`, `prompt-input`, `shimmer` via `bunx ai-elements@latest add ...`. Render assistant messages with no background, user messages with `primary`/`primary-foreground` per chat-ui-composition.
+---
 
-**CRM integration:**
-- Mount `<AssistantLauncher scope="crm" recordKind={kind} recordId={id} />` inside `RecordWorkspace.tsx` (top-level wrapper, doesn't disturb existing 12-col grid).
-- Also add to `Leads.tsx` page (scope=crm, no record).
+## Code changes
 
-**Portal integration:**
-- Mount `<AssistantLauncher scope="portal" />` inside `PortalLayout.tsx` so it appears across all portal pages.
+### `src/lib/crm/stages.ts` (rewrite)
+- Export `LEAD_STATUSES = ['new','contacted','qualified','unqualified']` with labels/badges.
+- Export `PIPELINE_STAGES = ['application_sent','underwriting','approved','clear_to_close','closed','lost']` with labels/badges.
+- Drop the unified list.
 
-**Streaming**: AI SDK `useChat` handles streaming naturally.
+### `src/lib/crm/stateMachine.ts`
+- Two separate transition maps:
+  - `lead`: `new→[contacted,unqualified]`, `contacted→[qualified,unqualified]`, `qualified→[unqualified]` (the move-to-pipeline button handles the conversion, not a status transition), `unqualified→[new]`.
+  - `opportunity` (renamed from `deal`): exactly the spec'd 6-stage map.
+- `normalizeStatus` no longer aliases lead values to pipeline names.
 
-**History**: thread state lives in DB + locally cached so chat survives navigation within session (React Query keyed by threadId).
+### `src/pages/Leads.tsx`
+- Status dropdown: only the 4 lead statuses.
+- Filter out leads that have a row in `pipeline_opportunities` (left join + filter).
+- Replace the "Application Complete" button with **Move to Pipeline** (only visible when `status='qualified'`):
+  - Validates `property_address` filled + at least one linked contact in `lead_contacts`.
+  - Inserts a `pipeline_opportunities` row (copies loan_amount, property_address, primary contact).
+  - Sets `leads.status='unqualified'`.
+  - Enqueues LOS sync.
+  - Toast "Moved to Pipeline — Application Sent" and navigates to `/pipeline/kanban`.
 
-## 4. Role-based enable/disable
+### `src/pages/Pipeline.tsx` (rewrite data source)
+- Read from `pipeline_opportunities` joined to `leads` (for name) and contacts/companies.
+- Kanban columns: the 6 pipeline stages.
+- Click-and-hold + drag uses the opportunity transition map.
+- Updates write `pipeline_opportunities.stage`, not `leads.status`.
+- Table view shows opportunities only.
 
-- New profile field already exists for roles via `user_roles` (admin/loan_officer/processor). Add a per-user `assistant_enabled` flag in `profiles` (default true). For portal users, default true.
-- Settings UI: small toggle in `SettingsPage.tsx` ("Enable AI Assistant"). When false, `AssistantLauncher` returns null.
-- Admin can override per-user via existing admin UI (out of scope for this PR — toggle is self-serve).
+### `src/components/crm/LeftRail.tsx` / `RecordWorkspace.tsx`
+- Lead record uses lead enum dropdown (4 statuses).
+- If the lead has a linked opportunity, show a read-only chip "In Pipeline · {stage}" linking to the opportunity in the Pipeline.
 
-## 5. Safety / non-breaking
+### Edge functions
+- `submit-lead`, `chat-lead-upsert`, `create-booking`: write `status='new'` (revert from `new_lead`).
+- No other edge function touches pipeline stages.
 
-- No edits to `handleStatusChange`, action modals, queries, or existing tables.
-- Assistant **read-only in v1** — "perform actions" like add note/create task are deferred (mention in chat: "I can suggest it, but please use the Add Note button"). This avoids destabilizing existing handlers. Future iteration can add tool-calling.
-- Portal context loader strips internal CRM fields (whitelist approach).
+---
 
-## Technical details
+## Out of scope / unchanged
+- `leads` table columns (keeps `loan_amount`, `property_address` from prior migration — still useful).
+- `crm_contacts`, `crm_companies`, borrower portal, n8n payloads.
+- `deals` table (legacy, untouched).
 
-- Files added:
-  - `supabase/migrations/<ts>_chat_assistant.sql`
-  - `supabase/functions/chat-completion/index.ts`
-  - `supabase/functions/_shared/ai-gateway.ts` (if not present)
-  - `src/components/chat/AssistantPanel.tsx`
-  - `src/components/chat/AssistantLauncher.tsx`
-  - `src/components/chat/ThreadList.tsx`
-  - `src/components/chat/MessageList.tsx`
-  - `src/components/chat/SuggestedPrompts.tsx`
-  - `src/hooks/useAssistant.ts`
-- Files modified:
-  - `supabase/config.toml` → add `[functions.chat-completion]` block
-  - `src/pages/crm/RecordWorkspace.tsx` → mount launcher
-  - `src/pages/Leads.tsx` → mount launcher
-  - `src/components/portal/PortalLayout.tsx` → mount launcher
-  - `src/pages/SettingsPage.tsx` → enable/disable toggle
-  - `package.json` → add `ai`, `@ai-sdk/react`, `@ai-sdk/openai-compatible`, `react-markdown`, `remark-gfm`
-- Model: `google/gemini-3-flash-preview` (default).
-- No new secrets needed.
+---
 
-## Out of scope (v1)
-
-- Assistant-initiated mutations (status change, send email). Suggestion-only.
-- Cross-thread search.
-- File uploads inside chat.
+## Order of operations
+1. Migration: create `pipeline_opportunities`, rebind `los_sync_queue`, revert lead enum trigger, downcast lingering lead.status values, auto-create opportunity rows for leads that were already advanced past qualified under the unified scheme.
+2. After migration approved → rewrite `stages.ts`, `stateMachine.ts`, `Leads.tsx`, `Pipeline.tsx`, `LeftRail.tsx`, `RecordWorkspace.tsx`, the 3 edge functions.
+3. Sanity-check the build.
