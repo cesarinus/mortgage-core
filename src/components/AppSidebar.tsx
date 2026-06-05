@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, Users, Contact, Kanban, Settings, LogOut, Building2, FileText, TrendingUp, Share2, Mail, MailPlus,
+  LayoutDashboard, Users, Contact, Kanban, Settings, LogOut, Building2, FileText, TrendingUp, Share2, Mail, MailPlus, Filter,
   ChevronRight, BookUser,
 } from "lucide-react";
 import { Fragment, useState } from "react";
@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 const navItems: { title: string; url: string; icon: any; adminOnly?: boolean }[] = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Leads", url: "/leads", icon: Users },
+  { title: "Screening", url: "/screening", icon: Filter },
   { title: "Pipeline", url: "/pipeline", icon: Kanban },
   { title: "Blog Manager", url: "/blog-admin", icon: FileText, adminOnly: true },
   { title: "Social Media", url: "/admin/social-media", icon: Share2, adminOnly: true },
