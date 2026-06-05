@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from "@/hooks/useAuth";
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -11,7 +11,8 @@ import LandingPage from "@/pages/LandingPage";
 import Auth from "@/pages/Auth";
 import Dashboard from "@/pages/Dashboard";
 import Leads from "@/pages/Leads";
-import Contacts from "@/pages/Contacts";
+import People from "@/pages/contacts/People";
+import Companies from "@/pages/contacts/Companies";
 import Pipeline from "@/pages/Pipeline";
 import SettingsPage from "@/pages/SettingsPage";
 import BlogIndex from "@/pages/BlogIndex";
@@ -65,7 +66,9 @@ const App = () => (
               >
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/leads" element={<Leads />} />
-                <Route path="/contacts" element={<Contacts />} />
+                <Route path="/contacts" element={<Navigate to="/contacts/people" replace />} />
+                <Route path="/contacts/people" element={<People />} />
+                <Route path="/contacts/companies" element={<Companies />} />
                 <Route path="/pipeline" element={<Pipeline />} />
                 <Route path="/settings" element={<SettingsPage />} />
                 <Route path="/blog-admin" element={<BlogAdmin />} />
