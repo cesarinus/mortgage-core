@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Trash2, Pencil, Eye, Send, Code2 } from "lucide-react";
 import { RichTextEditor } from "@/components/email/RichTextEditor";
@@ -21,6 +22,7 @@ const SAMPLE_VARS = {
   full_name: "Jane Doe",
   email: "jane@example.com",
   google_review_link: "https://g.page/r/CfDh9HCvSE-WEBE/review",
+  portal_link: "https://ngcapital.net/portal/login",
 };
 
 function renderMerge(s: string, vars: Record<string, string>) {
@@ -77,6 +79,8 @@ export default function EmailTemplates() {
       html_content: editing.html_content ?? "",
       text_content: editing.text_content ?? "",
       category: editing.category || "general",
+      merge_fields: (editing as any).merge_fields ?? [],
+      trigger_event: (editing as any).trigger_event ?? null,
     };
     const { error } = editing.id
       ? await supabase.from("email_templates").update(payload).eq("id", editing.id)
@@ -109,13 +113,11 @@ export default function EmailTemplates() {
       return;
     }
     setSending(true);
-    const { data, error } = await supabase.functions.invoke("send-review-request", {
+    const { data, error } = await supabase.functions.invoke("send-email", {
       body: {
-        email: testEmail,
-        first_name: "Test",
-        last_name: "User",
-        template_alias: t.alias || "google-review-request",
-        test: true,
+        to: testEmail,
+        template_alias: t.alias,
+        vars: SAMPLE_VARS,
       },
     });
     setSending(false);
@@ -207,6 +209,31 @@ export default function EmailTemplates() {
                   value={editing.subject ?? ""}
                   onChange={(e) => setEditing({ ...editing, subject: e.target.value })}
                 />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label>Trigger event</Label>
+                  <Select
+                    value={(editing as any).trigger_event ?? "none"}
+                    onValueChange={(v) => setEditing({ ...editing, trigger_event: v === "none" ? null : v } as any)}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Manual only</SelectItem>
+                      <SelectItem value="lead_created">Lead created</SelectItem>
+                      <SelectItem value="qualified_no_docs">Qualified – no docs (3d)</SelectItem>
+                      <SelectItem value="deal_closed">Deal closed</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label>Merge fields (comma-separated)</Label>
+                  <Input
+                    value={((editing as any).merge_fields ?? []).join(", ")}
+                    placeholder="first_name, portal_link"
+                    onChange={(e) => setEditing({ ...editing, merge_fields: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) } as any)}
+                  />
+                </div>
               </div>
 
               <Tabs value={editorMode} onValueChange={(v) => setEditorMode(v as any)}>

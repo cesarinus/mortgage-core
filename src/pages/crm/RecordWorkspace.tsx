@@ -12,7 +12,7 @@ import { MessagesTab } from "@/components/crm/tabs/MessagesTab";
 import { DocumentsTab } from "@/components/crm/tabs/DocumentsTab";
 import { RelationshipsTab } from "@/components/crm/tabs/RelationshipsTab";
 import { TasksTab } from "@/components/crm/tabs/TasksTab";
-import { BarChart2, MessageSquare, FileCheck2, Users, CheckSquare } from "lucide-react";
+import { BarChart2, MessageSquare, FileCheck2, Users, CheckSquare, Mail } from "lucide-react";
 import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -27,6 +27,7 @@ import {
 } from "@/components/crm/actions/ActionModals";
 import { LinkContactModal, LinkCompanyModal } from "@/components/crm/actions/LinkContactCompanyModals";
 import { CompaniesEditDrawer } from "@/components/crm/CompaniesEditDrawer";
+import EmailLogList from "@/components/email/EmailLogList";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -310,7 +311,7 @@ export default function RecordWorkspace({ kind }: Props) {
             </div>
           )}
           <Tabs defaultValue="catch-up">
-            <TabsList className={`w-full grid ${kind === "lead" ? "grid-cols-6" : "grid-cols-6"}`}>
+            <TabsList className="w-full grid grid-cols-7">
               <TabsTrigger value="catch-up">Catch-up</TabsTrigger>
               <TabsTrigger value="activities">Activities</TabsTrigger>
               {kind === "lead" && (
@@ -326,6 +327,9 @@ export default function RecordWorkspace({ kind }: Props) {
               </TabsTrigger>
               <TabsTrigger value="documents" className="flex items-center gap-1.5">
                 <FileCheck2 className="h-3.5 w-3.5" /> Documents
+              </TabsTrigger>
+              <TabsTrigger value="emails" className="flex items-center gap-1.5">
+                <Mail className="h-3.5 w-3.5" /> Emails
               </TabsTrigger>
               {kind === "contact" && (
                 <TabsTrigger value="relationships" className="flex items-center gap-1.5">
@@ -374,6 +378,12 @@ export default function RecordWorkspace({ kind }: Props) {
             </TabsContent>
             <TabsContent value="documents" className="mt-4">
               <DocumentsTab deals={deals} />
+            </TabsContent>
+            <TabsContent value="emails" className="mt-4">
+              <EmailLogList
+                leadId={kind === "lead" ? id : (record as any)?.lead_id ?? undefined}
+                opportunityId={primaryOpp?.id}
+              />
             </TabsContent>
             {kind === "contact" && (
               <TabsContent value="relationships" className="mt-4">

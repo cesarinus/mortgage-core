@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import BookingAvailabilitySettings from "@/components/settings/BookingAvailabilitySettings";
 import { Switch } from "@/components/ui/switch";
+import EmailProviderSettings from "@/components/settings/EmailProviderSettings";
 
 export default function SettingsPage() {
   const { user } = useAuth();
@@ -85,6 +86,7 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
       <BookingAvailabilitySettings />
+      <EmailProviderSettings />
     </div>
   );
 }

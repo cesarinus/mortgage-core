@@ -1224,6 +1224,7 @@ export type Database = {
           lead_id: string | null
           metadata: Json | null
           opened_at: string | null
+          opportunity_id: string | null
           provider_message_id: string | null
           recipient_email: string
           sent_at: string
@@ -1240,6 +1241,7 @@ export type Database = {
           lead_id?: string | null
           metadata?: Json | null
           opened_at?: string | null
+          opportunity_id?: string | null
           provider_message_id?: string | null
           recipient_email: string
           sent_at?: string
@@ -1256,6 +1258,7 @@ export type Database = {
           lead_id?: string | null
           metadata?: Json | null
           opened_at?: string | null
+          opportunity_id?: string | null
           provider_message_id?: string | null
           recipient_email?: string
           sent_at?: string
@@ -1266,6 +1269,13 @@ export type Database = {
           template_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "email_logs_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_opportunities"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "email_logs_subscriber_id_fkey"
             columns: ["subscriber_id"]
@@ -1282,6 +1292,48 @@ export type Database = {
           },
         ]
       }
+      email_providers: {
+        Row: {
+          created_at: string
+          from_email: string
+          from_name: string
+          host: string
+          id: string
+          is_active: boolean
+          name: string
+          password: string
+          port: number
+          updated_at: string
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          from_email: string
+          from_name?: string
+          host: string
+          id?: string
+          is_active?: boolean
+          name: string
+          password: string
+          port?: number
+          updated_at?: string
+          username: string
+        }
+        Update: {
+          created_at?: string
+          from_email?: string
+          from_name?: string
+          host?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          password?: string
+          port?: number
+          updated_at?: string
+          username?: string
+        }
+        Relationships: []
+      }
       email_templates: {
         Row: {
           alias: string | null
@@ -1291,9 +1343,11 @@ export type Database = {
           html_content: string
           id: string
           is_system: boolean
+          merge_fields: string[]
           name: string
           subject: string
           text_content: string
+          trigger_event: string | null
           updated_at: string
         }
         Insert: {
@@ -1304,9 +1358,11 @@ export type Database = {
           html_content?: string
           id?: string
           is_system?: boolean
+          merge_fields?: string[]
           name: string
           subject?: string
           text_content?: string
+          trigger_event?: string | null
           updated_at?: string
         }
         Update: {
@@ -1317,9 +1373,11 @@ export type Database = {
           html_content?: string
           id?: string
           is_system?: boolean
+          merge_fields?: string[]
           name?: string
           subject?: string
           text_content?: string
+          trigger_event?: string | null
           updated_at?: string
         }
         Relationships: []
