@@ -2,12 +2,27 @@ import { supabase } from "@/integrations/supabase/client";
 
 export type EntityType = "lead" | "deal";
 
-/** Hardcoded allowlist (mirrors status_transitions seed). Used as fallback if DB unreachable. */
+/**
+ * Hardcoded allowlist. Authoritative for client-side dropdown enablement.
+ * Keys and values are always lowercase. Lead values mirror the `lead_status`
+ * enum; deal values mirror the deal stage pipeline.
+ *
+ * `lost` / `unqualified` are reachable from any non-terminal lead stage, and
+ * `lost` can be reopened back to `new`.
+ */
 export const ALLOWED_TRANSITIONS: Record<EntityType, Record<string, string[]>> = {
   lead: {
-    new: ["contacted"],
-    contacted: ["qualified", "unqualified"],
-    qualified: ["unqualified"],
+    new: ["contacted", "unqualified", "lost"],
+    contacted: ["pre_qualified", "qualified", "unqualified", "lost"],
+    pre_qualified: ["qualified", "application_started", "unqualified", "lost"],
+    qualified: ["application_started", "unqualified", "lost"],
+    application_started: ["underwriting", "lost"],
+    underwriting: ["approved", "lost"],
+    approved: ["closed", "converted", "lost"],
+    closed: [],
+    converted: [],
+    unqualified: ["new"],
+    lost: ["new"],
   },
   deal: {
     new_lead: ["contacted"],
@@ -16,11 +31,28 @@ export const ALLOWED_TRANSITIONS: Record<EntityType, Record<string, string[]>> =
     underwriting: ["approved", "lost"],
     approved: ["clear_to_close", "lost"],
     clear_to_close: ["closed", "lost"],
+    closed: [],
+    lost: ["new_lead"],
   },
 };
 
+/** Normalize a status string to lowercase. Empty/null → bootstrap value. */
+export function normalizeStatus(s: string | null | undefined, bootstrap = "new"): string {
+  const v = (s ?? "").toString().trim().toLowerCase();
+  return v.length ? v : bootstrap;
+}
+
 export function getAllowedNext(entity: EntityType, from: string): string[] {
-  return ALLOWED_TRANSITIONS[entity][from] ?? [];
+  const key = normalizeStatus(from, entity === "deal" ? "new_lead" : "new");
+  return ALLOWED_TRANSITIONS[entity][key] ?? [];
+}
+
+/** Synchronous check against the hardcoded map. */
+export function isTransitionAllowedSync(entity: EntityType, from: string, to: string): boolean {
+  const f = normalizeStatus(from, entity === "deal" ? "new_lead" : "new");
+  const t = normalizeStatus(to);
+  if (f === t) return true;
+  return getAllowedNext(entity, f).includes(t);
 }
 
 export async function isTransitionAllowed(
@@ -28,22 +60,25 @@ export async function isTransitionAllowed(
   from: string,
   to: string,
 ): Promise<boolean> {
-  if (from === to) return true;
+  const f = normalizeStatus(from, entity === "deal" ? "new_lead" : "new");
+  const t = normalizeStatus(to);
+  if (f === t) return true;
+  // Hardcoded map is authoritative; DB table is a (currently incomplete) seed.
+  if (isTransitionAllowedSync(entity, f, t)) return true;
   // Try DB first; fall back to hardcoded list
   try {
     const { data, error } = await supabase
       .from("status_transitions")
       .select("id")
       .eq("entity_type", entity)
-      .eq("from_status", from)
-      .eq("to_status", to)
+      .eq("from_status", f)
+      .eq("to_status", t)
       .maybeSingle();
     if (!error && data) return true;
-    if (!error && !data) return getAllowedNext(entity, from).includes(to);
   } catch {
     // ignore
   }
-  return getAllowedNext(entity, from).includes(to);
+  return false;
 }
 
 export async function recordLeadTransition(
