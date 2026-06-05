@@ -6,7 +6,7 @@ import remarkGfm from "remark-gfm";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Card } from "@/components/ui/card";
 import { Sparkles, Send, Plus, MessageSquare, X, Trash2 } from "lucide-react";
@@ -53,7 +53,7 @@ export function AssistantPanel({ open, onClose, scope, recordKind = null, record
   const [threadId, setThreadId] = useState<string | null>(null);
   const [initialMessages, setInitialMessages] = useState<UIMessage[]>([]);
   const [isMobile, setIsMobile] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -291,15 +291,23 @@ export function AssistantPanel({ open, onClose, scope, recordKind = null, record
           e.preventDefault();
           handleSend();
         }}
-        className="border-t p-3 flex items-center gap-2"
+        className="border-t p-3 flex items-end gap-2"
       >
-        <Input
+        <Textarea
           ref={inputRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              handleSend();
+            }
+          }}
           placeholder={scope === "portal" ? "Ask about your loan…" : "Ask about this record…"}
           disabled={isLoading}
           autoFocus
+          rows={1}
+          className="min-h-[40px] max-h-40 resize-none"
         />
         <Button type="submit" size="icon" disabled={isLoading || !input.trim()}>
           <Send className="h-4 w-4" />
