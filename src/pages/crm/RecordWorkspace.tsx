@@ -32,7 +32,7 @@ import {
 } from "@/lib/crm/queries";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
-import { isTransitionAllowed, getAllowedNext, recordLeadTransition } from "@/lib/crm/stateMachine";
+import { isTransitionAllowed, getAllowedNext, normalizeStatus, recordLeadTransition } from "@/lib/crm/stateMachine";
 import { getStageSuggestions } from "@/lib/crm/stageTasks";
 
 interface Props { kind: "lead" | "contact" }
@@ -190,29 +190,32 @@ export default function RecordWorkspace({ kind }: Props) {
 
   const handleStatusChange = async (newStatus: string) => {
     if (!id || kind !== "lead") return;
-    const prev = record?.status;
+    const prev = normalizeStatus(record?.status, "new");
+    const next = normalizeStatus(newStatus);
+    if (prev === next) return;
     // Strict state machine: validate transition before writing
-    const ok = await isTransitionAllowed("lead", prev ?? "new", newStatus);
+    const ok = await isTransitionAllowed("lead", prev, next);
     if (!ok) {
-      const next = getAllowedNext("lead", prev ?? "new");
+      const allowed = getAllowedNext("lead", prev);
+      const fmt = (s: string) => s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
       toast({
         title: "Invalid status change",
-        description: next.length
-          ? `Allowed next: ${next.join(", ")}`
-          : "No further transitions allowed from this status.",
+        description: allowed.length
+          ? `Cannot move from ${fmt(prev)} to ${fmt(next)}. Next allowed: ${allowed.map(fmt).join(", ")}.`
+          : `${fmt(prev)} is a terminal status — no further transitions allowed.`,
         variant: "destructive",
       });
       return;
     }
-    setRecord((r: any) => ({ ...r, status: newStatus }));
-    const { error } = await supabase.from("leads").update({ status: newStatus as any }).eq("id", id);
+    setRecord((r: any) => ({ ...r, status: next }));
+    const { error } = await supabase.from("leads").update({ status: next as any }).eq("id", id);
     if (error) {
       setRecord((r: any) => ({ ...r, status: prev }));
       toast({ title: "Failed to update status", description: error.message, variant: "destructive" });
     } else {
-      await recordLeadTransition(id, prev ?? "new", newStatus);
-      toast({ title: "Status updated", description: newStatus.replace(/_/g, " ") });
-      const suggested = getStageSuggestions(newStatus);
+      await recordLeadTransition(id, prev, next);
+      toast({ title: "Status updated", description: next.replace(/_/g, " ") });
+      const suggested = getStageSuggestions(next);
       if (suggested.length > 0) {
         toast({
           title: `Suggested ${suggested.length} next action${suggested.length === 1 ? "" : "s"}`,
