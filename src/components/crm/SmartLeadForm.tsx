@@ -12,6 +12,9 @@ import { Separator } from "@/components/ui/separator";
 import { Check, ChevronLeft, ChevronRight, Flame, Snowflake, ThermometerSun } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { Link } from "react-router-dom";
+import { AlertTriangle, ExternalLink } from "lucide-react";
 import {
   EMPTY_INTAKE, IntakeData, computeDti, computeScore, computeTemperature,
   deriveSignals, estimateMonthlyPayment, saveLeadIntake,
@@ -46,10 +49,43 @@ export function SmartLeadForm({ leadId, initial, sources = [], onSaved, onCancel
 
   const [contactsList, setContactsList] = useState<any[]>([]);
   const [companiesList, setCompaniesList] = useState<any[]>([]);
+  const [emailDup, setEmailDup] = useState<{ id: string; name: string; email: string } | null>(null);
+  const [checkingEmail, setCheckingEmail] = useState(false);
   useEffect(() => {
     fetchAllContacts().then(setContactsList).catch(() => {});
     fetchAllCompanies().then(setCompaniesList).catch(() => {});
   }, []);
+
+  // Real-time duplicate-email check (debounced). Excludes the currently-edited lead.
+  useEffect(() => {
+    const raw = (data.email ?? "").trim().toLowerCase();
+    if (!raw || !/^\S+@\S+\.\S+$/.test(raw)) { setEmailDup(null); return; }
+    setCheckingEmail(true);
+    const handle = setTimeout(async () => {
+      try {
+        let q = supabase
+          .from("leads")
+          .select("id, first_name, last_name, email")
+          .ilike("email", raw)
+          .limit(1);
+        if (leadId) q = q.neq("id", leadId);
+        const { data: rows } = await q;
+        const match = rows?.[0];
+        if (match) {
+          setEmailDup({
+            id: match.id as string,
+            name: `${(match as any).first_name ?? ""} ${(match as any).last_name ?? ""}`.trim() || "(no name)",
+            email: (match as any).email ?? raw,
+          });
+        } else {
+          setEmailDup(null);
+        }
+      } finally {
+        setCheckingEmail(false);
+      }
+    }, 350);
+    return () => clearTimeout(handle);
+  }, [data.email, leadId]);
 
   const contactItems = useMemo(() => contactsList.map((c: any) => ({
     id: c.id,
@@ -81,6 +117,10 @@ export function SmartLeadForm({ leadId, initial, sources = [], onSaved, onCancel
 
   const submit = async () => {
     if (!user?.id) { toast({ title: "Not authenticated", variant: "destructive" }); return; }
+    if (emailDup) {
+      toast({ title: "Duplicate email", description: "Resolve the duplicate before saving.", variant: "destructive" });
+      return;
+    }
     setSaving(true);
     try {
       const result = await saveLeadIntake(user.id, leadId ?? null, data);
@@ -123,7 +163,33 @@ export function SmartLeadForm({ leadId, initial, sources = [], onSaved, onCancel
         <div className="grid grid-cols-2 gap-3">
           <Field label="First name *"><Input value={data.first_name} onChange={e => set("first_name", e.target.value)} /></Field>
           <Field label="Last name *"><Input value={data.last_name} onChange={e => set("last_name", e.target.value)} /></Field>
-          <Field label="Email"><Input type="email" value={data.email} onChange={e => set("email", e.target.value)} /></Field>
+          <Field label="Email">
+            <Input
+              type="email"
+              value={data.email}
+              onChange={e => set("email", e.target.value)}
+              className={emailDup ? "border-destructive focus-visible:ring-destructive" : ""}
+            />
+            {emailDup && (
+              <div className="mt-1.5 flex items-start gap-1.5 text-xs text-destructive">
+                <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                <div className="space-y-1">
+                  <p>
+                    A lead with this email already exists: <span className="font-medium">{emailDup.name}</span> — {emailDup.email}. Please use a different email or edit the existing lead.
+                  </p>
+                  <Link
+                    to={`/crm/leads/${emailDup.id}`}
+                    className="inline-flex items-center gap-1 text-primary hover:underline"
+                  >
+                    View existing lead <ExternalLink className="h-3 w-3" />
+                  </Link>
+                </div>
+              </div>
+            )}
+            {checkingEmail && !emailDup && (
+              <p className="mt-1 text-[11px] text-muted-foreground">Checking for duplicates…</p>
+            )}
+          </Field>
           <Field label="Phone"><Input value={data.phone} onChange={e => set("phone", e.target.value)} /></Field>
           <Field label="Source">
             <Select value={data.source_id ?? ""} onValueChange={v => set("source_id", v || null)}>
@@ -363,7 +429,7 @@ export function SmartLeadForm({ leadId, initial, sources = [], onSaved, onCancel
               Next <ChevronRight className="h-4 w-4 ml-1" />
             </Button>
           ) : (
-            <Button type="button" disabled={saving || !data.first_name || !data.last_name} onClick={submit}>
+            <Button type="button" disabled={saving || !data.first_name || !data.last_name || !!emailDup} onClick={submit}>
               <Check className="h-4 w-4 mr-1" /> {leadId ? "Save Intake" : "Create Lead"}
             </Button>
           )}

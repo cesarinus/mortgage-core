@@ -13,15 +13,23 @@ import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { toast as sonnerToast } from "sonner";
 import { useToast } from "@/hooks/use-toast";
 import {
   Plus, Search, Flame, ThermometerSun, Snowflake, LayoutGrid, List,
   X, Clock, Eye, MousePointerClick, FileText, Tag, ChevronRight,
-  Filter, Zap, Users, UserCheck, AlertTriangle, ExternalLink,
+  Filter, Zap, Users, UserCheck, AlertTriangle, ExternalLink, MoreHorizontal,
+  Pencil, Trash2,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import type { Tables, Enums } from "@/integrations/supabase/types";
 import { SmartLeadForm } from "@/components/crm/SmartLeadForm";
+import { intakeFromLead, IntakeData } from "@/lib/crm/leadIntake";
 import { AssistantLauncher } from "@/components/chat/AssistantLauncher";
 import {
   LEAD_STATUSES,
@@ -140,6 +148,10 @@ export default function Leads() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
   const [newTag, setNewTag] = useState("");
+  const [editLead, setEditLead] = useState<{ lead: Lead; initial: IntakeData } | null>(null);
+  const [deleteLead, setDeleteLead] = useState<Lead | null>(null);
+  const [deleteBlock, setDeleteBlock] = useState<{ opps: number; contacts: number; portal: number } | null>(null);
+  const [deleteChecking, setDeleteChecking] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -296,6 +308,51 @@ export default function Leads() {
     await supabase.from("lead_tags").delete().eq("id", tagId);
     const { data } = await supabase.from("lead_tags").select("*");
     setTags((data as LeadTag[]) ?? []);
+  };
+
+  const openEdit = async (lead: Lead) => {
+    const { data: mp } = await supabase
+      .from("mortgage_profiles").select("*").eq("lead_id", lead.id).maybeSingle();
+    setEditLead({ lead, initial: intakeFromLead(lead, mp) });
+  };
+
+  const openDelete = async (lead: Lead) => {
+    setDeleteLead(lead);
+    setDeleteBlock(null);
+    setDeleteChecking(true);
+    const [{ count: opps }, { count: contacts }, { count: portal }] = await Promise.all([
+      supabase.from("pipeline_opportunities").select("id", { count: "exact", head: true }).eq("lead_id", lead.id),
+      supabase.from("lead_contacts").select("contact_id", { count: "exact", head: true }).eq("lead_id", lead.id),
+      supabase.from("portal_users").select("user_id", { count: "exact", head: true }).eq("lead_id", lead.id as any),
+    ]);
+    setDeleteBlock({ opps: opps ?? 0, contacts: contacts ?? 0, portal: portal ?? 0 });
+    setDeleteChecking(false);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteLead) return;
+    const snapshot = deleteLead;
+    // Optimistic remove from list, then hard delete with undo window.
+    setLeads((prev) => prev.filter((x) => x.id !== snapshot.id));
+    setDeleteLead(null);
+    setDeleteBlock(null);
+
+    let undone = false;
+    sonnerToast(`Deleted ${snapshot.first_name} ${snapshot.last_name}`, {
+      duration: 5000,
+      action: {
+        label: "Undo",
+        onClick: () => { undone = true; },
+      },
+    });
+    setTimeout(async () => {
+      if (undone) { load(); return; }
+      const { error } = await supabase.from("leads").delete().eq("id", snapshot.id);
+      if (error) {
+        toast({ title: "Delete failed", description: error.message, variant: "destructive" });
+        load();
+      }
+    }, 5000);
   };
 
   const getLeadTags = (leadId: string) => tags.filter(t => t.lead_id === leadId);
@@ -482,12 +539,13 @@ export default function Leads() {
                   <TableHead>Status</TableHead>
                   <TableHead className="hidden lg:table-cell">Last Activity</TableHead>
                   <TableHead className="hidden xl:table-cell">Created</TableHead>
+                  <TableHead className="w-10"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground py-12">
+                    <TableCell colSpan={8} className="text-center text-muted-foreground py-12">
                       No leads found
                     </TableCell>
                   </TableRow>
@@ -528,6 +586,30 @@ export default function Leads() {
                     </TableCell>
                     <TableCell className="hidden xl:table-cell text-sm text-muted-foreground">
                       {new Date(l.created_at).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-7 w-7">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => setSelectedLead(l)}>
+                            <Eye className="h-3.5 w-3.5 mr-2" /> View
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => openEdit(l)}>
+                            <Pencil className="h-3.5 w-3.5 mr-2" /> Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={() => openDelete(l)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -758,6 +840,68 @@ export default function Leads() {
       </Sheet>
     </div>
     <AssistantLauncher scope="crm" />
+
+    {/* Edit Lead dialog */}
+    <Dialog open={!!editLead} onOpenChange={(o) => { if (!o) setEditLead(null); }}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader><DialogTitle>Edit Lead</DialogTitle></DialogHeader>
+        {editLead && (
+          <SmartLeadForm
+            leadId={editLead.lead.id}
+            initial={editLead.initial}
+            sources={sources}
+            onSaved={() => { setEditLead(null); load(); }}
+            onCancel={() => setEditLead(null)}
+          />
+        )}
+      </DialogContent>
+    </Dialog>
+
+    {/* Delete confirm */}
+    <AlertDialog
+      open={!!deleteLead}
+      onOpenChange={(o) => { if (!o) { setDeleteLead(null); setDeleteBlock(null); } }}
+    >
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete this lead?</AlertDialogTitle>
+          <AlertDialogDescription asChild>
+            <div className="space-y-2">
+              {deleteLead && (
+                <p>
+                  This will permanently delete{" "}
+                  <span className="font-medium text-foreground">
+                    {deleteLead.first_name} {deleteLead.last_name}
+                  </span>
+                  . This action cannot be undone.
+                </p>
+              )}
+              {deleteChecking && (
+                <p className="text-xs text-muted-foreground">Checking linked records…</p>
+              )}
+              {!deleteChecking && deleteBlock && (deleteBlock.opps + deleteBlock.contacts + deleteBlock.portal) > 0 && (
+                <div className="rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-sm text-destructive">
+                  Cannot delete — {deleteBlock.opps + deleteBlock.contacts + deleteBlock.portal} linked record
+                  {(deleteBlock.opps + deleteBlock.contacts + deleteBlock.portal) === 1 ? "" : "s"} found
+                  {" "}({deleteBlock.opps} opportunities, {deleteBlock.contacts} contacts, {deleteBlock.portal} portal users).
+                  Edit instead.
+                </div>
+              )}
+            </div>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            disabled={deleteChecking || !deleteBlock || (deleteBlock.opps + deleteBlock.contacts + deleteBlock.portal) > 0}
+            onClick={confirmDelete}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            Delete
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
     </>
   );
 }
