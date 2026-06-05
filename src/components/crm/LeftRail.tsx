@@ -6,7 +6,7 @@ import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format } from "date-fns";
 import {
-  StickyNote, Mail, Phone, ListChecks, CalendarDays, Upload, ArrowLeft,
+  StickyNote, Mail, Phone, ListChecks, CalendarDays, Upload, ArrowLeft, Pencil,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { getAllowedNext, normalizeStatus } from "@/lib/crm/stateMachine";
@@ -20,6 +20,7 @@ interface Props {
   tags?: { tag: string }[];
   onAction: (k: ActionKey) => void;
   onStatusChange?: (status: string) => void;
+  onEdit?: () => void;
 }
 
 const actionList: { key: ActionKey; label: string; Icon: any }[] = [
@@ -33,7 +34,7 @@ const actionList: { key: ActionKey; label: string; Icon: any }[] = [
 
 const STATUS_OPTIONS = LEAD_STATUSES;
 
-export function LeftRail({ record, kind, tags = [], onAction, onStatusChange }: Props) {
+export function LeftRail({ record, kind, tags = [], onAction, onStatusChange, onEdit }: Props) {
   const location = useLocation();
   const from = (location.state as any)?.from as string | undefined;
   const fullName = `${record?.first_name ?? ""} ${record?.last_name ?? ""}`.trim() || "(Unnamed)";
@@ -46,9 +47,16 @@ export function LeftRail({ record, kind, tags = [], onAction, onStatusChange }: 
   return (
     <Card className="sticky top-4 self-start">
       <CardContent className="p-5 space-y-4">
-        <Link to={backTo.href} className="inline-flex items-center text-xs text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="h-3 w-3 mr-1" /> Back to {backTo.label}
-        </Link>
+        <div className="flex items-center justify-between">
+          <Link to={backTo.href} className="inline-flex items-center text-xs text-muted-foreground hover:text-foreground">
+            <ArrowLeft className="h-3 w-3 mr-1" /> Back to {backTo.label}
+          </Link>
+          {onEdit && (
+            <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={onEdit}>
+              <Pencil className="h-3.5 w-3.5 mr-1" /> Edit
+            </Button>
+          )}
+        </div>
         <div className="flex items-center gap-3">
           <Avatar className="h-12 w-12">
             <AvatarFallback className="bg-primary text-primary-foreground">{initials}</AvatarFallback>
