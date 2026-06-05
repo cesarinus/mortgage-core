@@ -49,6 +49,7 @@ export default function RecordWorkspace({ kind }: Props) {
   const [attachments, setAttachments] = useState<any[]>([]);
   const [companies, setCompanies] = useState<any[]>([]);
   const [deals, setDeals] = useState<any[]>([]);
+  const [opportunities, setOpportunities] = useState<any[]>([]);
   const [linkedContacts, setLinkedContacts] = useState<any[]>([]);
   const [tags, setTags] = useState<any[]>([]);
   const [mortgage, setMortgage] = useState<any | null>(null);
@@ -145,6 +146,22 @@ export default function RecordWorkspace({ kind }: Props) {
       ]);
       setLeadEvents(le);
       setDealEvents(de);
+
+      // Pipeline deals for THIS lead only — filter by pipeline_opportunities.lead_id.
+      if (kind === "lead" && leadId) {
+        const { data: opps } = await supabase
+          .from("pipeline_opportunities")
+          .select("*")
+          .eq("lead_id", leadId);
+        setOpportunities((opps ?? []).map((o: any) => ({
+          id: o.id,
+          loan_type: o.property_address ? `Mortgage — ${o.property_address}` : "Mortgage deal",
+          stage: o.stage,
+          loan_amount: o.loan_amount,
+        })));
+      } else {
+        setOpportunities([]);
+      }
     } catch (e: any) {
       toast({ title: "Failed to load workspace", description: e?.message, variant: "destructive" });
     } finally {
@@ -246,6 +263,7 @@ export default function RecordWorkspace({ kind }: Props) {
             tags={tags}
             onAction={(k) => setModal(k)}
             onStatusChange={kind === "lead" ? handleStatusChange : undefined}
+            onEdit={kind === "lead" ? () => setIntakeOpen(true) : undefined}
           />
         </aside>
 
@@ -336,7 +354,7 @@ export default function RecordWorkspace({ kind }: Props) {
         <aside className="col-span-12 lg:col-span-3">
           <RightRail
             companies={companies}
-            deals={deals}
+            deals={kind === "lead" ? opportunities : deals}
             contacts={linkedContacts}
             attachments={attachments}
             onUpload={() => setModal("upload")}

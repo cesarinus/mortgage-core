@@ -377,7 +377,7 @@ export default function Pipeline() {
                     <TableRow
                       key={a.opp.id}
                       className="cursor-pointer hover:bg-muted/40"
-                      onClick={() => navigate(`/crm/leads/${a.opp.lead_id}`)}
+                      onClick={() => navigate(`/crm/leads/${a.opp.lead_id}`, { state: { from: "pipeline" } })}
                     >
                       <TableCell className="font-medium">{opportunityName(a.lead)}</TableCell>
                       <TableCell>{fmtCurrency(a.opp.loan_amount)}</TableCell>
@@ -444,6 +444,7 @@ export default function Pipeline() {
                             <div className="flex items-start justify-between gap-2">
                               <Link
                                 to={`/crm/leads/${a.opp.lead_id}`}
+                                state={{ from: "pipeline" }}
                                 onClick={(e) => e.stopPropagation()}
                                 onMouseDown={(e) => e.stopPropagation()}
                                 className="font-semibold text-sm hover:text-primary truncate"
