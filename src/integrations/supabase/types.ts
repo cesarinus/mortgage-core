@@ -1445,6 +1445,36 @@ export type Database = {
           },
         ]
       }
+      lead_screening_audit: {
+        Row: {
+          actions: Json
+          actor_id: string | null
+          created_at: string
+          emails_checked: string[]
+          id: string
+          matches_found: number
+          notes: string | null
+        }
+        Insert: {
+          actions?: Json
+          actor_id?: string | null
+          created_at?: string
+          emails_checked?: string[]
+          id?: string
+          matches_found?: number
+          notes?: string | null
+        }
+        Update: {
+          actions?: Json
+          actor_id?: string | null
+          created_at?: string
+          emails_checked?: string[]
+          id?: string
+          matches_found?: number
+          notes?: string | null
+        }
+        Relationships: []
+      }
       lead_sentiment: {
         Row: {
           challenges: Json | null

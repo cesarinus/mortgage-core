@@ -11,6 +11,7 @@ import LandingPage from "@/pages/LandingPage";
 import Auth from "@/pages/Auth";
 import Dashboard from "@/pages/Dashboard";
 import Leads from "@/pages/Leads";
+import Screening from "@/pages/Screening";
 import People from "@/pages/contacts/People";
 import Companies from "@/pages/contacts/Companies";
 import Pipeline from "@/pages/Pipeline";
@@ -66,6 +67,7 @@ const App = () => (
               >
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/leads" element={<Leads />} />
+                <Route path="/screening" element={<Screening />} />
                 <Route path="/contacts" element={<Navigate to="/contacts/people" replace />} />
                 <Route path="/contacts/people" element={<People />} />
                 <Route path="/contacts/companies" element={<Companies />} />
