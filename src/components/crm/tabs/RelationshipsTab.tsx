@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { LinkContactModal, LinkCompanyModal, ROLE_ON_DEAL_OPTIONS } from "@/components/crm/actions/LinkContactCompanyModals";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 const ROLE_BADGE: Record<string, string> = {
   lead: "bg-blue-500/10 text-blue-700 border-blue-500/20",
@@ -109,7 +110,13 @@ export function RelationshipsTab({ kind, recordId, linkedContacts, companies, on
 
   return (
     <div className="space-y-6">
-      {/* People */}
+      <Tabs defaultValue="people">
+        <TabsList>
+          <TabsTrigger value="people">People</TabsTrigger>
+          <TabsTrigger value="companies">Companies</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="people" className="mt-4">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
           <CardTitle className="text-base">
@@ -118,7 +125,7 @@ export function RelationshipsTab({ kind, recordId, linkedContacts, companies, on
           {kind === "lead" && (
             <div className="flex gap-2">
               <Button size="sm" variant="outline" onClick={() => setLinkContact(true)}>
-                <UserPlus className="h-4 w-4 mr-1" /> Link / Create contact
+                <UserPlus className="h-4 w-4 mr-1" /> Add person
               </Button>
             </div>
           )}
@@ -217,13 +224,14 @@ export function RelationshipsTab({ kind, recordId, linkedContacts, companies, on
           )}
         </CardContent>
       </Card>
+        </TabsContent>
 
-      {/* Companies */}
+        <TabsContent value="companies" className="mt-4">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
           <CardTitle className="text-base">Companies linked</CardTitle>
           <Button size="sm" variant="outline" onClick={() => setLinkCompany(true)}>
-            <Plus className="h-4 w-4 mr-1" /> Link / Create company
+            <Plus className="h-4 w-4 mr-1" /> Add company
           </Button>
         </CardHeader>
         <CardContent className="space-y-2">
@@ -267,6 +275,8 @@ export function RelationshipsTab({ kind, recordId, linkedContacts, companies, on
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+      </Tabs>
 
       <LinkContactModal
         open={linkContact}
