@@ -163,7 +163,33 @@ export function SmartLeadForm({ leadId, initial, sources = [], onSaved, onCancel
         <div className="grid grid-cols-2 gap-3">
           <Field label="First name *"><Input value={data.first_name} onChange={e => set("first_name", e.target.value)} /></Field>
           <Field label="Last name *"><Input value={data.last_name} onChange={e => set("last_name", e.target.value)} /></Field>
-          <Field label="Email"><Input type="email" value={data.email} onChange={e => set("email", e.target.value)} /></Field>
+          <Field label="Email">
+            <Input
+              type="email"
+              value={data.email}
+              onChange={e => set("email", e.target.value)}
+              className={emailDup ? "border-destructive focus-visible:ring-destructive" : ""}
+            />
+            {emailDup && (
+              <div className="mt-1.5 flex items-start gap-1.5 text-xs text-destructive">
+                <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                <div className="space-y-1">
+                  <p>
+                    A lead with this email already exists: <span className="font-medium">{emailDup.name}</span> — {emailDup.email}. Please use a different email or edit the existing lead.
+                  </p>
+                  <Link
+                    to={`/crm/leads/${emailDup.id}`}
+                    className="inline-flex items-center gap-1 text-primary hover:underline"
+                  >
+                    View existing lead <ExternalLink className="h-3 w-3" />
+                  </Link>
+                </div>
+              </div>
+            )}
+            {checkingEmail && !emailDup && (
+              <p className="mt-1 text-[11px] text-muted-foreground">Checking for duplicates…</p>
+            )}
+          </Field>
           <Field label="Phone"><Input value={data.phone} onChange={e => set("phone", e.target.value)} /></Field>
           <Field label="Source">
             <Select value={data.source_id ?? ""} onValueChange={v => set("source_id", v || null)}>
@@ -403,7 +429,7 @@ export function SmartLeadForm({ leadId, initial, sources = [], onSaved, onCancel
               Next <ChevronRight className="h-4 w-4 ml-1" />
             </Button>
           ) : (
-            <Button type="button" disabled={saving || !data.first_name || !data.last_name} onClick={submit}>
+            <Button type="button" disabled={saving || !data.first_name || !data.last_name || !!emailDup} onClick={submit}>
               <Check className="h-4 w-4 mr-1" /> {leadId ? "Save Intake" : "Create Lead"}
             </Button>
           )}
