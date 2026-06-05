@@ -10,42 +10,38 @@ export type EntityType = "lead" | "deal";
  * `lost` / `unqualified` are reachable from any non-terminal lead stage, and
  * `lost` can be reopened back to `new`.
  */
+/**
+ * Two independent transition maps.
+ * - "lead" only walks the 4 Lead statuses (Move-to-Pipeline is a conversion, not a transition).
+ * - "deal" / "opportunity" walks the 6 Pipeline stages.
+ */
 export const ALLOWED_TRANSITIONS: Record<EntityType, Record<string, string[]>> = {
   lead: {
-    new_lead: ["contacted", "lost"],
-    contacted: ["prequalified", "lost"],
-    prequalified: ["qualified", "lost"],
-    qualified: ["application_sent", "lost"],
-    application_sent: ["underwriting", "lost"],
-    underwriting: ["approved", "lost"],
-    approved: ["clear_to_close", "lost"],
-    clear_to_close: ["closed", "lost"],
-    closed: [],
-    lost: ["new_lead"],
+    new_lead: ["contacted", "unqualified"],
+    contacted: ["qualified", "unqualified"],
+    qualified: ["unqualified"],
+    unqualified: ["new_lead"],
   },
   deal: {
-    new_lead: ["contacted"],
-    contacted: ["application_sent", "lost"],
     application_sent: ["underwriting", "lost"],
     underwriting: ["approved", "lost"],
     approved: ["clear_to_close", "lost"],
     clear_to_close: ["closed", "lost"],
     closed: [],
-    lost: ["new_lead"],
+    lost: ["application_sent"],
   },
 };
 
 /** Normalize a status string to lowercase. Empty/null → bootstrap value. */
 export function normalizeStatus(s: string | null | undefined, bootstrap = "new_lead"): string {
   const v = (s ?? "").toString().trim().toLowerCase();
-  // Map legacy values to unified stage names so all UI/logic agrees.
   const ALIAS: Record<string, string> = {
     "": bootstrap,
     new: "new_lead",
-    pre_qualified: "prequalified",
+    pre_qualified: "qualified",
+    prequalified: "qualified",
+    converted: "unqualified",
     application_started: "application_sent",
-    unqualified: "lost",
-    converted: "closed",
   };
   return ALIAS[v] ?? v;
 }

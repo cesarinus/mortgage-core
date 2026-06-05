@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { getAllowedNext, normalizeStatus } from "@/lib/crm/stateMachine";
-import { UNIFIED_STAGES, STAGE_LABELS } from "@/lib/crm/stages";
+import { LEAD_STATUSES, LEAD_STATUS_LABELS } from "@/lib/crm/stages";
 
 type ActionKey = "note" | "email" | "call" | "task" | "meeting" | "upload";
 
@@ -31,7 +31,7 @@ const actionList: { key: ActionKey; label: string; Icon: any }[] = [
   { key: "upload", label: "Upload", Icon: Upload },
 ];
 
-const LEAD_STATUSES = UNIFIED_STAGES;
+const STATUS_OPTIONS = LEAD_STATUSES;
 
 export function LeftRail({ record, kind, tags = [], onAction, onStatusChange }: Props) {
   const fullName = `${record?.first_name ?? ""} ${record?.last_name ?? ""}`.trim() || "(Unnamed)";
@@ -66,14 +66,14 @@ export function LeftRail({ record, kind, tags = [], onAction, onStatusChange }: 
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                    {LEAD_STATUSES.map((s) => (
+                    {STATUS_OPTIONS.map((s) => (
                       <SelectItem
                         key={s}
                         value={s}
                         disabled={!allowed.has(s)}
                         className="capitalize"
                       >
-                        {STAGE_LABELS[s] ?? s.replace(/_/g, " ")}
+                        {LEAD_STATUS_LABELS[s] ?? s.replace(/_/g, " ")}
                       </SelectItem>
                     ))}
               </SelectContent>
