@@ -5,10 +5,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { fetchAllContacts, fetchAllCompanies } from "@/lib/crm/queries";
+
+export const ROLE_ON_DEAL_OPTIONS = [
+  { value: "primary_borrower", label: "Primary borrower" },
+  { value: "co_borrower", label: "Co-borrower" },
+  { value: "real_estate_agent", label: "Real estate agent" },
+  { value: "title_agent", label: "Title agent" },
+  { value: "insurance_agent", label: "Insurance agent" },
+  { value: "referral_partner", label: "Referral partner" },
+  { value: "other", label: "Other" },
+] as const;
 
 interface BaseProps {
   open: boolean;
@@ -24,13 +35,28 @@ export function LinkContactModal({ open, onClose, leadId, onDone }: BaseProps) {
   const [all, setAll] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState("link");
+  const [roleOnDeal, setRoleOnDeal] = useState<string>("co_borrower");
+  const [isPrimary, setIsPrimary] = useState<boolean>(false);
 
   useEffect(() => { if (open) fetchAllContacts().then(setAll); }, [open]);
 
   const link = async (contactId: string, role?: string) => {
     if (!leadId) return;
+    // If marking primary, demote others first to satisfy the unique-primary index.
+    if (isPrimary) {
+      await supabase.from("lead_contacts").update({ is_primary: false })
+        .eq("lead_id", leadId).neq("contact_id", contactId);
+    }
+    const payload: any = {
+      lead_id: leadId,
+      contact_id: contactId,
+      role: role || null,
+      role_on_deal: (roleOnDeal || null) as any,
+      is_primary: isPrimary,
+      created_by: user!.id,
+    };
     const { error } = await supabase.from("lead_contacts").upsert(
-      { lead_id: leadId, contact_id: contactId, role: role || null, created_by: user!.id },
+      payload,
       { onConflict: "lead_id,contact_id", ignoreDuplicates: false }
     );
     if (error) {
@@ -65,6 +91,26 @@ export function LinkContactModal({ open, onClose, leadId, onDone }: BaseProps) {
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent>
         <DialogHeader><DialogTitle>Add Contact</DialogTitle></DialogHeader>
+        <div className="grid grid-cols-2 gap-3 px-1">
+          <div>
+            <Label className="text-xs">Role on deal</Label>
+            <Select value={roleOnDeal} onValueChange={(v) => {
+              setRoleOnDeal(v);
+              if (v === "primary_borrower") setIsPrimary(true);
+            }}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {ROLE_ON_DEAL_OPTIONS.map(o => (
+                  <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <label className="flex items-end gap-2 pb-2 cursor-pointer">
+            <Checkbox checked={isPrimary} onCheckedChange={(v) => setIsPrimary(!!v)} id="link-primary" />
+            <span className="text-sm">Primary contact for this lead</span>
+          </label>
+        </div>
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList className="grid grid-cols-2 w-full">
             <TabsTrigger value="link">Link existing</TabsTrigger>
