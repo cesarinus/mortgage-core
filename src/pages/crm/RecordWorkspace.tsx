@@ -450,8 +450,5 @@ export default function RecordWorkspace({ kind }: Props) {
         </Sheet>
       )}
     </div>
-    {kind === "lead" || kind === "contact" ? (
-      <AssistantLauncher scope="crm" recordKind={kind} recordId={id} />
-    ) : null}
   );
 }
