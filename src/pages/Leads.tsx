@@ -24,7 +24,7 @@ import {
   Plus, Search, Flame, ThermometerSun, Snowflake, LayoutGrid, List,
   X, Clock, Eye, MousePointerClick, FileText, Tag, ChevronRight,
   Filter, Zap, Users, UserCheck, AlertTriangle, ExternalLink, MoreHorizontal,
-  Pencil, Trash2,
+  Pencil, Trash2, Copy, ArrowUpRightSquare,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import type { Tables, Enums } from "@/integrations/supabase/types";
