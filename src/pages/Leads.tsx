@@ -840,6 +840,68 @@ export default function Leads() {
       </Sheet>
     </div>
     <AssistantLauncher scope="crm" />
+
+    {/* Edit Lead dialog */}
+    <Dialog open={!!editLead} onOpenChange={(o) => { if (!o) setEditLead(null); }}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader><DialogTitle>Edit Lead</DialogTitle></DialogHeader>
+        {editLead && (
+          <SmartLeadForm
+            leadId={editLead.lead.id}
+            initial={editLead.initial}
+            sources={sources}
+            onSaved={() => { setEditLead(null); load(); }}
+            onCancel={() => setEditLead(null)}
+          />
+        )}
+      </DialogContent>
+    </Dialog>
+
+    {/* Delete confirm */}
+    <AlertDialog
+      open={!!deleteLead}
+      onOpenChange={(o) => { if (!o) { setDeleteLead(null); setDeleteBlock(null); } }}
+    >
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete this lead?</AlertDialogTitle>
+          <AlertDialogDescription asChild>
+            <div className="space-y-2">
+              {deleteLead && (
+                <p>
+                  This will permanently delete{" "}
+                  <span className="font-medium text-foreground">
+                    {deleteLead.first_name} {deleteLead.last_name}
+                  </span>
+                  . This action cannot be undone.
+                </p>
+              )}
+              {deleteChecking && (
+                <p className="text-xs text-muted-foreground">Checking linked records…</p>
+              )}
+              {!deleteChecking && deleteBlock && (deleteBlock.opps + deleteBlock.contacts + deleteBlock.portal) > 0 && (
+                <div className="rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-sm text-destructive">
+                  Cannot delete — {deleteBlock.opps + deleteBlock.contacts + deleteBlock.portal} linked record
+                  {(deleteBlock.opps + deleteBlock.contacts + deleteBlock.portal) === 1 ? "" : "s"} found
+                  {" "}({deleteBlock.opps} opportunities, {deleteBlock.contacts} contacts, {deleteBlock.portal} portal users).
+                  Edit instead.
+                </div>
+              )}
+            </div>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            disabled={deleteChecking || !deleteBlock || (deleteBlock.opps + deleteBlock.contacts + deleteBlock.portal) > 0}
+            onClick={confirmDelete}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            Delete
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
     </>
   );
 }
