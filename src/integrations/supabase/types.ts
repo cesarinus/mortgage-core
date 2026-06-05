@@ -772,6 +772,7 @@ export type Database = {
           is_self_employed: boolean
           name: string
           notes: string | null
+          phone: string | null
           updated_at: string
           website: string | null
         }
@@ -787,6 +788,7 @@ export type Database = {
           is_self_employed?: boolean
           name: string
           notes?: string | null
+          phone?: string | null
           updated_at?: string
           website?: string | null
         }
@@ -802,6 +804,7 @@ export type Database = {
           is_self_employed?: boolean
           name?: string
           notes?: string | null
+          phone?: string | null
           updated_at?: string
           website?: string | null
         }
