@@ -1591,10 +1591,14 @@ export type Database = {
           last_activity_at: string | null
           last_name: string
           lead_score: number | null
+          loan_amount: number | null
           loan_purpose: string | null
+          los_application_id: string | null
+          los_sync_status: Database["public"]["Enums"]["los_sync_status_enum"]
           name: string | null
           notes: string | null
           phone: string | null
+          property_address: string | null
           property_type: string | null
           property_value: number | null
           source: string | null
@@ -1623,10 +1627,14 @@ export type Database = {
           last_activity_at?: string | null
           last_name: string
           lead_score?: number | null
+          loan_amount?: number | null
           loan_purpose?: string | null
+          los_application_id?: string | null
+          los_sync_status?: Database["public"]["Enums"]["los_sync_status_enum"]
           name?: string | null
           notes?: string | null
           phone?: string | null
+          property_address?: string | null
           property_type?: string | null
           property_value?: number | null
           source?: string | null
@@ -1655,10 +1663,14 @@ export type Database = {
           last_activity_at?: string | null
           last_name?: string
           lead_score?: number | null
+          loan_amount?: number | null
           loan_purpose?: string | null
+          los_application_id?: string | null
+          los_sync_status?: Database["public"]["Enums"]["los_sync_status_enum"]
           name?: string | null
           notes?: string | null
           phone?: string | null
+          property_address?: string | null
           property_type?: string | null
           property_value?: number | null
           source?: string | null
@@ -1838,6 +1850,47 @@ export type Database = {
           {
             foreignKeyName: "loan_scenarios_lead_id_fkey"
             columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      los_sync_queue: {
+        Row: {
+          created_at: string
+          id: string
+          last_error: string | null
+          los_application_id: string | null
+          opportunity_id: string
+          retry_count: number
+          sync_status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          los_application_id?: string | null
+          opportunity_id: string
+          retry_count?: number
+          sync_status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          los_application_id?: string | null
+          opportunity_id?: string
+          retry_count?: number
+          sync_status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "los_sync_queue_opportunity_id_fkey"
+            columns: ["opportunity_id"]
             isOneToOne: false
             referencedRelation: "leads"
             referencedColumns: ["id"]
@@ -2658,17 +2711,19 @@ export type Database = {
         | "cash_flow"
         | "combined"
       lead_status:
-        | "new"
+        | "new_lead"
         | "contacted"
         | "qualified"
         | "unqualified"
         | "converted"
         | "lost"
-        | "pre_qualified"
-        | "application_started"
+        | "prequalified"
+        | "application_sent"
         | "underwriting"
         | "approved"
         | "closed"
+        | "clear_to_close"
+      los_sync_status_enum: "pending" | "synced" | "error" | "skipped"
       role_on_deal:
         | "primary_borrower"
         | "co_borrower"
@@ -2854,18 +2909,20 @@ export const Constants = {
         "combined",
       ],
       lead_status: [
-        "new",
+        "new_lead",
         "contacted",
         "qualified",
         "unqualified",
         "converted",
         "lost",
-        "pre_qualified",
-        "application_started",
+        "prequalified",
+        "application_sent",
         "underwriting",
         "approved",
         "closed",
+        "clear_to_close",
       ],
+      los_sync_status_enum: ["pending", "synced", "error", "skipped"],
       role_on_deal: [
         "primary_borrower",
         "co_borrower",
