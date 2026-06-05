@@ -16,6 +16,8 @@ import {
   EMPTY_INTAKE, IntakeData, computeDti, computeScore, computeTemperature,
   deriveSignals, estimateMonthlyPayment, saveLeadIntake,
 } from "@/lib/crm/leadIntake";
+import { RecordLookup } from "@/components/crm/RecordLookup";
+import { fetchAllContacts, fetchAllCompanies } from "@/lib/crm/queries";
 
 interface Props {
   leadId?: string | null;
@@ -41,6 +43,24 @@ export function SmartLeadForm({ leadId, initial, sources = [], onSaved, onCancel
     } catch {}
     return { ...EMPTY_INTAKE, ...(initial ?? {}) };
   });
+
+  const [contactsList, setContactsList] = useState<any[]>([]);
+  const [companiesList, setCompaniesList] = useState<any[]>([]);
+  useEffect(() => {
+    fetchAllContacts().then(setContactsList).catch(() => {});
+    fetchAllCompanies().then(setCompaniesList).catch(() => {});
+  }, []);
+
+  const contactItems = useMemo(() => contactsList.map((c: any) => ({
+    id: c.id,
+    label: `${c.first_name ?? ""} ${c.last_name ?? ""}`.trim() || "(no name)",
+    sub: [c.email, c.role].filter(Boolean).join(" · "),
+  })), [contactsList]);
+  const companyItems = useMemo(() => companiesList.map((c: any) => ({
+    id: c.id,
+    label: c.name,
+    sub: [c.company_type, c.industry].filter(Boolean).join(" · "),
+  })), [companiesList]);
 
   useEffect(() => {
     try { localStorage.setItem(DRAFT_KEY(leadId), JSON.stringify(data)); } catch {}
@@ -135,6 +155,33 @@ export function SmartLeadForm({ leadId, initial, sources = [], onSaved, onCancel
                 <SelectItem value="other">Other</SelectItem>
               </SelectContent>
             </Select>
+          </Field>
+          <Field label="Primary borrower (link existing contact — optional)" className="col-span-2">
+            <RecordLookup
+              value={data.primary_borrower_id}
+              onChange={(id) => set("primary_borrower_id", id)}
+              items={contactItems}
+              placeholder="Auto-create from name above, or pick existing contact"
+              emptyText="No contacts yet"
+            />
+          </Field>
+          <Field label="Co-borrower (optional)">
+            <RecordLookup
+              value={data.co_borrower_id}
+              onChange={(id) => set("co_borrower_id", id)}
+              items={contactItems.filter(i => i.id !== data.primary_borrower_id)}
+              placeholder="Select co-borrower"
+              emptyText="No contacts yet"
+            />
+          </Field>
+          <Field label="Company (employer, title, brokerage — optional)">
+            <RecordLookup
+              value={data.company_id}
+              onChange={(id) => set("company_id", id)}
+              items={companyItems}
+              placeholder="Select company"
+              emptyText="No companies yet"
+            />
           </Field>
         </div>
       )}
