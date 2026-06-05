@@ -8,7 +8,7 @@ import { format } from "date-fns";
 import {
   StickyNote, Mail, Phone, ListChecks, CalendarDays, Upload, ArrowLeft,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { getAllowedNext, normalizeStatus } from "@/lib/crm/stateMachine";
 import { LEAD_STATUSES, LEAD_STATUS_LABELS } from "@/lib/crm/stages";
 
@@ -34,13 +34,20 @@ const actionList: { key: ActionKey; label: string; Icon: any }[] = [
 const STATUS_OPTIONS = LEAD_STATUSES;
 
 export function LeftRail({ record, kind, tags = [], onAction, onStatusChange }: Props) {
+  const location = useLocation();
+  const from = (location.state as any)?.from as string | undefined;
   const fullName = `${record?.first_name ?? ""} ${record?.last_name ?? ""}`.trim() || "(Unnamed)";
   const initials = `${record?.first_name?.[0] ?? ""}${record?.last_name?.[0] ?? ""}`.toUpperCase() || "?";
+  const backTo = kind === "contact"
+    ? { href: "/contacts", label: "Contacts" }
+    : from === "pipeline"
+      ? { href: "/pipeline", label: "Pipeline" }
+      : { href: "/leads", label: "Leads" };
   return (
     <Card className="sticky top-4 self-start">
       <CardContent className="p-5 space-y-4">
-        <Link to={kind === "lead" ? "/leads" : "/contacts"} className="inline-flex items-center text-xs text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="h-3 w-3 mr-1" /> Back to {kind === "lead" ? "Leads" : "Contacts"}
+        <Link to={backTo.href} className="inline-flex items-center text-xs text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="h-3 w-3 mr-1" /> Back to {backTo.label}
         </Link>
         <div className="flex items-center gap-3">
           <Avatar className="h-12 w-12">
