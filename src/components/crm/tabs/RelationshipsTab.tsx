@@ -9,6 +9,27 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { LinkContactModal, LinkCompanyModal } from "@/components/crm/actions/LinkContactCompanyModals";
 
+const ROLE_BADGE: Record<string, string> = {
+  lead: "bg-blue-500/10 text-blue-700 border-blue-500/20",
+  borrower: "bg-emerald-500/10 text-emerald-700 border-emerald-500/20",
+  co_borrower: "bg-teal-500/10 text-teal-700 border-teal-500/20",
+  real_estate_agent: "bg-amber-500/10 text-amber-700 border-amber-500/20",
+  title_agent: "bg-purple-500/10 text-purple-700 border-purple-500/20",
+  insurance_agent: "bg-cyan-500/10 text-cyan-700 border-cyan-500/20",
+  referral_partner: "bg-pink-500/10 text-pink-700 border-pink-500/20",
+  internal_staff: "bg-slate-500/10 text-slate-700 border-slate-500/20",
+};
+
+const COMPANY_TYPE_BADGE: Record<string, string> = {
+  lender: "bg-primary/10 text-primary border-primary/20",
+  title_company: "bg-purple-500/10 text-purple-700 border-purple-500/20",
+  insurance_agency: "bg-cyan-500/10 text-cyan-700 border-cyan-500/20",
+  real_estate_brokerage: "bg-amber-500/10 text-amber-700 border-amber-500/20",
+  other: "bg-muted text-muted-foreground border-border",
+};
+
+const fmtLabel = (v?: string | null) => (v ? v.replace(/_/g, " ") : "");
+
 interface Props {
   kind: "lead" | "contact";
   recordId: string;
@@ -92,11 +113,18 @@ export function RelationshipsTab({ kind, recordId, linkedContacts, companies, on
                 <div className="min-w-0">
                   <div className="font-medium text-sm truncate">
                     {row.contact?.first_name} {row.contact?.last_name}
-                    {row.contact?.contact_type && (
+                    {row.contact?.role && (
+                      <Badge className={`ml-2 text-[10px] capitalize ${ROLE_BADGE[row.contact.role] ?? "bg-muted text-muted-foreground"}`}>
+                        {fmtLabel(row.contact.role)}
+                      </Badge>
+                    )}
+                    {!row.contact?.role && row.contact?.contact_type && (
                       <Badge variant="secondary" className="ml-2 text-[10px]">{row.contact.contact_type}</Badge>
                     )}
                   </div>
-                  <div className="text-xs text-muted-foreground truncate">{row.contact?.email ?? "—"}</div>
+                  <div className="text-xs text-muted-foreground truncate">
+                    {row.contact?.job_title ? `${row.contact.job_title} · ` : ""}{row.contact?.email ?? "—"}
+                  </div>
                   <div className="text-xs mt-1">
                     {editingRole === row.id ? (
                       <div className="flex items-center gap-1">
@@ -174,10 +202,17 @@ export function RelationshipsTab({ kind, recordId, linkedContacts, companies, on
                   <Building2 className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
                   <div className="min-w-0">
                     <div className="font-medium text-sm truncate">{row.company?.name ?? "—"}</div>
-                    <div className="text-xs text-muted-foreground truncate">
-                      {row.company?.industry ?? "—"}
-                      {row.company?.is_self_employed && <span className="ml-2">· Self-employed</span>}
-                      {row.role && <span className="ml-2">· {row.role}</span>}
+                    <div className="flex items-center gap-2 mt-0.5">
+                      {row.company?.company_type && (
+                        <Badge className={`text-[10px] capitalize ${COMPANY_TYPE_BADGE[row.company.company_type] ?? "bg-muted text-muted-foreground"}`}>
+                          {fmtLabel(row.company.company_type)}
+                        </Badge>
+                      )}
+                      <div className="text-xs text-muted-foreground truncate">
+                        {row.company?.industry ?? row.company?.domain ?? "—"}
+                        {row.company?.is_self_employed && <span className="ml-2">· Self-employed</span>}
+                        {row.role && <span className="ml-2">· {row.role}</span>}
+                      </div>
                     </div>
                   </div>
                 </div>

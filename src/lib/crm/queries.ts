@@ -102,7 +102,7 @@ export async function fetchLeadContacts(leadId: string) {
 export async function fetchAllContacts() {
   const { data } = await supabase
     .from("contacts")
-    .select("id, first_name, last_name, email, contact_type")
+    .select("id, first_name, last_name, email, contact_type, role, job_title, company_id, temperature, lead_score")
     .order("first_name", { ascending: true });
   return data ?? [];
 }
@@ -110,7 +110,7 @@ export async function fetchAllContacts() {
 export async function fetchAllCompanies() {
   const { data } = await supabase
     .from("crm_companies")
-    .select("id, name, industry, is_self_employed")
+    .select("id, name, industry, is_self_employed, company_type, domain")
     .order("name", { ascending: true });
   return data ?? [];
 }

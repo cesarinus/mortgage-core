@@ -461,47 +461,70 @@ export type Database = {
       contacts: {
         Row: {
           address: string | null
+          company_id: string | null
           contact_type: Database["public"]["Enums"]["contact_type"]
           created_at: string
           created_by: string | null
           email: string | null
           first_name: string
           id: string
+          job_title: string | null
           last_name: string
           lead_id: string | null
+          lead_score: number
           notes: string | null
           phone: string | null
+          role: Database["public"]["Enums"]["contact_role"] | null
+          temperature: string | null
           updated_at: string
         }
         Insert: {
           address?: string | null
+          company_id?: string | null
           contact_type?: Database["public"]["Enums"]["contact_type"]
           created_at?: string
           created_by?: string | null
           email?: string | null
           first_name: string
           id?: string
+          job_title?: string | null
           last_name: string
           lead_id?: string | null
+          lead_score?: number
           notes?: string | null
           phone?: string | null
+          role?: Database["public"]["Enums"]["contact_role"] | null
+          temperature?: string | null
           updated_at?: string
         }
         Update: {
           address?: string | null
+          company_id?: string | null
           contact_type?: Database["public"]["Enums"]["contact_type"]
           created_at?: string
           created_by?: string | null
           email?: string | null
           first_name?: string
           id?: string
+          job_title?: string | null
           last_name?: string
           lead_id?: string | null
+          lead_score?: number
           notes?: string | null
           phone?: string | null
+          role?: Database["public"]["Enums"]["contact_role"] | null
+          temperature?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "contacts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "crm_companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       content_change_log: {
         Row: {
@@ -738,38 +761,47 @@ export type Database = {
       }
       crm_companies: {
         Row: {
+          company_type: Database["public"]["Enums"]["company_type"]
           created_at: string
           created_by: string | null
+          domain: string | null
           employer_contact_name: string | null
           employer_contact_phone: string | null
           id: string
           industry: string | null
           is_self_employed: boolean
           name: string
+          notes: string | null
           updated_at: string
           website: string | null
         }
         Insert: {
+          company_type?: Database["public"]["Enums"]["company_type"]
           created_at?: string
           created_by?: string | null
+          domain?: string | null
           employer_contact_name?: string | null
           employer_contact_phone?: string | null
           id?: string
           industry?: string | null
           is_self_employed?: boolean
           name: string
+          notes?: string | null
           updated_at?: string
           website?: string | null
         }
         Update: {
+          company_type?: Database["public"]["Enums"]["company_type"]
           created_at?: string
           created_by?: string | null
+          domain?: string | null
           employer_contact_name?: string | null
           employer_contact_phone?: string | null
           id?: string
           industry?: string | null
           is_self_employed?: boolean
           name?: string
+          notes?: string | null
           updated_at?: string
           website?: string | null
         }
@@ -1336,30 +1368,47 @@ export type Database = {
       }
       lead_contacts: {
         Row: {
+          company_id: string | null
           contact_id: string
           created_at: string
           created_by: string | null
           id: string
+          is_primary: boolean
           lead_id: string
           role: string | null
+          role_on_deal: Database["public"]["Enums"]["role_on_deal"] | null
         }
         Insert: {
+          company_id?: string | null
           contact_id: string
           created_at?: string
           created_by?: string | null
           id?: string
+          is_primary?: boolean
           lead_id: string
           role?: string | null
+          role_on_deal?: Database["public"]["Enums"]["role_on_deal"] | null
         }
         Update: {
+          company_id?: string | null
           contact_id?: string
           created_at?: string
           created_by?: string | null
           id?: string
+          is_primary?: boolean
           lead_id?: string
           role?: string | null
+          role_on_deal?: Database["public"]["Enums"]["role_on_deal"] | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "lead_contacts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "crm_companies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       lead_events: {
         Row: {
@@ -1528,6 +1577,8 @@ export type Database = {
           assigned_to: string | null
           blog_session_id: string | null
           chat_session_id: string | null
+          co_borrower_id: string | null
+          company_id: string | null
           created_at: string
           created_by: string | null
           credit_range: string | null
@@ -1541,6 +1592,7 @@ export type Database = {
           last_name: string
           lead_score: number | null
           loan_purpose: string | null
+          name: string | null
           notes: string | null
           phone: string | null
           property_type: string | null
@@ -1557,6 +1609,8 @@ export type Database = {
           assigned_to?: string | null
           blog_session_id?: string | null
           chat_session_id?: string | null
+          co_borrower_id?: string | null
+          company_id?: string | null
           created_at?: string
           created_by?: string | null
           credit_range?: string | null
@@ -1570,6 +1624,7 @@ export type Database = {
           last_name: string
           lead_score?: number | null
           loan_purpose?: string | null
+          name?: string | null
           notes?: string | null
           phone?: string | null
           property_type?: string | null
@@ -1586,6 +1641,8 @@ export type Database = {
           assigned_to?: string | null
           blog_session_id?: string | null
           chat_session_id?: string | null
+          co_borrower_id?: string | null
+          company_id?: string | null
           created_at?: string
           created_by?: string | null
           credit_range?: string | null
@@ -1599,6 +1656,7 @@ export type Database = {
           last_name?: string
           lead_score?: number | null
           loan_purpose?: string | null
+          name?: string | null
           notes?: string | null
           phone?: string | null
           property_type?: string | null
@@ -1611,6 +1669,20 @@ export type Database = {
           variant_shown?: Json | null
         }
         Relationships: [
+          {
+            foreignKeyName: "leads_co_borrower_id_fkey"
+            columns: ["co_borrower_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "crm_companies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "leads_source_id_fkey"
             columns: ["source_id"]
@@ -2553,6 +2625,21 @@ export type Database = {
       app_role: "admin" | "loan_officer" | "processor"
       blog_post_status: "draft" | "published"
       borrower_employment_type: "employee" | "self_employed"
+      company_type:
+        | "lender"
+        | "title_company"
+        | "insurance_agency"
+        | "real_estate_brokerage"
+        | "other"
+      contact_role:
+        | "lead"
+        | "borrower"
+        | "co_borrower"
+        | "real_estate_agent"
+        | "title_agent"
+        | "insurance_agent"
+        | "referral_partner"
+        | "internal_staff"
       contact_type: "borrower" | "partner" | "other"
       deal_document_status: "missing" | "uploaded" | "verified"
       deal_stage:
@@ -2582,6 +2669,14 @@ export type Database = {
         | "underwriting"
         | "approved"
         | "closed"
+      role_on_deal:
+        | "primary_borrower"
+        | "co_borrower"
+        | "real_estate_agent"
+        | "title_agent"
+        | "insurance_agent"
+        | "referral_partner"
+        | "other"
       social_platform: "facebook" | "instagram" | "linkedin" | "all"
       social_post_status: "draft" | "scheduled" | "published" | "failed"
       social_post_type:
@@ -2722,6 +2817,23 @@ export const Constants = {
       app_role: ["admin", "loan_officer", "processor"],
       blog_post_status: ["draft", "published"],
       borrower_employment_type: ["employee", "self_employed"],
+      company_type: [
+        "lender",
+        "title_company",
+        "insurance_agency",
+        "real_estate_brokerage",
+        "other",
+      ],
+      contact_role: [
+        "lead",
+        "borrower",
+        "co_borrower",
+        "real_estate_agent",
+        "title_agent",
+        "insurance_agent",
+        "referral_partner",
+        "internal_staff",
+      ],
       contact_type: ["borrower", "partner", "other"],
       deal_document_status: ["missing", "uploaded", "verified"],
       deal_stage: [
@@ -2753,6 +2865,15 @@ export const Constants = {
         "underwriting",
         "approved",
         "closed",
+      ],
+      role_on_deal: [
+        "primary_borrower",
+        "co_borrower",
+        "real_estate_agent",
+        "title_agent",
+        "insurance_agent",
+        "referral_partner",
+        "other",
       ],
       social_platform: ["facebook", "instagram", "linkedin", "all"],
       social_post_status: ["draft", "scheduled", "published", "failed"],
