@@ -210,6 +210,31 @@ export default function EmailTemplates() {
                   onChange={(e) => setEditing({ ...editing, subject: e.target.value })}
                 />
               </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label>Trigger event</Label>
+                  <Select
+                    value={(editing as any).trigger_event ?? "none"}
+                    onValueChange={(v) => setEditing({ ...editing, trigger_event: v === "none" ? null : v } as any)}
+                  >
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Manual only</SelectItem>
+                      <SelectItem value="lead_created">Lead created</SelectItem>
+                      <SelectItem value="qualified_no_docs">Qualified – no docs (3d)</SelectItem>
+                      <SelectItem value="deal_closed">Deal closed</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label>Merge fields (comma-separated)</Label>
+                  <Input
+                    value={((editing as any).merge_fields ?? []).join(", ")}
+                    placeholder="first_name, portal_link"
+                    onChange={(e) => setEditing({ ...editing, merge_fields: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) } as any)}
+                  />
+                </div>
+              </div>
 
               <Tabs value={editorMode} onValueChange={(v) => setEditorMode(v as any)}>
                 <TabsList>
