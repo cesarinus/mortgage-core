@@ -2,7 +2,7 @@ import {
   LayoutDashboard, Users, Contact, Kanban, Settings, LogOut, Building2, FileText, TrendingUp, Share2, Mail, MailPlus,
   ChevronRight, BookUser,
 } from "lucide-react";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
@@ -62,8 +62,8 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {visibleItems.map((item) => (
-                <>
-                <SidebarMenuItem key={item.title}>
+                <Fragment key={item.title}>
+                <SidebarMenuItem>
                   <SidebarMenuButton asChild>
                      <NavLink
                       to={item.url}
@@ -77,7 +77,7 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 {item.url === "/leads" && (
-                <SidebarMenuItem key="contacts-parent">
+                <SidebarMenuItem>
                 <Collapsible open={contactsOpen} onOpenChange={setContactsOpen}>
                   <CollapsibleTrigger asChild>
                     <button
@@ -110,7 +110,7 @@ export function AppSidebar() {
                 </Collapsible>
                 </SidebarMenuItem>
                 )}
-                </>
+                </Fragment>
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
