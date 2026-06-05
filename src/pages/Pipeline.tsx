@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,9 +14,22 @@ import {
   getAllowedNext,
   isTransitionAllowedSync,
   normalizeStatus,
-  recordLeadTransition,
+  recordDealTransition,
 } from "@/lib/crm/stateMachine";
-import { UNIFIED_STAGES, STAGE_LABELS, STAGE_BADGE } from "@/lib/crm/stages";
+import { PIPELINE_STAGES, PIPELINE_STAGE_LABELS, PIPELINE_STAGE_BADGE } from "@/lib/crm/stages";
+
+type Opportunity = {
+  id: string;
+  lead_id: string;
+  stage: string;
+  loan_amount: number | null;
+  property_address: string | null;
+  primary_contact_id: string | null;
+  title_company_id: string | null;
+  lender_company_id: string | null;
+  close_date: string | null;
+  created_at: string;
+};
 
 type Lead = {
   id: string;
@@ -25,141 +37,47 @@ type Lead = {
   last_name: string;
   name: string | null;
   email: string | null;
-  status: string;
-  property_value: number | null;
-  property_address: string | null;
-  loan_amount: number | null;
-  created_at: string;
-  company_id: string | null;
-  notes: string | null;
 };
 
-type Contact = {
-  id: string;
-  first_name: string;
-  last_name: string;
-  email: string | null;
-  company_id: string | null;
-};
-
-type Company = { id: string; name: string; company_type: string };
-
-type LeadContactLink = {
-  lead_id: string;
-  contact_id: string;
-  is_primary: boolean;
-  role_on_deal: string | null;
-  company_id: string | null;
-};
-
-type MortgageProfile = {
-  lead_id: string;
-  est_monthly_payment: number | null;
-  purchase_price: number | null;
-};
-
-/** Pipeline stages shown as kanban columns — unified across Leads & Pipeline. */
-const KANBAN_STAGES = UNIFIED_STAGES;
+type Contact = { id: string; first_name: string; last_name: string; email: string | null };
+type Company = { id: string; name: string };
 
 const fmtCurrency = (n: number | null | undefined) =>
   n == null ? "—" : `$${Number(n).toLocaleString()}`;
+const fmtDate = (s: string | null | undefined) => (s ? new Date(s).toLocaleDateString() : "—");
 
-const fmtDate = (s: string | null | undefined) =>
-  s ? new Date(s).toLocaleDateString() : "—";
-
-function leadName(l: Lead) {
-  return (l.name && l.name.trim()) || `${l.first_name ?? ""} ${l.last_name ?? ""}`.trim() || "Untitled";
+function opportunityName(lead: Lead | undefined) {
+  if (!lead) return "Untitled";
+  return (lead.name && lead.name.trim()) ||
+    `${lead.first_name ?? ""} ${lead.last_name ?? ""}`.trim() ||
+    "Untitled";
 }
 
 function initials(name: string) {
-  return name
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((p) => p[0]?.toUpperCase())
-    .join("");
+  return name.split(" ").filter(Boolean).slice(0, 2).map((p) => p[0]?.toUpperCase()).join("");
 }
 
 type Assembled = {
-  lead: Lead;
-  amount: number | null;
-  propertyAddress: string | null;
-  primary: { contact: Contact | null; email: string | null; name: string };
-  company: Company | null;
+  opp: Opportunity;
+  lead: Lead | undefined;
+  primary: { name: string; email: string | null };
   titleCompany: Company | null;
   lender: Company | null;
 };
-
-function assemble(
-  lead: Lead,
-  contactsById: Map<string, Contact>,
-  companiesById: Map<string, Company>,
-  linksByLead: Map<string, LeadContactLink[]>,
-  profilesByLead: Map<string, MortgageProfile>,
-): Assembled {
-  const links = linksByLead.get(lead.id) ?? [];
-  const primaryLink = links.find((l) => l.is_primary) ?? null;
-  const primaryContact = primaryLink ? contactsById.get(primaryLink.contact_id) ?? null : null;
-  const primaryName = primaryContact
-    ? `${primaryContact.first_name} ${primaryContact.last_name}`.trim()
-    : leadName(lead);
-  const primaryEmail = primaryContact?.email ?? lead.email ?? null;
-
-  const company = lead.company_id ? companiesById.get(lead.company_id) ?? null : null;
-
-  const titleLink = links.find((l) => (l.role_on_deal ?? "") === "title_agent");
-  const titleCompany =
-    (titleLink?.company_id && companiesById.get(titleLink.company_id)) ||
-    (titleLink?.contact_id && contactsById.get(titleLink.contact_id)?.company_id
-      ? companiesById.get(contactsById.get(titleLink.contact_id)!.company_id!) ?? null
-      : null) ||
-    null;
-
-  // Lender: any linked company with company_type='lender'
-  let lender: Company | null = null;
-  for (const l of links) {
-    const cid = l.company_id ?? contactsById.get(l.contact_id)?.company_id ?? null;
-    const co = cid ? companiesById.get(cid) ?? null : null;
-    if (co?.company_type === "lender") {
-      lender = co;
-      break;
-    }
-  }
-
-  const profile = profilesByLead.get(lead.id);
-  const amount =
-    lead.loan_amount ??
-    lead.property_value ??
-    profile?.purchase_price ??
-    profile?.est_monthly_payment ??
-    null;
-
-  return {
-    lead,
-    amount,
-    propertyAddress: lead.property_address ?? null,
-    primary: { contact: primaryContact, email: primaryEmail, name: primaryName },
-    company,
-    titleCompany,
-    lender,
-  };
-}
 
 /** Click-and-hold stage selector. Triggers popover after 500ms hold. */
 function StageHoldButton({
   current,
   children,
   onSelect,
-  disabled,
 }: {
   current: string;
   children: React.ReactNode;
   onSelect: (next: string) => void;
-  disabled?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const timer = useRef<number | null>(null);
-  const allowed = getAllowedNext("lead", current);
+  const allowed = getAllowedNext("deal", current);
 
   const clear = () => {
     if (timer.current) {
@@ -168,7 +86,6 @@ function StageHoldButton({
     }
   };
   const start = () => {
-    if (disabled) return;
     clear();
     timer.current = window.setTimeout(() => setOpen(true), 500);
   };
@@ -201,7 +118,7 @@ function StageHoldButton({
               onSelect(s);
             }}
           >
-            {STAGE_LABELS[s] ?? s}
+            {PIPELINE_STAGE_LABELS[s] ?? s}
           </button>
         ))}
       </PopoverContent>
@@ -215,66 +132,88 @@ export default function Pipeline() {
   const { toast } = useToast();
   const view: "table" | "kanban" = location.pathname.endsWith("/kanban") ? "kanban" : "table";
 
+  const [opps, setOpps] = useState<Opportunity[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
-  const [links, setLinks] = useState<LeadContactLink[]>([]);
-  const [profiles, setProfiles] = useState<MortgageProfile[]>([]);
   const [search, setSearch] = useState("");
   const [stageFilter, setStageFilter] = useState<string>("all");
   const [sortKey, setSortKey] = useState<"name" | "amount" | "stage" | "close">("close");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
-  const [editingNameId, setEditingNameId] = useState<string | null>(null);
-  const [nameDraft, setNameDraft] = useState("");
 
   const load = async () => {
-    const [{ data: l }, { data: c }, { data: co }, { data: lc }, { data: mp }] = await Promise.all([
-      supabase.from("leads").select("id,first_name,last_name,name,email,status,property_value,property_address,loan_amount,created_at,company_id,notes").order("created_at", { ascending: false }),
-      supabase.from("contacts").select("id,first_name,last_name,email,company_id"),
-      supabase.from("crm_companies").select("id,name,company_type"),
-      supabase.from("lead_contacts").select("lead_id,contact_id,is_primary,role_on_deal,company_id"),
-      supabase.from("mortgage_profiles").select("lead_id,est_monthly_payment,purchase_price"),
+    const { data: o } = await supabase
+      .from("pipeline_opportunities")
+      .select("*")
+      .order("created_at", { ascending: false });
+    const opportunities = (o ?? []) as Opportunity[];
+    setOpps(opportunities);
+
+    const leadIds = Array.from(new Set(opportunities.map((x) => x.lead_id)));
+    const contactIds = Array.from(
+      new Set(opportunities.map((x) => x.primary_contact_id).filter(Boolean) as string[]),
+    );
+    const companyIds = Array.from(
+      new Set(
+        opportunities
+          .flatMap((x) => [x.title_company_id, x.lender_company_id])
+          .filter(Boolean) as string[],
+      ),
+    );
+
+    const [{ data: l }, { data: c }, { data: co }] = await Promise.all([
+      leadIds.length
+        ? supabase.from("leads").select("id,first_name,last_name,name,email").in("id", leadIds)
+        : Promise.resolve({ data: [] as Lead[] } as any),
+      contactIds.length
+        ? supabase.from("contacts").select("id,first_name,last_name,email").in("id", contactIds)
+        : Promise.resolve({ data: [] as Contact[] } as any),
+      companyIds.length
+        ? supabase.from("crm_companies").select("id,name").in("id", companyIds)
+        : Promise.resolve({ data: [] as Company[] } as any),
     ]);
     setLeads((l ?? []) as Lead[]);
     setContacts((c ?? []) as Contact[]);
     setCompanies((co ?? []) as Company[]);
-    setLinks((lc ?? []) as LeadContactLink[]);
-    setProfiles((mp ?? []) as MortgageProfile[]);
   };
 
   useEffect(() => {
     load();
   }, []);
 
+  const leadsById = useMemo(() => new Map(leads.map((l) => [l.id, l])), [leads]);
   const contactsById = useMemo(() => new Map(contacts.map((c) => [c.id, c])), [contacts]);
   const companiesById = useMemo(() => new Map(companies.map((c) => [c.id, c])), [companies]);
-  const profilesByLead = useMemo(() => new Map(profiles.map((p) => [p.lead_id, p])), [profiles]);
-  const linksByLead = useMemo(() => {
-    const m = new Map<string, LeadContactLink[]>();
-    links.forEach((l) => {
-      const arr = m.get(l.lead_id) ?? [];
-      arr.push(l);
-      m.set(l.lead_id, arr);
-    });
-    return m;
-  }, [links]);
 
-  const assembled = useMemo(
-    () => leads.map((l) => assemble(l, contactsById, companiesById, linksByLead, profilesByLead)),
-    [leads, contactsById, companiesById, linksByLead, profilesByLead],
-  );
+  const assembled: Assembled[] = useMemo(() => {
+    return opps.map((opp) => {
+      const lead = leadsById.get(opp.lead_id);
+      const contact = opp.primary_contact_id ? contactsById.get(opp.primary_contact_id) : null;
+      const primaryName = contact
+        ? `${contact.first_name} ${contact.last_name}`.trim()
+        : opportunityName(lead);
+      const primaryEmail = contact?.email ?? lead?.email ?? null;
+      return {
+        opp,
+        lead,
+        primary: { name: primaryName, email: primaryEmail },
+        titleCompany: opp.title_company_id ? companiesById.get(opp.title_company_id) ?? null : null,
+        lender: opp.lender_company_id ? companiesById.get(opp.lender_company_id) ?? null : null,
+      };
+    });
+  }, [opps, leadsById, contactsById, companiesById]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     return assembled.filter((a) => {
-      const status = normalizeStatus(a.lead.status);
-      if (stageFilter !== "all" && status !== stageFilter) return false;
+      const stage = normalizeStatus(a.opp.stage);
+      if (stageFilter !== "all" && stage !== stageFilter) return false;
       if (!q) return true;
       return (
-        leadName(a.lead).toLowerCase().includes(q) ||
+        opportunityName(a.lead).toLowerCase().includes(q) ||
         a.primary.name.toLowerCase().includes(q) ||
         (a.primary.email ?? "").toLowerCase().includes(q) ||
-        (a.company?.name ?? "").toLowerCase().includes(q)
+        (a.opp.property_address ?? "").toLowerCase().includes(q)
       );
     });
   }, [assembled, search, stageFilter]);
@@ -283,10 +222,10 @@ export default function Pipeline() {
     const arr = [...filtered];
     arr.sort((a, b) => {
       let r = 0;
-      if (sortKey === "name") r = leadName(a.lead).localeCompare(leadName(b.lead));
-      else if (sortKey === "amount") r = (a.amount ?? 0) - (b.amount ?? 0);
-      else if (sortKey === "stage") r = normalizeStatus(a.lead.status).localeCompare(normalizeStatus(b.lead.status));
-      else r = +new Date(a.lead.created_at) - +new Date(b.lead.created_at);
+      if (sortKey === "name") r = opportunityName(a.lead).localeCompare(opportunityName(b.lead));
+      else if (sortKey === "amount") r = (a.opp.loan_amount ?? 0) - (b.opp.loan_amount ?? 0);
+      else if (sortKey === "stage") r = a.opp.stage.localeCompare(b.opp.stage);
+      else r = +new Date(a.opp.created_at) - +new Date(b.opp.created_at);
       return sortDir === "asc" ? r : -r;
     });
     return arr;
@@ -300,57 +239,52 @@ export default function Pipeline() {
     }
   };
 
-  const moveStage = async (leadId: string, fromRaw: string, to: string) => {
+  const moveStage = async (oppId: string, fromRaw: string, to: string) => {
     const from = normalizeStatus(fromRaw);
     const next = normalizeStatus(to);
     if (from === next) return;
-    if (!isTransitionAllowedSync("lead", from, next)) {
-      const allowed = getAllowedNext("lead", from).map((s) => STAGE_LABELS[s] ?? s).join(", ");
+    if (!isTransitionAllowedSync("deal", from, next)) {
+      const allowed = getAllowedNext("deal", from)
+        .map((s) => PIPELINE_STAGE_LABELS[s] ?? s)
+        .join(", ");
       toast({
         title: "Invalid stage change",
-        description: `Cannot move from ${STAGE_LABELS[from] ?? from} to ${STAGE_LABELS[next] ?? next}. Next allowed: ${allowed || "none"}.`,
+        description: `Cannot move from ${PIPELINE_STAGE_LABELS[from] ?? from} to ${PIPELINE_STAGE_LABELS[next] ?? next}. Next allowed: ${allowed || "none"}.`,
         variant: "destructive",
       });
       return;
     }
-    // optimistic update
-    setLeads((prev) => prev.map((l) => (l.id === leadId ? { ...l, status: next } : l)));
-    const { error } = await supabase.from("leads").update({ status: next as any }).eq("id", leadId);
+    setOpps((prev) => prev.map((o) => (o.id === oppId ? { ...o, stage: next } : o)));
+    const { error } = await supabase
+      .from("pipeline_opportunities")
+      .update({ stage: next })
+      .eq("id", oppId);
     if (error) {
       toast({ title: "Update failed", description: error.message, variant: "destructive" });
       load();
       return;
     }
-    await recordLeadTransition(leadId, from, next);
-    toast({ title: "Stage updated", description: `${STAGE_LABELS[from] ?? from} → ${STAGE_LABELS[next] ?? next}` });
+    await recordDealTransition(oppId, from, next);
+    toast({
+      title: "Stage updated",
+      description: `${PIPELINE_STAGE_LABELS[from] ?? from} → ${PIPELINE_STAGE_LABELS[next] ?? next}`,
+    });
   };
 
-  const saveName = async (leadId: string) => {
-    const value = nameDraft.trim();
-    setEditingNameId(null);
-    if (!value) return;
-    const { error } = await supabase.from("leads").update({ name: value }).eq("id", leadId);
-    if (error) {
-      toast({ title: "Rename failed", description: error.message, variant: "destructive" });
-      return;
-    }
-    setLeads((prev) => prev.map((l) => (l.id === leadId ? { ...l, name: value } : l)));
-  };
-
-  const onDragStart = (e: React.DragEvent, leadId: string, from: string) => {
-    e.dataTransfer.setData("text/lead-id", leadId);
-    e.dataTransfer.setData("text/lead-from", from);
+  const onDragStart = (e: React.DragEvent, oppId: string, from: string) => {
+    e.dataTransfer.setData("text/opp-id", oppId);
+    e.dataTransfer.setData("text/opp-from", from);
     e.dataTransfer.effectAllowed = "move";
   };
   const onDropStage = (e: React.DragEvent, to: string) => {
     e.preventDefault();
-    const id = e.dataTransfer.getData("text/lead-id");
-    const from = e.dataTransfer.getData("text/lead-from");
+    const id = e.dataTransfer.getData("text/opp-id");
+    const from = e.dataTransfer.getData("text/opp-from");
     if (id) moveStage(id, from, to);
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-4 md:p-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Opportunities</h1>
@@ -382,7 +316,7 @@ export default function Pipeline() {
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by name, contact, company"
+            placeholder="Search by name, contact, address"
             className="pl-9"
           />
         </div>
@@ -390,8 +324,8 @@ export default function Pipeline() {
           <SelectTrigger className="w-[200px]"><SelectValue placeholder="All stages" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All stages</SelectItem>
-            {KANBAN_STAGES.map((s) => (
-              <SelectItem key={s} value={s}>{STAGE_LABELS[s]}</SelectItem>
+            {PIPELINE_STAGES.map((s) => (
+              <SelectItem key={s} value={s}>{PIPELINE_STAGE_LABELS[s]}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -413,8 +347,10 @@ export default function Pipeline() {
                       Loan Amount <ArrowUpDown className="h-3 w-3" />
                     </button>
                   </TableHead>
-                  <TableHead>Point of Contact</TableHead>
-                  <TableHead>Company</TableHead>
+                  <TableHead>Primary Contact</TableHead>
+                  <TableHead>Property</TableHead>
+                  <TableHead>Title Company</TableHead>
+                  <TableHead>Lender</TableHead>
                   <TableHead>
                     <button onClick={() => toggleSort("stage")} className="inline-flex items-center gap-1 font-medium">
                       Stage <ArrowUpDown className="h-3 w-3" />
@@ -430,60 +366,38 @@ export default function Pipeline() {
               <TableBody>
                 {sorted.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground py-12">
-                      No opportunities match your filters.
+                    <TableCell colSpan={8} className="text-center text-muted-foreground py-12">
+                      No opportunities yet. Move a Qualified lead from the Leads page to start the pipeline.
                     </TableCell>
                   </TableRow>
                 )}
                 {sorted.map((a) => {
-                  const status = normalizeStatus(a.lead.status);
+                  const stage = normalizeStatus(a.opp.stage);
                   return (
                     <TableRow
-                      key={a.lead.id}
+                      key={a.opp.id}
                       className="cursor-pointer hover:bg-muted/40"
-                      onClick={() => navigate(`/crm/leads/${a.lead.id}`)}
+                      onClick={() => navigate(`/crm/leads/${a.opp.lead_id}`)}
                     >
-                      <TableCell onClick={(e) => e.stopPropagation()}>
-                        {editingNameId === a.lead.id ? (
-                          <Input
-                            autoFocus
-                            value={nameDraft}
-                            onChange={(e) => setNameDraft(e.target.value)}
-                            onBlur={() => saveName(a.lead.id)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") saveName(a.lead.id);
-                              if (e.key === "Escape") setEditingNameId(null);
-                            }}
-                            className="h-8"
-                          />
-                        ) : (
-                          <button
-                            className="font-medium text-left hover:text-primary"
-                            onClick={() => {
-                              setEditingNameId(a.lead.id);
-                              setNameDraft(leadName(a.lead));
-                            }}
-                          >
-                            {leadName(a.lead)}
-                          </button>
-                        )}
-                      </TableCell>
-                      <TableCell>{fmtCurrency(a.amount)}</TableCell>
+                      <TableCell className="font-medium">{opportunityName(a.lead)}</TableCell>
+                      <TableCell>{fmtCurrency(a.opp.loan_amount)}</TableCell>
                       <TableCell>
                         <div className="text-sm">{a.primary.name || "—"}</div>
                         {a.primary.email && (
                           <div className="text-xs text-muted-foreground">{a.primary.email}</div>
                         )}
                       </TableCell>
-                      <TableCell>{a.company?.name ?? "—"}</TableCell>
+                      <TableCell className="text-sm">{a.opp.property_address ?? "—"}</TableCell>
+                      <TableCell>{a.titleCompany?.name ?? "—"}</TableCell>
+                      <TableCell>{a.lender?.name ?? "—"}</TableCell>
                       <TableCell onClick={(e) => e.stopPropagation()}>
-                        <StageHoldButton current={status} onSelect={(next) => moveStage(a.lead.id, status, next)}>
-                          <Badge variant="outline" className={STAGE_BADGE[status] ?? ""}>
-                            {STAGE_LABELS[status] ?? status}
+                        <StageHoldButton current={stage} onSelect={(next) => moveStage(a.opp.id, stage, next)}>
+                          <Badge variant="outline" className={PIPELINE_STAGE_BADGE[stage] ?? ""}>
+                            {PIPELINE_STAGE_LABELS[stage] ?? stage}
                           </Badge>
                         </StageHoldButton>
                       </TableCell>
-                      <TableCell>{fmtDate(a.lead.created_at)}</TableCell>
+                      <TableCell>{fmtDate(a.opp.close_date ?? a.opp.created_at)}</TableCell>
                     </TableRow>
                   );
                 })}
@@ -493,9 +407,9 @@ export default function Pipeline() {
         </Card>
       ) : (
         <div className="flex gap-3 overflow-x-auto pb-4">
-          {KANBAN_STAGES.map((stage) => {
-            const items = filtered.filter((a) => normalizeStatus(a.lead.status) === stage);
-            const sum = items.reduce((acc, a) => acc + (a.amount ?? 0), 0);
+          {PIPELINE_STAGES.map((stage) => {
+            const items = filtered.filter((a) => normalizeStatus(a.opp.stage) === stage);
+            const sum = items.reduce((acc, a) => acc + (a.opp.loan_amount ?? 0), 0);
             return (
               <div
                 key={stage}
@@ -505,8 +419,8 @@ export default function Pipeline() {
               >
                 <div className="mb-2 flex items-center justify-between px-1">
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline" className={STAGE_BADGE[stage] ?? ""}>
-                      {STAGE_LABELS[stage]}
+                    <Badge variant="outline" className={PIPELINE_STAGE_BADGE[stage] ?? ""}>
+                      {PIPELINE_STAGE_LABELS[stage]}
                     </Badge>
                     <span className="text-xs text-muted-foreground">{items.length}</span>
                   </div>
@@ -514,37 +428,37 @@ export default function Pipeline() {
                 </div>
                 <div className="space-y-2 min-h-[200px] rounded-lg bg-muted/40 p-2">
                   {items.map((a) => {
-                    const status = normalizeStatus(a.lead.status);
+                    const s = normalizeStatus(a.opp.stage);
                     return (
                       <StageHoldButton
-                        key={a.lead.id}
-                        current={status}
-                        onSelect={(next) => moveStage(a.lead.id, status, next)}
+                        key={a.opp.id}
+                        current={s}
+                        onSelect={(next) => moveStage(a.opp.id, s, next)}
                       >
                         <Card
                           draggable
-                          onDragStart={(e) => onDragStart(e, a.lead.id, status)}
+                          onDragStart={(e) => onDragStart(e, a.opp.id, s)}
                           className="hover:shadow-md transition-shadow"
                         >
                           <CardContent className="p-3 space-y-2">
                             <div className="flex items-start justify-between gap-2">
                               <Link
-                                to={`/crm/leads/${a.lead.id}`}
+                                to={`/crm/leads/${a.opp.lead_id}`}
                                 onClick={(e) => e.stopPropagation()}
                                 onMouseDown={(e) => e.stopPropagation()}
                                 className="font-semibold text-sm hover:text-primary truncate"
                               >
-                                {leadName(a.lead)}
+                                {opportunityName(a.lead)}
                               </Link>
-                              <Badge variant="outline" className={`${STAGE_BADGE[status] ?? ""} shrink-0 text-[10px]`}>
-                                {STAGE_LABELS[status] ?? status}
+                              <Badge variant="outline" className={`${PIPELINE_STAGE_BADGE[s] ?? ""} shrink-0 text-[10px]`}>
+                                {PIPELINE_STAGE_LABELS[s] ?? s}
                               </Badge>
                             </div>
-                            <div className="text-sm font-medium">{fmtCurrency(a.amount)}</div>
-                            {a.propertyAddress && (
+                            <div className="text-sm font-medium">{fmtCurrency(a.opp.loan_amount)}</div>
+                            {a.opp.property_address && (
                               <p className="text-xs text-muted-foreground flex items-start gap-1">
                                 <MapPin className="h-3 w-3 mt-0.5 shrink-0" />
-                                <span className="truncate">{a.propertyAddress}</span>
+                                <span className="truncate">{a.opp.property_address}</span>
                               </p>
                             )}
                             <div className="flex items-center gap-2 pt-1 border-t border-border/60">
