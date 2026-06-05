@@ -11,7 +11,10 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Search, Building2 } from "lucide-react";
+import { Plus, Search, Building2, MoreHorizontal, Eye, Pencil, Trash2, Copy } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { toast as sonnerToast } from "sonner";
 
 const typeColors: Record<string, string> = {
   lender: "bg-primary/15 text-primary",
@@ -30,6 +33,7 @@ export default function Companies() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
   const [detail, setDetail] = useState<any | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -76,6 +80,15 @@ export default function Companies() {
     return matchQ && matchT;
   }), [companies, search, typeFilter]);
 
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    const snap = deleteTarget;
+    setDeleteTarget(null);
+    const { error } = await supabase.from("crm_companies").delete().eq("id", snap.id);
+    if (error) toast({ title: "Delete failed", description: error.message, variant: "destructive" });
+    else { sonnerToast.success(`Deleted ${snap.name}`); load(); }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -113,11 +126,12 @@ export default function Companies() {
                 <TableHead>Phone</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>People</TableHead>
+                <TableHead className="w-10"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtered.length === 0 ? (
-                <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">No companies found</TableCell></TableRow>
+                <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No companies found</TableCell></TableRow>
               ) : filtered.map((c) => {
                 const t = c.company_type ?? "other";
                 return (
@@ -133,6 +147,37 @@ export default function Companies() {
                       </Badge>
                     </TableCell>
                     <TableCell>{counts[c.id] ?? 0}</TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-7 w-7">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => openDetail(c)}>
+                            <Eye className="h-3.5 w-3.5 mr-2" /> View
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => { setEditing(c); setOpen(true); }}>
+                            <Pencil className="h-3.5 w-3.5 mr-2" /> Edit
+                          </DropdownMenuItem>
+                          {c.domain && (
+                            <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(c.domain); sonnerToast.success("Domain copied"); }}>
+                              <Copy className="h-3.5 w-3.5 mr-2" /> Copy Domain
+                            </DropdownMenuItem>
+                          )}
+                          {c.phone && (
+                            <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(c.phone); sonnerToast.success("Phone copied"); }}>
+                              <Copy className="h-3.5 w-3.5 mr-2" /> Copy Phone
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => setDeleteTarget(c)}>
+                            <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
                   </TableRow>
                 );
               })}
@@ -140,6 +185,25 @@ export default function Companies() {
           </Table>
         </CardContent>
       </Card>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => { if (!o) setDeleteTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete company?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteTarget && (counts[deleteTarget.id] ?? 0) > 0
+                ? `${counts[deleteTarget.id]} people are linked to this company. Their company field will be cleared.`
+                : `This will permanently delete ${deleteTarget?.name}.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Create/Edit sheet */}
       <Sheet open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
