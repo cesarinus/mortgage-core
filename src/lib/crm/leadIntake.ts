@@ -7,6 +7,7 @@ export type TimelineOpt = "immediately" | "1_3_months" | "3_6_months" | "just_br
 export type CreditRange = "excellent" | "good" | "fair" | "needs_work";
 export type ContactTime = "morning" | "afternoon" | "evening";
 export type ReferralSource = "realtor" | "zillow" | "paid_ads" | "social" | "repeat" | "other";
+export type LoanTypeOpt = "conventional" | "fha" | "usda" | "va";
 
 export interface IntakeData {
   // Basics
@@ -23,6 +24,7 @@ export interface IntakeData {
   company_id?: string | null;
   // Intent
   loan_purpose?: LoanPurpose | "";
+  loan_type?: LoanTypeOpt | "";
   property_type?: PropertyTypeOpt | "";
   occupancy?: Occupancy | "";
   timeline?: TimelineOpt | "";
@@ -42,7 +44,7 @@ export const EMPTY_INTAKE: IntakeData = {
   first_name: "", last_name: "", email: "", phone: "",
   source_id: null, preferred_contact_time: "", referral_source: "",
   primary_borrower_id: null, co_borrower_id: null, company_id: null,
-  loan_purpose: "", property_type: "", occupancy: "", timeline: "",
+  loan_purpose: "", loan_type: "", property_type: "", occupancy: "", timeline: "",
   property_value: null, down_payment: null, credit_range: "",
   annual_income: null, monthly_debts: null, employment_type: "",
   self_employed: false, notes: "",
@@ -267,6 +269,7 @@ export async function saveLeadIntake(
     self_employed: !!data.self_employed,
     preferred_contact_time: data.preferred_contact_time || null,
     referral_source: data.referral_source || null,
+    loan_type: data.loan_type || null,
   });
   const { data: existingMp } = await supabase
     .from("mortgage_profiles").select("id").eq("lead_id", leadId).maybeSingle();
@@ -341,6 +344,7 @@ export function intakeFromLead(lead: any, mp: any | null): IntakeData {
     preferred_contact_time: mpExtras.preferred_contact_time ?? "",
     referral_source: (mpExtras.referral_source ?? lead?.source) ?? "",
     loan_purpose: lead?.loan_purpose ?? "",
+    loan_type: mpExtras.loan_type ?? "",
     property_type: lead?.property_type ?? mp?.property_type ?? "",
     occupancy: mp?.occupancy_type ?? "",
     timeline: lead?.timeline ?? "",
