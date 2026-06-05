@@ -62,6 +62,7 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {visibleItems.map((item) => (
+                <>
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                      <NavLink
@@ -75,9 +76,8 @@ export function AppSidebar() {
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-              ))}
-              {/* Contacts parent with collapsible submenu */}
-              <SidebarMenuItem>
+                {item.url === "/leads" && (
+                <SidebarMenuItem key="contacts-parent">
                 <Collapsible open={contactsOpen} onOpenChange={setContactsOpen}>
                   <CollapsibleTrigger asChild>
                     <button
@@ -108,7 +108,10 @@ export function AppSidebar() {
                     </SidebarMenu>
                   </CollapsibleContent>
                 </Collapsible>
-              </SidebarMenuItem>
+                </SidebarMenuItem>
+                )}
+                </>
+              ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
