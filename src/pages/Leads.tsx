@@ -539,12 +539,13 @@ export default function Leads() {
                   <TableHead>Status</TableHead>
                   <TableHead className="hidden lg:table-cell">Last Activity</TableHead>
                   <TableHead className="hidden xl:table-cell">Created</TableHead>
+                  <TableHead className="w-10"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground py-12">
+                    <TableCell colSpan={8} className="text-center text-muted-foreground py-12">
                       No leads found
                     </TableCell>
                   </TableRow>
@@ -585,6 +586,30 @@ export default function Leads() {
                     </TableCell>
                     <TableCell className="hidden xl:table-cell text-sm text-muted-foreground">
                       {new Date(l.created_at).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-7 w-7">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => setSelectedLead(l)}>
+                            <Eye className="h-3.5 w-3.5 mr-2" /> View
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => openEdit(l)}>
+                            <Pencil className="h-3.5 w-3.5 mr-2" /> Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={() => openDelete(l)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))}
