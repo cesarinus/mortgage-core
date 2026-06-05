@@ -9,6 +9,7 @@ import {
   StickyNote, Mail, Phone, ListChecks, CalendarDays, Upload, ArrowLeft,
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { getAllowedNext, normalizeStatus } from "@/lib/crm/stateMachine";
 
 type ActionKey = "note" | "email" | "call" | "task" | "meeting" | "upload";
 
@@ -59,16 +60,29 @@ export function LeftRail({ record, kind, tags = [], onAction, onStatusChange }: 
         {kind === "lead" && onStatusChange && (
           <div>
             <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">Status</div>
-            <Select value={record?.status ?? "new"} onValueChange={onStatusChange}>
+            {(() => {
+              const current = normalizeStatus(record?.status, "new");
+              const allowed = new Set([current, ...getAllowedNext("lead", current)]);
+              return (
+                <Select value={current} onValueChange={onStatusChange}>
               <SelectTrigger className="h-8 capitalize">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {LEAD_STATUSES.map((s) => (
-                  <SelectItem key={s} value={s} className="capitalize">{s.replace(/_/g, " ")}</SelectItem>
-                ))}
+                    {LEAD_STATUSES.map((s) => (
+                      <SelectItem
+                        key={s}
+                        value={s}
+                        disabled={!allowed.has(s)}
+                        className="capitalize"
+                      >
+                        {s.replace(/_/g, " ")}
+                      </SelectItem>
+                    ))}
               </SelectContent>
             </Select>
+              );
+            })()}
           </div>
         )}
 
