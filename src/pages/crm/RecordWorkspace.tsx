@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { SmartLeadForm } from "@/components/crm/SmartLeadForm";
 import { intakeFromLead } from "@/lib/crm/leadIntake";
+import { AssistantLauncher } from "@/components/chat/AssistantLauncher";
 import {
   NoteModal, TaskModal, CallModal, MeetingModal, EmailModal, UploadModal,
 } from "@/components/crm/actions/ActionModals";
@@ -449,5 +450,8 @@ export default function RecordWorkspace({ kind }: Props) {
         </Sheet>
       )}
     </div>
+    {kind === "lead" || kind === "contact" ? (
+      <AssistantLauncher scope="crm" recordKind={kind} recordId={id} />
+    ) : null}
   );
 }
