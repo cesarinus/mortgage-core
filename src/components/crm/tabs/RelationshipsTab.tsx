@@ -110,12 +110,13 @@ export function RelationshipsTab({ kind, recordId, linkedContacts, companies, on
 
   return (
     <div className="space-y-6">
-      <Tabs defaultValue="people">
+      <Tabs defaultValue={kind === "lead" ? "companies" : "people"}>
         <TabsList>
-          <TabsTrigger value="people">People</TabsTrigger>
+          {kind === "contact" && <TabsTrigger value="people">People</TabsTrigger>}
           <TabsTrigger value="companies">Companies</TabsTrigger>
         </TabsList>
 
+        {kind === "contact" && (
         <TabsContent value="people" className="mt-4">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
@@ -225,6 +226,7 @@ export function RelationshipsTab({ kind, recordId, linkedContacts, companies, on
         </CardContent>
       </Card>
         </TabsContent>
+        )}
 
         <TabsContent value="companies" className="mt-4">
       <Card>
