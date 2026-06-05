@@ -138,7 +138,7 @@ Deno.serve(async (req) => {
       lead_score,
       variant_shown,
       intent_tag,
-      status: "new",
+      status: "new_lead",
     }).select("id").single();
 
     if (error) {
