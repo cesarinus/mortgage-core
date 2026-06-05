@@ -12,8 +12,11 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Search, ExternalLink } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Plus, Search, ExternalLink, MoreHorizontal, Eye, Pencil, Trash2, Copy, ArrowUpRightSquare } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { toast as sonnerToast } from "sonner";
 import type { Tables, Enums } from "@/integrations/supabase/types";
 import { RecordLookup } from "@/components/crm/RecordLookup";
 import { fetchAllCompanies } from "@/lib/crm/queries";
@@ -42,6 +45,10 @@ export default function People() {
   const [createCoOpen, setCreateCoOpen] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const [deleteTarget, setDeleteTarget] = useState<Contact | null>(null);
+  const [deleteBlock, setDeleteBlock] = useState<{ leads: number } | null>(null);
+  const [deleteChecking, setDeleteChecking] = useState(false);
 
   const load = async () => {
     const { data } = await supabase.from("contacts").select("*").order("created_at", { ascending: false });
@@ -104,6 +111,27 @@ export default function People() {
 
   const openNew = () => { setEditing(null); setOpen(true); };
   const openEdit = (c: Contact) => { setEditing(c); setOpen(true); };
+  const openView = (c: Contact) => { setEditing(c); setOpen(true); };
+
+  const openDelete = async (c: Contact) => {
+    setDeleteTarget(c);
+    setDeleteBlock(null);
+    setDeleteChecking(true);
+    const { count } = await supabase
+      .from("lead_contacts").select("lead_id", { count: "exact", head: true }).eq("contact_id", c.id);
+    setDeleteBlock({ leads: count ?? 0 });
+    setDeleteChecking(false);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    const snap = deleteTarget;
+    setDeleteTarget(null);
+    setDeleteBlock(null);
+    const { error } = await supabase.from("contacts").delete().eq("id", snap.id);
+    if (error) toast({ title: "Delete failed", description: error.message, variant: "destructive" });
+    else { sonnerToast.success(`Deleted ${snap.first_name} ${snap.last_name}`); load(); }
+  };
 
   return (
     <div className="space-y-6">
@@ -167,9 +195,38 @@ export default function People() {
                     <TableCell>{c.lead_score ?? "—"}</TableCell>
                     <TableCell className="capitalize">{c.temperature ?? "—"}</TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>
-                      <Button variant="ghost" size="icon" className="h-7 w-7" asChild title="Open workspace">
-                        <Link to={`/crm/contacts/${c.id}`}><ExternalLink className="h-3.5 w-3.5" /></Link>
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-7 w-7">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => openView(c)}>
+                            <Eye className="h-3.5 w-3.5 mr-2" /> View
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => navigate(`/crm/contacts/${c.id}`)}>
+                            <ArrowUpRightSquare className="h-3.5 w-3.5 mr-2" /> Open Workspace
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => openEdit(c)}>
+                            <Pencil className="h-3.5 w-3.5 mr-2" /> Edit
+                          </DropdownMenuItem>
+                          {c.email && (
+                            <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(c.email!); sonnerToast.success("Email copied"); }}>
+                              <Copy className="h-3.5 w-3.5 mr-2" /> Copy Email
+                            </DropdownMenuItem>
+                          )}
+                          {c.phone && (
+                            <DropdownMenuItem onClick={() => { navigator.clipboard.writeText(c.phone!); sonnerToast.success("Phone copied"); }}>
+                              <Copy className="h-3.5 w-3.5 mr-2" /> Copy Phone
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => openDelete(c)}>
+                            <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 );
@@ -178,6 +235,25 @@ export default function People() {
           </Table>
         </CardContent>
       </Card>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => { if (!o) { setDeleteTarget(null); setDeleteBlock(null); } }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete person?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteChecking ? "Checking linked records…" : deleteBlock && deleteBlock.leads > 0
+                ? `This person is linked to ${deleteBlock.leads} lead(s). Deleting will remove those links.`
+                : `This will permanently delete ${deleteTarget?.first_name} ${deleteTarget?.last_name}.`}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Sheet open={open} onOpenChange={(o) => { setOpen(o); if (!o) setEditing(null); }}>
         <SheetContent side="right" className="w-full sm:max-w-lg overflow-y-auto">
