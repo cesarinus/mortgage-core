@@ -17,7 +17,6 @@ import {
   normalizeStatus,
   recordLeadTransition,
 } from "@/lib/crm/stateMachine";
-import { useAuth } from "@/hooks/useAuth";
 
 type Lead = {
   id: string;
@@ -249,7 +248,6 @@ function StageHoldButton({
 export default function Pipeline() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuth();
   const { toast } = useToast();
   const view: "table" | "kanban" = location.pathname.endsWith("/kanban") ? "kanban" : "table";
 
