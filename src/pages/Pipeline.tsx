@@ -17,6 +17,7 @@ import {
   normalizeStatus,
   recordLeadTransition,
 } from "@/lib/crm/stateMachine";
+import { UNIFIED_STAGES, STAGE_LABELS, STAGE_BADGE } from "@/lib/crm/stages";
 
 type Lead = {
   id: string;
@@ -55,48 +56,8 @@ type MortgageProfile = {
   purchase_price: number | null;
 };
 
-/** Pipeline stages shown as kanban columns (forward pipeline only). */
-const KANBAN_STAGES = [
-  "new",
-  "contacted",
-  "pre_qualified",
-  "qualified",
-  "application_started",
-  "underwriting",
-  "approved",
-  "closed",
-] as const;
-
-const STAGE_LABELS: Record<string, string> = {
-  new: "New",
-  contacted: "Contacted",
-  pre_qualified: "Pre-Qualified",
-  qualified: "Qualified",
-  application_started: "Application Sent",
-  underwriting: "Underwriting",
-  approved: "Approved",
-  clear_to_close: "Clear to Close",
-  closed: "Closed",
-  converted: "Converted",
-  lost: "Lost",
-  unqualified: "Unqualified",
-};
-
-// color-coded stage badges per spec
-const STAGE_BADGE: Record<string, string> = {
-  new: "bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/20",
-  contacted: "bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/20",
-  pre_qualified: "bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border-indigo-500/20",
-  qualified: "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/20",
-  application_started: "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/20",
-  underwriting: "bg-teal-500/15 text-teal-600 dark:text-teal-400 border-teal-500/20",
-  approved: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
-  clear_to_close: "bg-yellow-500/15 text-yellow-700 dark:text-yellow-400 border-yellow-500/20",
-  closed: "bg-muted text-muted-foreground border-border",
-  converted: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
-  lost: "bg-muted text-muted-foreground border-border",
-  unqualified: "bg-muted text-muted-foreground border-border",
-};
+/** Pipeline stages shown as kanban columns — unified across Leads & Pipeline. */
+const KANBAN_STAGES = UNIFIED_STAGES;
 
 const fmtCurrency = (n: number | null | undefined) =>
   n == null ? "—" : `$${Number(n).toLocaleString()}`;
@@ -265,7 +226,7 @@ export default function Pipeline() {
 
   const load = async () => {
     const [{ data: l }, { data: c }, { data: co }, { data: lc }, { data: mp }] = await Promise.all([
-      supabase.from("leads").select("id,first_name,last_name,name,email,status,property_value,created_at,company_id,notes").order("created_at", { ascending: false }),
+      supabase.from("leads").select("id,first_name,last_name,name,email,status,property_value,property_address,loan_amount,created_at,company_id,notes").order("created_at", { ascending: false }),
       supabase.from("contacts").select("id,first_name,last_name,email,company_id"),
       supabase.from("crm_companies").select("id,name,company_type"),
       supabase.from("lead_contacts").select("lead_id,contact_id,is_primary,role_on_deal,company_id"),
