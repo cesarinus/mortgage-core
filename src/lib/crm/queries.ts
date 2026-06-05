@@ -85,7 +85,7 @@ export async function fetchCompanies(leadId?: string, contactId?: string) {
 export async function fetchLeadContacts(leadId: string) {
   const { data } = await supabase
     .from("lead_contacts")
-    .select("id, role, contact_id, created_at")
+    .select("id, role, contact_id, created_at, role_on_deal, is_primary, company_id")
     .eq("lead_id", leadId)
     .order("created_at", { ascending: false });
   const rows = data ?? [];
