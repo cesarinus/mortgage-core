@@ -10,7 +10,8 @@ import {
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { getAllowedNext, normalizeStatus } from "@/lib/crm/stateMachine";
-import { LEAD_STATUSES, LEAD_STATUS_LABELS } from "@/lib/crm/stages";
+import { LEAD_STATUSES, LEAD_STATUS_LABELS, PIPELINE_STAGES, PIPELINE_STAGE_LABELS } from "@/lib/crm/stages";
+import { formatPhone } from "@/lib/format";
 
 type ActionKey = "note" | "email" | "call" | "task" | "meeting" | "upload";
 
@@ -21,6 +22,8 @@ interface Props {
   onAction: (k: ActionKey) => void;
   onStatusChange?: (status: string) => void;
   onEdit?: () => void;
+  opportunity?: { stage?: string; property_address?: string | null } | null;
+  pipelineMode?: boolean;
 }
 
 const actionList: { key: ActionKey; label: string; Icon: any }[] = [
@@ -32,9 +35,7 @@ const actionList: { key: ActionKey; label: string; Icon: any }[] = [
   { key: "upload", label: "Upload", Icon: Upload },
 ];
 
-const STATUS_OPTIONS = LEAD_STATUSES;
-
-export function LeftRail({ record, kind, tags = [], onAction, onStatusChange, onEdit }: Props) {
+export function LeftRail({ record, kind, tags = [], onAction, onStatusChange, onEdit, opportunity, pipelineMode }: Props) {
   const location = useLocation();
   const from = (location.state as any)?.from as string | undefined;
   const fullName = `${record?.first_name ?? ""} ${record?.last_name ?? ""}`.trim() || "(Unnamed)";
@@ -44,6 +45,12 @@ export function LeftRail({ record, kind, tags = [], onAction, onStatusChange, on
     : from === "pipeline"
       ? { href: "/pipeline", label: "Pipeline" }
       : { href: "/leads", label: "Leads" };
+  const currentStageRaw = pipelineMode
+    ? (opportunity?.stage ?? "application_sent")
+    : (record?.status ?? "new_lead");
+  const stageLabel = pipelineMode
+    ? (PIPELINE_STAGE_LABELS[currentStageRaw] ?? String(currentStageRaw).replace(/_/g, " "))
+    : String(record?.status ?? "").replace(/_/g, " ");
   return (
     <Card className="sticky top-4 self-start">
       <CardContent className="p-5 space-y-4">
@@ -63,13 +70,13 @@ export function LeftRail({ record, kind, tags = [], onAction, onStatusChange, on
           </Avatar>
           <div className="min-w-0">
             <div className="font-semibold truncate">{fullName}</div>
-            {record?.status && (
-              <Badge variant="outline" className="capitalize mt-1">{String(record.status).replace(/_/g, " ")}</Badge>
+            {stageLabel && (
+              <Badge variant="outline" className="capitalize mt-1">{stageLabel}</Badge>
             )}
           </div>
         </div>
 
-        {kind === "lead" && onStatusChange && (
+        {kind === "lead" && onStatusChange && !pipelineMode && (
           <div>
             <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">Status</div>
             {(() => {
@@ -81,7 +88,7 @@ export function LeftRail({ record, kind, tags = [], onAction, onStatusChange, on
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                    {STATUS_OPTIONS.map((s) => (
+                    {LEAD_STATUSES.map((s) => (
                       <SelectItem
                         key={s}
                         value={s}
@@ -98,6 +105,24 @@ export function LeftRail({ record, kind, tags = [], onAction, onStatusChange, on
           </div>
         )}
 
+        {kind === "lead" && onStatusChange && pipelineMode && (
+          <div>
+            <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">Pipeline stage</div>
+            <Select value={currentStageRaw} onValueChange={onStatusChange}>
+              <SelectTrigger className="h-8 capitalize">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PIPELINE_STAGES.map((s) => (
+                  <SelectItem key={s} value={s} className="capitalize">
+                    {PIPELINE_STAGE_LABELS[s]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
         <div className="grid grid-cols-3 gap-1.5">
           {actionList.map(({ key, label, Icon }) => (
             <Button key={key} variant="outline" size="sm" className="flex-col h-auto py-2 gap-1" onClick={() => onAction(key)}>
@@ -110,7 +135,10 @@ export function LeftRail({ record, kind, tags = [], onAction, onStatusChange, on
         <Separator />
         <div className="space-y-2 text-sm">
           <Field label="Email" value={record?.email} />
-          <Field label="Phone" value={record?.phone} />
+          <Field label="Phone" value={formatPhone(record?.phone) || null} />
+          {pipelineMode && (
+            <Field label="Property address" value={opportunity?.property_address || null} />
+          )}
           {kind === "lead" && (
             <>
               <Field label="Loan purpose" value={record?.loan_purpose} />
