@@ -1,46 +1,108 @@
-## Plan: `ingest-social-post` edge function (n8n → Lovable proxy)
+# AI Assistant for CRM + Borrower Portal
 
-Create a new public edge function that n8n posts to. The function validates a shared bearer token, sanitizes the payload, and inserts into `social_posts` server-side using the auto-injected `SUPABASE_SERVICE_ROLE_KEY` — so RLS is bypassed safely and the service role key never leaves Lovable.
+A grounded, ChatGPT-style assistant available inside the CRM RecordWorkspace/Leads pages and inside the Borrower Portal. Each environment gets its own scoped context, suggested prompts, and safety rules. Powered by Lovable AI Gateway via a new edge function `chat-completion`, with threads persisted in Supabase.
 
-### New secret
-- `N8N_INGEST_SECRET` — shared bearer token between n8n and the edge function. You generate any long random string (e.g. `openssl rand -hex 32`) and I'll add it via the secrets tool, then you paste it into n8n's HTTP Request node as `Authorization: Bearer <value>`.
+## 1. Database (new migration)
 
-### New edge function: `supabase/functions/ingest-social-post/index.ts`
-- `verify_jwt = false` (registered in `supabase/config.toml`) — n8n won't have a user JWT.
-- CORS preflight handler (in case you ever call it from the browser).
-- Auth check: `Authorization: Bearer ${N8N_INGEST_SECRET}` — else `401`.
-- JSON body validation (manual lightweight checks, matching the existing chat-* function style):
-  - `platform` — required, one of `facebook | instagram | linkedin | twitter | tiktok | youtube` (lowercased).
-  - `caption` — required string, trimmed, max ~5000 chars.
-  - `hashtags` — optional `string[]`, each trimmed, leading `#` stripped, max 30 items.
-  - `media_type` — optional, one of `text | image | video | carousel` (default `text`).
-  - `status` — optional, one of `draft | approved | queued | scheduled | published` (default `draft`).
-  - `scheduled_for` — optional ISO timestamp.
-  - Reject unknown fields silently (don't forward arbitrary keys).
-- Insert with service role client, return `{ id, status }` on success, `4xx/500` with a clear error otherwise.
-- Console-log errors (no payload echo) for debugging via `edge_function_logs`.
+New tables (both extension-only, no changes to existing tables):
 
-### Config
-- Add to `supabase/config.toml`:
-  ```toml
-  [functions.ingest-social-post]
-  verify_jwt = false
-  ```
+- `chat_threads`
+  - `user_id uuid` (auth.users) — owner (staff or portal user)
+  - `scope text` — `'crm'` or `'portal'`
+  - `record_kind text` — `'lead' | 'contact' | 'deal' | 'portal'` (nullable for general)
+  - `record_id uuid` (nullable)
+  - `title text`
+  - `created_at`, `updated_at`
+- `chat_messages`
+  - `thread_id uuid` → chat_threads
+  - `role text` — `'user' | 'assistant' | 'system'`
+  - `content text`
+  - `created_at`
 
-### What you do in n8n
-Replace the Supabase node with an **HTTP Request** node:
-- Method: `POST`
-- URL: `https://hyskofjwotohgdtocsie.supabase.co/functions/v1/ingest-social-post`
-- Headers:
-  - `Authorization: Bearer <N8N_INGEST_SECRET value>`
-  - `Content-Type: application/json`
-- Body (JSON): `{ "platform": "facebook", "caption": "...", "hashtags": ["swfl","mortgage"], "status": "approved" }`
+RLS:
+- CRM threads: visible to owner (`auth.uid() = user_id`) AND admin (`is_admin()`).
+- Portal threads: visible only to the portal user that owns them (`auth.uid() = user_id`).
+- Messages inherit thread access via `EXISTS (SELECT 1 FROM chat_threads ...)`.
 
-### Not changing
-- `social_posts` table schema and RLS policies stay as-is (authenticated CRUD for the app, service role bypass for the function).
-- No frontend changes — the Queue tab already reads `status = 'approved'` rows that this function will create.
+GRANTs to `authenticated` and `service_role` on both tables.
 
-### Testing
-After deploy, I'll curl the function with a sample payload to confirm a row lands in `social_posts` and the Queue tab picks it up.
+## 2. Edge Function: `supabase/functions/chat-completion/index.ts`
 
-Approve to build, and confirm whether you want me to generate the `N8N_INGEST_SECRET` value or if you'll supply one.
+- `verify_jwt = true` (added to config.toml) — must know who's calling.
+- Inputs: `{ threadId, scope: 'crm'|'portal', recordKind?, recordId?, message }`.
+- Steps:
+  1. Authenticate user via JWT; create user-scoped supabase client + service client.
+  2. Load thread (verify ownership) or create new.
+  3. **Context loader** (server-side, RLS-respecting):
+     - CRM scope + lead/contact: fetch lead, mortgage_profile, lead_sentiment, last 20 crm_activities, lead_events, deals, lead_contacts, companies, tasks, doc checklist via existing tables.
+     - Portal scope: resolve current portal_user → deal → fetch deal, scenarios, documents, portal_messages, tasks. Strip internal-only fields (lead_score, sentiment internals, assigned_to, etc).
+  4. Build system prompt with scope-specific rules ("Ground in supplied JSON only. Say so if data is missing. Never invent fields.").
+  5. Save user message → call Lovable AI Gateway `google/gemini-3-flash-preview` with `streamText` → return `toUIMessageStreamResponse`.
+  6. `onFinish`: persist assistant message.
+
+Lovable AI Gateway used (no extra secrets required — `LOVABLE_API_KEY` exists).
+
+## 3. Frontend
+
+Note: project is **classic Vite/React Router**, not TanStack Start (despite request wording). Follow classic-ai-chat patterns.
+
+**Shared components** (`src/components/chat/`):
+- `AssistantPanel.tsx` — collapsible right-side panel on desktop (resizable via existing `Resizable` primitives), bottom `Sheet` on mobile. Uses `useChat` from `@ai-sdk/react` with `DefaultChatTransport` pointed at `${VITE_SUPABASE_URL}/functions/v1/chat-completion` with bearer auth.
+- `AssistantLauncher.tsx` — floating button (bottom-right) to toggle panel.
+- `ThreadList.tsx` — list/create/delete threads scoped to current record/portal.
+- `MessageList.tsx` — renders `message.parts` with `react-markdown` + `remark-gfm` (tables, code blocks). Typewriter feel comes naturally from streaming.
+- `SuggestedPrompts.tsx` — scope-specific starter chips.
+- `useAssistantContext.ts` — hook that builds the small context payload (record id/kind/scope) to send with each message.
+
+**Install** AI Elements primitives: `conversation`, `message`, `prompt-input`, `shimmer` via `bunx ai-elements@latest add ...`. Render assistant messages with no background, user messages with `primary`/`primary-foreground` per chat-ui-composition.
+
+**CRM integration:**
+- Mount `<AssistantLauncher scope="crm" recordKind={kind} recordId={id} />` inside `RecordWorkspace.tsx` (top-level wrapper, doesn't disturb existing 12-col grid).
+- Also add to `Leads.tsx` page (scope=crm, no record).
+
+**Portal integration:**
+- Mount `<AssistantLauncher scope="portal" />` inside `PortalLayout.tsx` so it appears across all portal pages.
+
+**Streaming**: AI SDK `useChat` handles streaming naturally.
+
+**History**: thread state lives in DB + locally cached so chat survives navigation within session (React Query keyed by threadId).
+
+## 4. Role-based enable/disable
+
+- New profile field already exists for roles via `user_roles` (admin/loan_officer/processor). Add a per-user `assistant_enabled` flag in `profiles` (default true). For portal users, default true.
+- Settings UI: small toggle in `SettingsPage.tsx` ("Enable AI Assistant"). When false, `AssistantLauncher` returns null.
+- Admin can override per-user via existing admin UI (out of scope for this PR — toggle is self-serve).
+
+## 5. Safety / non-breaking
+
+- No edits to `handleStatusChange`, action modals, queries, or existing tables.
+- Assistant **read-only in v1** — "perform actions" like add note/create task are deferred (mention in chat: "I can suggest it, but please use the Add Note button"). This avoids destabilizing existing handlers. Future iteration can add tool-calling.
+- Portal context loader strips internal CRM fields (whitelist approach).
+
+## Technical details
+
+- Files added:
+  - `supabase/migrations/<ts>_chat_assistant.sql`
+  - `supabase/functions/chat-completion/index.ts`
+  - `supabase/functions/_shared/ai-gateway.ts` (if not present)
+  - `src/components/chat/AssistantPanel.tsx`
+  - `src/components/chat/AssistantLauncher.tsx`
+  - `src/components/chat/ThreadList.tsx`
+  - `src/components/chat/MessageList.tsx`
+  - `src/components/chat/SuggestedPrompts.tsx`
+  - `src/hooks/useAssistant.ts`
+- Files modified:
+  - `supabase/config.toml` → add `[functions.chat-completion]` block
+  - `src/pages/crm/RecordWorkspace.tsx` → mount launcher
+  - `src/pages/Leads.tsx` → mount launcher
+  - `src/components/portal/PortalLayout.tsx` → mount launcher
+  - `src/pages/SettingsPage.tsx` → enable/disable toggle
+  - `package.json` → add `ai`, `@ai-sdk/react`, `@ai-sdk/openai-compatible`, `react-markdown`, `remark-gfm`
+- Model: `google/gemini-3-flash-preview` (default).
+- No new secrets needed.
+
+## Out of scope (v1)
+
+- Assistant-initiated mutations (status change, send email). Suggestion-only.
+- Cross-thread search.
+- File uploads inside chat.
