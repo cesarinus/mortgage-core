@@ -12,17 +12,16 @@ export type EntityType = "lead" | "deal";
  */
 export const ALLOWED_TRANSITIONS: Record<EntityType, Record<string, string[]>> = {
   lead: {
-    new: ["contacted", "unqualified", "lost"],
-    contacted: ["pre_qualified", "qualified", "unqualified", "lost"],
-    pre_qualified: ["qualified", "application_started", "unqualified", "lost"],
-    qualified: ["application_started", "unqualified", "lost"],
-    application_started: ["underwriting", "lost"],
+    new_lead: ["contacted", "lost"],
+    contacted: ["prequalified", "lost"],
+    prequalified: ["qualified", "lost"],
+    qualified: ["application_sent", "lost"],
+    application_sent: ["underwriting", "lost"],
     underwriting: ["approved", "lost"],
-    approved: ["closed", "converted", "lost"],
+    approved: ["clear_to_close", "lost"],
+    clear_to_close: ["closed", "lost"],
     closed: [],
-    converted: [],
-    unqualified: ["new"],
-    lost: ["new"],
+    lost: ["new_lead"],
   },
   deal: {
     new_lead: ["contacted"],
@@ -37,19 +36,28 @@ export const ALLOWED_TRANSITIONS: Record<EntityType, Record<string, string[]>> =
 };
 
 /** Normalize a status string to lowercase. Empty/null → bootstrap value. */
-export function normalizeStatus(s: string | null | undefined, bootstrap = "new"): string {
+export function normalizeStatus(s: string | null | undefined, bootstrap = "new_lead"): string {
   const v = (s ?? "").toString().trim().toLowerCase();
-  return v.length ? v : bootstrap;
+  // Map legacy values to unified stage names so all UI/logic agrees.
+  const ALIAS: Record<string, string> = {
+    "": bootstrap,
+    new: "new_lead",
+    pre_qualified: "prequalified",
+    application_started: "application_sent",
+    unqualified: "lost",
+    converted: "closed",
+  };
+  return ALIAS[v] ?? v;
 }
 
 export function getAllowedNext(entity: EntityType, from: string): string[] {
-  const key = normalizeStatus(from, entity === "deal" ? "new_lead" : "new");
+  const key = normalizeStatus(from, "new_lead");
   return ALLOWED_TRANSITIONS[entity][key] ?? [];
 }
 
 /** Synchronous check against the hardcoded map. */
 export function isTransitionAllowedSync(entity: EntityType, from: string, to: string): boolean {
-  const f = normalizeStatus(from, entity === "deal" ? "new_lead" : "new");
+  const f = normalizeStatus(from, "new_lead");
   const t = normalizeStatus(to);
   if (f === t) return true;
   return getAllowedNext(entity, f).includes(t);
@@ -60,7 +68,7 @@ export async function isTransitionAllowed(
   from: string,
   to: string,
 ): Promise<boolean> {
-  const f = normalizeStatus(from, entity === "deal" ? "new_lead" : "new");
+  const f = normalizeStatus(from, "new_lead");
   const t = normalizeStatus(to);
   if (f === t) return true;
   // Hardcoded map is authoritative; DB table is a (currently incomplete) seed.
