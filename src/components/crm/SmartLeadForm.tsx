@@ -49,6 +49,12 @@ export function SmartLeadForm({ leadId, initial, sources = [], onSaved, onCancel
 
   const [contactsList, setContactsList] = useState<any[]>([]);
   const [companiesList, setCompaniesList] = useState<any[]>([]);
+  const [dpMode, setDpMode] = useState<"amount" | "percent">("amount");
+  const [dpPct, setDpPct] = useState<number>(() => {
+    const price = Number(initial?.property_value ?? 0);
+    const dp = Number(initial?.down_payment ?? 0);
+    return price > 0 ? Math.round((dp / price) * 1000) / 10 : 0;
+  });
   const [emailDup, setEmailDup] = useState<{ id: string; name: string; email: string } | null>(null);
   const [checkingEmail, setCheckingEmail] = useState(false);
   useEffect(() => {
