@@ -24,7 +24,7 @@ import {
   Plus, Search, Flame, ThermometerSun, Snowflake, LayoutGrid, List,
   X, Clock, Eye, MousePointerClick, FileText, Tag, ChevronRight,
   Filter, Zap, Users, UserCheck, AlertTriangle, ExternalLink, MoreHorizontal,
-  Pencil, Trash2,
+  Pencil, Trash2, Copy, ArrowUpRightSquare,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import type { Tables, Enums } from "@/integrations/supabase/types";
@@ -598,9 +598,27 @@ export default function Leads() {
                           <DropdownMenuItem onClick={() => setSelectedLead(l)}>
                             <Eye className="h-3.5 w-3.5 mr-2" /> View
                           </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => navigate(`/crm/leads/${l.id}`)}>
+                            <ArrowUpRightSquare className="h-3.5 w-3.5 mr-2" /> Open Workspace
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => openEdit(l)}>
                             <Pencil className="h-3.5 w-3.5 mr-2" /> Edit
                           </DropdownMenuItem>
+                          {l.email && (
+                            <DropdownMenuItem
+                              onClick={() => {
+                                navigator.clipboard.writeText(l.email!);
+                                sonnerToast.success("Email copied");
+                              }}
+                            >
+                              <Copy className="h-3.5 w-3.5 mr-2" /> Copy Email
+                            </DropdownMenuItem>
+                          )}
+                          {normalizeStatus(l.status) === "qualified" && (
+                            <DropdownMenuItem onClick={() => handleConvertToPipeline(l)}>
+                              <ArrowRightCircle className="h-3.5 w-3.5 mr-2" /> Move to Pipeline
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
                             className="text-destructive focus:text-destructive"
@@ -640,6 +658,48 @@ export default function Leads() {
                               </div>
                               <p className="font-medium text-sm truncate flex-1">{l.first_name} {l.last_name}</p>
                               <StuckBadge lead={l} />
+                              <div onClick={(e) => e.stopPropagation()}>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-6 w-6">
+                                      <MoreHorizontal className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => setSelectedLead(l)}>
+                                      <Eye className="h-3.5 w-3.5 mr-2" /> View
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => navigate(`/crm/leads/${l.id}`)}>
+                                      <ArrowUpRightSquare className="h-3.5 w-3.5 mr-2" /> Open Workspace
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => openEdit(l)}>
+                                      <Pencil className="h-3.5 w-3.5 mr-2" /> Edit
+                                    </DropdownMenuItem>
+                                    {l.email && (
+                                      <DropdownMenuItem
+                                        onClick={() => {
+                                          navigator.clipboard.writeText(l.email!);
+                                          sonnerToast.success("Email copied");
+                                        }}
+                                      >
+                                        <Copy className="h-3.5 w-3.5 mr-2" /> Copy Email
+                                      </DropdownMenuItem>
+                                    )}
+                                    {normalizeStatus(l.status) === "qualified" && (
+                                      <DropdownMenuItem onClick={() => handleConvertToPipeline(l)}>
+                                        <ArrowRightCircle className="h-3.5 w-3.5 mr-2" /> Move to Pipeline
+                                      </DropdownMenuItem>
+                                    )}
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      className="text-destructive focus:text-destructive"
+                                      onClick={() => openDelete(l)}
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
                             </div>
                             <div className="flex items-center justify-between">
                               <HeatBadge score={l.lead_score} />
