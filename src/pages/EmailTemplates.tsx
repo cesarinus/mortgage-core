@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Trash2, Pencil, Eye, Send, Code2 } from "lucide-react";
 import { RichTextEditor } from "@/components/email/RichTextEditor";
@@ -21,6 +22,7 @@ const SAMPLE_VARS = {
   full_name: "Jane Doe",
   email: "jane@example.com",
   google_review_link: "https://g.page/r/CfDh9HCvSE-WEBE/review",
+  portal_link: "https://ngcapital.net/portal/login",
 };
 
 function renderMerge(s: string, vars: Record<string, string>) {
@@ -77,6 +79,8 @@ export default function EmailTemplates() {
       html_content: editing.html_content ?? "",
       text_content: editing.text_content ?? "",
       category: editing.category || "general",
+      merge_fields: (editing as any).merge_fields ?? [],
+      trigger_event: (editing as any).trigger_event ?? null,
     };
     const { error } = editing.id
       ? await supabase.from("email_templates").update(payload).eq("id", editing.id)
@@ -109,13 +113,11 @@ export default function EmailTemplates() {
       return;
     }
     setSending(true);
-    const { data, error } = await supabase.functions.invoke("send-review-request", {
+    const { data, error } = await supabase.functions.invoke("send-email", {
       body: {
-        email: testEmail,
-        first_name: "Test",
-        last_name: "User",
-        template_alias: t.alias || "google-review-request",
-        test: true,
+        to: testEmail,
+        template_alias: t.alias,
+        vars: SAMPLE_VARS,
       },
     });
     setSending(false);
