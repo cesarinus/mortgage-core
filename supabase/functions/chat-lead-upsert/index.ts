@@ -117,7 +117,7 @@ Deno.serve(async (req) => {
     } else {
       const { data: inserted, error: insErr } = await supabase.from("leads").insert({
         ...incoming,
-        status: "new",
+        status: "new_lead",
         source_id: src?.id ?? null,
         lead_score: 0,
       }).select("id").single();

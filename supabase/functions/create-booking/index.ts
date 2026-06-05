@@ -114,7 +114,7 @@ Deno.serve(async (req) => {
           source_id: bookingSource?.id ?? null,
           intent_tag: "meeting_booked",
           lead_score: 30,
-          status: "new",
+          status: "new_lead",
         })
         .select("id")
         .single();

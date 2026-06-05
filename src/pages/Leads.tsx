@@ -23,6 +23,9 @@ import { Link, useNavigate } from "react-router-dom";
 import type { Tables, Enums } from "@/integrations/supabase/types";
 import { SmartLeadForm } from "@/components/crm/SmartLeadForm";
 import { AssistantLauncher } from "@/components/chat/AssistantLauncher";
+import { UNIFIED_STAGES, STAGE_LABELS as UNIFIED_LABELS, STAGE_BADGE as UNIFIED_BADGE, enqueueLosSync } from "@/lib/crm/stages";
+import { getAllowedNext, isTransitionAllowedSync, normalizeStatus, recordLeadTransition } from "@/lib/crm/stateMachine";
+import { ArrowRightCircle } from "lucide-react";
 
 type Lead = Tables<"leads">;
 type LeadSource = Tables<"lead_sources">;
@@ -43,23 +46,10 @@ interface LeadTag {
   created_at: string;
 }
 
-// Lead-only statuses (pipeline stages belong to Deals/Pipeline view)
-const LEAD_STATUSES = ["new", "contacted", "qualified", "unqualified"] as const;
-type LeadStatusValue = typeof LEAD_STATUSES[number];
-
-const statusColors: Record<string, string> = {
-  new: "bg-primary/10 text-primary border-primary/20",
-  contacted: "bg-accent/10 text-accent-foreground border-accent/30",
-  qualified: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
-  unqualified: "bg-muted text-muted-foreground border-border",
-};
-
-const stageLabels: Record<string, string> = {
-  new: "New",
-  contacted: "Contacted",
-  qualified: "Qualified",
-  unqualified: "Unqualified",
-};
+// Unified stage list shared with the Pipeline view.
+const LEAD_STATUSES = UNIFIED_STAGES;
+const statusColors = UNIFIED_BADGE;
+const stageLabels = UNIFIED_LABELS;
 
 const eventIcons: Record<string, typeof Eye> = {
   blog_view: Eye,
@@ -185,14 +175,66 @@ export default function Leads() {
   // Lead creation handled by <SmartLeadForm /> inside the dialog below.
 
   const handleStatusChange = async (leadId: string, newStatus: Enums<"lead_status">) => {
-    const { error } = await supabase.from("leads").update({ status: newStatus }).eq("id", leadId);
+    const currentLead = leads.find((l) => l.id === leadId);
+    const from = normalizeStatus(currentLead?.status ?? null);
+    const next = normalizeStatus(newStatus);
+    if (from !== next && !isTransitionAllowedSync("lead", from, next)) {
+      const allowed = getAllowedNext("lead", from).map((s) => stageLabels[s] ?? s).join(", ");
+      toast({
+        title: "Invalid stage change",
+        description: `Cannot move from ${stageLabels[from] ?? from} to ${stageLabels[next] ?? next}. Next allowed: ${allowed || "none"}.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    const { error } = await supabase.from("leads").update({ status: next as any }).eq("id", leadId);
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
-    } else {
-      load();
-      if (selectedLead?.id === leadId) {
-        setSelectedLead(prev => prev ? { ...prev, status: newStatus } : null);
-      }
+      return;
+    }
+    if (from !== next) await recordLeadTransition(leadId, from, next);
+    load();
+    if (selectedLead?.id === leadId) {
+      setSelectedLead((prev) => (prev ? { ...prev, status: next as any } : null));
+    }
+  };
+
+  const handleConvertToPipeline = async (lead: Lead) => {
+    // Validate required application fields
+    const missing: string[] = [];
+    if (!(lead as any).property_address) missing.push("Property address");
+    if (!(lead as any).loan_amount && !lead.property_value) missing.push("Loan amount");
+    if (!lead.loan_purpose) missing.push("Loan purpose / application data");
+    if (missing.length) {
+      toast({
+        title: "Cannot move to pipeline",
+        description: `Missing required fields: ${missing.join(", ")}.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    const from = normalizeStatus(lead.status);
+    if (from !== "qualified") {
+      toast({ title: "Only qualified leads can be converted", variant: "destructive" });
+      return;
+    }
+    const { error } = await supabase.from("leads").update({ status: "application_sent" as any }).eq("id", lead.id);
+    if (error) {
+      toast({ title: "Conversion failed", description: error.message, variant: "destructive" });
+      return;
+    }
+    await supabase.from("lead_events").insert({
+      lead_id: lead.id,
+      event_type: "moved_to_pipeline",
+      points: 0,
+      metadata: { note: "Moved to pipeline — application completed", from_status: from, to_status: "application_sent" } as any,
+    });
+    try { await enqueueLosSync(lead.id); } catch (e) { console.warn("LOS enqueue failed", e); }
+    await recordLeadTransition(lead.id, from, "application_sent");
+    toast({ title: "Moved to pipeline", description: "Application Complete — opportunity is now in Application Sent." });
+    load();
+    if (selectedLead?.id === lead.id) {
+      setSelectedLead((prev) => (prev ? { ...prev, status: "application_sent" as any } : null));
     }
   };
 
@@ -565,11 +607,27 @@ export default function Leads() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {statuses.map(s => (
-                          <SelectItem key={s} value={s} className="capitalize">{s}</SelectItem>
-                        ))}
+                        {(() => {
+                          const current = normalizeStatus(selectedLead.status);
+                          const allowed = new Set([current, ...getAllowedNext("lead", current)]);
+                          return statuses.map(s => (
+                            <SelectItem key={s} value={s} disabled={!allowed.has(s)} className="capitalize">
+                              {stageLabels[s] ?? s}
+                            </SelectItem>
+                          ));
+                        })()}
                       </SelectContent>
                     </Select>
+                    {normalizeStatus(selectedLead.status) === "qualified" && (
+                      <Button
+                        size="sm"
+                        className="mt-2 w-full bg-emerald-600 hover:bg-emerald-600/90 text-white border-2 border-emerald-700/40 shadow-sm gap-1.5"
+                        onClick={() => handleConvertToPipeline(selectedLead)}
+                      >
+                        <ArrowRightCircle className="h-4 w-4" />
+                        Application Complete — Move to Pipeline
+                      </Button>
+                    )}
                   </div>
 
                   <Separator />

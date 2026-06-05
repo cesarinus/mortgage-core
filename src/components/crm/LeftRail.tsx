@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { getAllowedNext, normalizeStatus } from "@/lib/crm/stateMachine";
+import { UNIFIED_STAGES, STAGE_LABELS } from "@/lib/crm/stages";
 
 type ActionKey = "note" | "email" | "call" | "task" | "meeting" | "upload";
 
@@ -30,11 +31,7 @@ const actionList: { key: ActionKey; label: string; Icon: any }[] = [
   { key: "upload", label: "Upload", Icon: Upload },
 ];
 
-const LEAD_STATUSES = [
-  "new", "contacted", "qualified", "pre_qualified",
-  "application_started", "underwriting", "approved",
-  "closed", "converted", "lost", "unqualified",
-];
+const LEAD_STATUSES = UNIFIED_STAGES;
 
 export function LeftRail({ record, kind, tags = [], onAction, onStatusChange }: Props) {
   const fullName = `${record?.first_name ?? ""} ${record?.last_name ?? ""}`.trim() || "(Unnamed)";
@@ -61,7 +58,7 @@ export function LeftRail({ record, kind, tags = [], onAction, onStatusChange }: 
           <div>
             <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">Status</div>
             {(() => {
-              const current = normalizeStatus(record?.status, "new");
+              const current = normalizeStatus(record?.status, "new_lead");
               const allowed = new Set([current, ...getAllowedNext("lead", current)]);
               return (
                 <Select value={current} onValueChange={onStatusChange}>
@@ -76,7 +73,7 @@ export function LeftRail({ record, kind, tags = [], onAction, onStatusChange }: 
                         disabled={!allowed.has(s)}
                         className="capitalize"
                       >
-                        {s.replace(/_/g, " ")}
+                        {STAGE_LABELS[s] ?? s.replace(/_/g, " ")}
                       </SelectItem>
                     ))}
               </SelectContent>
