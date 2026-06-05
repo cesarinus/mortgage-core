@@ -1,9 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Building2, Briefcase, Paperclip, Plus, Download, FileText, Users } from "lucide-react";
+import { Building2, Briefcase, Paperclip, Plus, Download, FileText, Users, Pencil } from "lucide-react";
 import { format } from "date-fns";
 import { Link } from "react-router-dom";
+import { formatPhone } from "@/lib/format";
 
 interface Props {
   companies: any[];
@@ -13,10 +14,11 @@ interface Props {
   onUpload: () => void;
   onAddCompany: () => void;
   onAddContact?: () => void;
+  onEditCompanies?: () => void;
   onSignedUrl: (path: string) => Promise<string | null>;
 }
 
-export function RightRail({ companies, deals, attachments, contacts = [], onUpload, onAddCompany, onAddContact, onSignedUrl }: Props) {
+export function RightRail({ companies, deals, attachments, contacts = [], onUpload, onAddCompany, onAddContact, onEditCompanies, onSignedUrl }: Props) {
   return (
     <div className="space-y-4 sticky top-4 self-start">
       {onAddContact && (
@@ -35,6 +37,9 @@ export function RightRail({ companies, deals, attachments, contacts = [], onUplo
                 <div className="text-xs text-muted-foreground">
                   {lc.contact?.email ?? "—"}
                 </div>
+                {lc.contact?.phone && (
+                  <div className="text-xs text-muted-foreground">{formatPhone(lc.contact.phone)}</div>
+                )}
                 {lc.role && <Badge variant="outline" className="text-xs mt-1">{lc.role}</Badge>}
               </div>
             ))}
@@ -45,7 +50,14 @@ export function RightRail({ companies, deals, attachments, contacts = [], onUplo
       <Card>
         <CardHeader className="flex-row items-center justify-between space-y-0 pb-3">
           <CardTitle className="text-sm flex items-center gap-2"><Building2 className="h-4 w-4" /> Companies ({companies.length})</CardTitle>
-          <Button size="sm" variant="ghost" onClick={onAddCompany}><Plus className="h-3.5 w-3.5" /></Button>
+          <div className="flex items-center gap-1">
+            {onEditCompanies && (
+              <Button size="sm" variant="ghost" onClick={onEditCompanies} title="Edit companies">
+                <Pencil className="h-3.5 w-3.5" />
+              </Button>
+            )}
+            <Button size="sm" variant="ghost" onClick={onAddCompany} title="Add company"><Plus className="h-3.5 w-3.5" /></Button>
+          </div>
         </CardHeader>
         <CardContent className="pt-0 space-y-2 text-sm">
           {companies.length === 0 && <p className="text-muted-foreground text-xs">No companies linked.</p>}
