@@ -265,6 +265,38 @@ export function SmartLeadForm({ leadId, initial, sources = [], onSaved, onCancel
               </SelectContent>
             </Select>
           </Field>
+          <Field label="Loan type">
+            <Select
+              value={data.loan_type || ""}
+              onValueChange={(v) => {
+                set("loan_type", v as any);
+                if (v === "fha") {
+                  setDpMode("percent");
+                  const price = Number(data.property_value ?? 0);
+                  const pct = 3.5;
+                  setDpPct(pct);
+                  if (price > 0) set("down_payment", Math.round(price * pct / 100));
+                } else if (v === "va") {
+                  // VA allows 0% — leave as-is
+                } else if (v === "usda") {
+                  setDpMode("percent");
+                  setDpPct(0);
+                  set("down_payment", 0);
+                }
+              }}
+            >
+              <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="conventional">Conventional</SelectItem>
+                <SelectItem value="fha">FHA</SelectItem>
+                <SelectItem value="usda">USDA</SelectItem>
+                <SelectItem value="va">VA</SelectItem>
+              </SelectContent>
+            </Select>
+            {data.loan_type === "usda" && (
+              <p className="mt-1 text-[11px] text-muted-foreground">USDA loans typically require 0% down.</p>
+            )}
+          </Field>
           <Field label="Property type">
             <Select value={data.property_type || ""} onValueChange={v => set("property_type", v as any)}>
               <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
@@ -310,17 +342,78 @@ export function SmartLeadForm({ leadId, initial, sources = [], onSaved, onCancel
               onChange={e => set("property_value", e.target.value === "" ? null : Number(e.target.value))}
             />
           </Field>
-          <Field label={`Down payment: $${(data.down_payment ?? 0).toLocaleString()}`} className="col-span-2">
-            <Slider
-              value={[Number(data.down_payment ?? 0)]}
-              min={0} max={Math.max(500000, Number(data.property_value ?? 0))} step={1000}
-              onValueChange={(v) => set("down_payment", v[0])}
-            />
-            <Input
-              type="number" className="mt-2"
-              value={data.down_payment ?? ""}
-              onChange={e => set("down_payment", e.target.value === "" ? null : Number(e.target.value))}
-            />
+          <Field
+            label={`Down payment: $${(data.down_payment ?? 0).toLocaleString()}${
+              dpMode === "percent" && Number(data.property_value ?? 0) > 0
+                ? ` (${dpPct}%)`
+                : ""
+            }`}
+            className="col-span-2"
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <div className="inline-flex rounded-md border p-0.5 bg-muted/30">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDpMode("amount");
+                  }}
+                  className={`text-xs px-2.5 py-1 rounded ${dpMode === "amount" ? "bg-background shadow-sm" : "text-muted-foreground"}`}
+                >
+                  $ Amount
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const price = Number(data.property_value ?? 0);
+                    if (price <= 0) {
+                      toast({ title: "Enter Purchase Price first", variant: "destructive" });
+                      return;
+                    }
+                    setDpMode("percent");
+                    const pct = price > 0 ? Math.round(((Number(data.down_payment ?? 0)) / price) * 1000) / 10 : 0;
+                    const minPct = data.loan_type === "fha" ? 3.5 : 0;
+                    const finalPct = Math.max(minPct, pct);
+                    setDpPct(finalPct);
+                    set("down_payment", Math.round(price * finalPct / 100));
+                  }}
+                  className={`text-xs px-2.5 py-1 rounded ${dpMode === "percent" ? "bg-background shadow-sm" : "text-muted-foreground"}`}
+                >
+                  % of Purchase Price
+                </button>
+              </div>
+              {data.loan_type === "fha" && dpMode === "percent" && (
+                <span className="text-[11px] text-muted-foreground">FHA minimum 3.5%</span>
+              )}
+            </div>
+            {dpMode === "amount" ? (
+              <>
+                <Slider
+                  value={[Number(data.down_payment ?? 0)]}
+                  min={0} max={Math.max(500000, Number(data.property_value ?? 0))} step={1000}
+                  onValueChange={(v) => set("down_payment", v[0])}
+                />
+                <Input
+                  type="number" className="mt-2"
+                  value={data.down_payment ?? ""}
+                  onChange={e => set("down_payment", e.target.value === "" ? null : Number(e.target.value))}
+                />
+              </>
+            ) : (
+              <Input
+                type="number"
+                step="0.1"
+                min={data.loan_type === "fha" ? 3.5 : 0}
+                value={dpPct}
+                onChange={(e) => {
+                  const raw = e.target.value === "" ? 0 : Number(e.target.value);
+                  const minPct = data.loan_type === "fha" ? 3.5 : 0;
+                  const pct = Math.max(minPct, raw);
+                  setDpPct(pct);
+                  const price = Number(data.property_value ?? 0);
+                  set("down_payment", price > 0 ? Math.round(price * pct / 100) : 0);
+                }}
+              />
+            )}
           </Field>
           <Field label="Estimated credit range" className="col-span-2">
             <Select value={data.credit_range || ""} onValueChange={v => set("credit_range", v as any)}>
