@@ -148,6 +148,10 @@ export default function Leads() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
   const [newTag, setNewTag] = useState("");
+  const [editLead, setEditLead] = useState<{ lead: Lead; initial: IntakeData } | null>(null);
+  const [deleteLead, setDeleteLead] = useState<Lead | null>(null);
+  const [deleteBlock, setDeleteBlock] = useState<{ opps: number; contacts: number; portal: number } | null>(null);
+  const [deleteChecking, setDeleteChecking] = useState(false);
   const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -304,6 +308,51 @@ export default function Leads() {
     await supabase.from("lead_tags").delete().eq("id", tagId);
     const { data } = await supabase.from("lead_tags").select("*");
     setTags((data as LeadTag[]) ?? []);
+  };
+
+  const openEdit = async (lead: Lead) => {
+    const { data: mp } = await supabase
+      .from("mortgage_profiles").select("*").eq("lead_id", lead.id).maybeSingle();
+    setEditLead({ lead, initial: intakeFromLead(lead, mp) });
+  };
+
+  const openDelete = async (lead: Lead) => {
+    setDeleteLead(lead);
+    setDeleteBlock(null);
+    setDeleteChecking(true);
+    const [{ count: opps }, { count: contacts }, { count: portal }] = await Promise.all([
+      supabase.from("pipeline_opportunities").select("id", { count: "exact", head: true }).eq("lead_id", lead.id),
+      supabase.from("lead_contacts").select("contact_id", { count: "exact", head: true }).eq("lead_id", lead.id),
+      supabase.from("portal_users").select("user_id", { count: "exact", head: true }).eq("lead_id", lead.id as any),
+    ]);
+    setDeleteBlock({ opps: opps ?? 0, contacts: contacts ?? 0, portal: portal ?? 0 });
+    setDeleteChecking(false);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteLead) return;
+    const snapshot = deleteLead;
+    // Optimistic remove from list, then hard delete with undo window.
+    setLeads((prev) => prev.filter((x) => x.id !== snapshot.id));
+    setDeleteLead(null);
+    setDeleteBlock(null);
+
+    let undone = false;
+    sonnerToast(`Deleted ${snapshot.first_name} ${snapshot.last_name}`, {
+      duration: 5000,
+      action: {
+        label: "Undo",
+        onClick: () => { undone = true; },
+      },
+    });
+    setTimeout(async () => {
+      if (undone) { load(); return; }
+      const { error } = await supabase.from("leads").delete().eq("id", snapshot.id);
+      if (error) {
+        toast({ title: "Delete failed", description: error.message, variant: "destructive" });
+        load();
+      }
+    }, 5000);
   };
 
   const getLeadTags = (leadId: string) => tags.filter(t => t.lead_id === leadId);
