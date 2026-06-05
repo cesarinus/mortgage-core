@@ -19,6 +19,9 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { SmartLeadForm } from "@/components/crm/SmartLeadForm";
 import { intakeFromLead } from "@/lib/crm/leadIntake";
 import { AssistantLauncher } from "@/components/chat/AssistantLauncher";
+import { AssistantPanel } from "@/components/chat/AssistantPanel";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Sparkles as SparklesIcon } from "lucide-react";
 import {
   NoteModal, TaskModal, CallModal, MeetingModal, EmailModal, UploadModal,
 } from "@/components/crm/actions/ActionModals";
@@ -55,6 +58,12 @@ export default function RecordWorkspace({ kind }: Props) {
   const [intakeOpen, setIntakeOpen] = useState(false);
   const [sources, setSources] = useState<{ id: string; name: string }[]>([]);
   const { toast } = useToast();
+  const isMobile = useIsMobile();
+  const [chatOpen, setChatOpen] = useState(true);
+  useEffect(() => {
+    // Default-open on desktop when viewing a lead; mobile stays closed (bottom sheet).
+    setChatOpen(kind === "lead" && !isMobile);
+  }, [kind, isMobile, id]);
 
   const loadAll = useCallback(async () => {
     if (!id) return;
@@ -304,7 +313,10 @@ export default function RecordWorkspace({ kind }: Props) {
 
   return (
     <>
-    <div className="p-4 md:p-6 max-w-[1600px] mx-auto">
+    <div
+      className="p-4 md:p-6 max-w-[1600px] mx-auto transition-[padding] duration-200"
+      style={{ paddingRight: kind === "lead" && chatOpen && !isMobile ? 400 : undefined }}
+    >
       <div className="grid grid-cols-12 gap-4">
         <aside className="col-span-12 lg:col-span-3">
           <LeftRail
@@ -451,7 +463,29 @@ export default function RecordWorkspace({ kind }: Props) {
         </Sheet>
       )}
     </div>
-    <AssistantLauncher scope="crm" recordKind={kind} recordId={id} />
+    {kind === "lead" ? (
+      <>
+        <AssistantPanel
+          scope="crm"
+          recordKind={kind}
+          recordId={id}
+          open={chatOpen}
+          onClose={() => setChatOpen(false)}
+        />
+        {!chatOpen && (
+          <Button
+            onClick={() => setChatOpen(true)}
+            size="icon"
+            className="fixed bottom-6 right-6 z-30 h-12 w-12 rounded-full shadow-lg"
+            title="Open AI Assistant"
+          >
+            <SparklesIcon className="h-5 w-5" />
+          </Button>
+        )}
+      </>
+    ) : (
+      <AssistantLauncher scope="crm" recordKind={kind} recordId={id} />
+    )}
     </>
   );
 }
