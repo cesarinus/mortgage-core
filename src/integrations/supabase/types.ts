@@ -2839,6 +2839,7 @@ export type Database = {
       }
       is_admin: { Args: never; Returns: boolean }
       is_portal_user_for_deal: { Args: { _deal_id: string }; Returns: boolean }
+      run_document_reminders: { Args: never; Returns: number }
       user_owns_contact: { Args: { _contact_id: string }; Returns: boolean }
       user_owns_lead: { Args: { _lead_id: string }; Returns: boolean }
     }
