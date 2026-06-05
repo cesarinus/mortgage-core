@@ -349,6 +349,38 @@ export type Database = {
           },
         ]
       }
+      chat_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          role: string
+          thread_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          role: string
+          thread_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          role?: string
+          thread_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_thread_id_fkey"
+            columns: ["thread_id"]
+            isOneToOne: false
+            referencedRelation: "chat_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chat_sessions: {
         Row: {
           created_at: string
@@ -392,6 +424,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      chat_threads: {
+        Row: {
+          created_at: string
+          id: string
+          record_id: string | null
+          record_kind: string | null
+          scope: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          record_id?: string | null
+          record_kind?: string | null
+          scope: string
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          record_id?: string | null
+          record_kind?: string | null
+          scope?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       contacts: {
         Row: {
@@ -1867,6 +1932,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          assistant_enabled: boolean
           avatar_url: string | null
           created_at: string
           email: string | null
@@ -1876,6 +1942,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          assistant_enabled?: boolean
           avatar_url?: string | null
           created_at?: string
           email?: string | null
@@ -1885,6 +1952,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          assistant_enabled?: boolean
           avatar_url?: string | null
           created_at?: string
           email?: string | null

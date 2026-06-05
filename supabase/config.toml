@@ -40,3 +40,6 @@ verify_jwt = false
 
 [functions.social-approval-queue]
 verify_jwt = false
+
+[functions.chat-completion]
+verify_jwt = true

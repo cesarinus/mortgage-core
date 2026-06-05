@@ -7,12 +7,14 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import BookingAvailabilitySettings from "@/components/settings/BookingAvailabilitySettings";
+import { Switch } from "@/components/ui/switch";
 
 export default function SettingsPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [assistantEnabled, setAssistantEnabled] = useState(true);
 
   useEffect(() => {
     if (!user) return;
@@ -20,13 +22,17 @@ export default function SettingsPage() {
       if (data) {
         setFirstName(data.first_name ?? "");
         setLastName(data.last_name ?? "");
+        setAssistantEnabled((data as any).assistant_enabled ?? true);
       }
     });
   }, [user]);
 
   const saveProfile = async () => {
     if (!user) return;
-    const { error } = await supabase.from("profiles").update({ first_name: firstName, last_name: lastName }).eq("id", user.id);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ first_name: firstName, last_name: lastName, assistant_enabled: assistantEnabled } as any)
+      .eq("id", user.id);
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
@@ -61,6 +67,21 @@ export default function SettingsPage() {
             </div>
           </div>
           <Button onClick={saveProfile}>Save changes</Button>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>AI Assistant</CardTitle>
+          <CardDescription>Show the floating AI assistant inside the CRM and Borrower Portal.</CardDescription>
+        </CardHeader>
+        <CardContent className="flex items-center justify-between">
+          <div className="space-y-0.5">
+            <Label>Enable assistant</Label>
+            <p className="text-xs text-muted-foreground">
+              When off, the assistant launcher and chat panel are hidden everywhere for your account.
+            </p>
+          </div>
+          <Switch checked={assistantEnabled} onCheckedChange={setAssistantEnabled} />
         </CardContent>
       </Card>
       <BookingAvailabilitySettings />

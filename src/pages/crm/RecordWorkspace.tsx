@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { SmartLeadForm } from "@/components/crm/SmartLeadForm";
 import { intakeFromLead } from "@/lib/crm/leadIntake";
+import { AssistantLauncher } from "@/components/chat/AssistantLauncher";
 import {
   NoteModal, TaskModal, CallModal, MeetingModal, EmailModal, UploadModal,
 } from "@/components/crm/actions/ActionModals";
@@ -302,6 +303,7 @@ export default function RecordWorkspace({ kind }: Props) {
   if (!record) return <div className="p-10 text-center text-muted-foreground">Record not found.</div>;
 
   return (
+    <>
     <div className="p-4 md:p-6 max-w-[1600px] mx-auto">
       <div className="grid grid-cols-12 gap-4">
         <aside className="col-span-12 lg:col-span-3">
@@ -449,5 +451,7 @@ export default function RecordWorkspace({ kind }: Props) {
         </Sheet>
       )}
     </div>
+    <AssistantLauncher scope="crm" recordKind={kind} recordId={id} />
+    </>
   );
 }
