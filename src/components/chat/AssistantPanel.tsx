@@ -6,7 +6,7 @@ import remarkGfm from "remark-gfm";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Card } from "@/components/ui/card";
 import { Sparkles, Send, Plus, MessageSquare, X, Trash2 } from "lucide-react";
