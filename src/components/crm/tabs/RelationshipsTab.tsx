@@ -120,83 +120,10 @@ export function RelationshipsTab({ kind, recordId, linkedContacts, companies, on
         <TabsContent value="people" className="mt-4">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-          <CardTitle className="text-base">
-            {kind === "lead" ? "People linked to this lead" : "Leads linked to this contact"}
-          </CardTitle>
-          {kind === "lead" && (
-            <div className="flex gap-2">
-              <Button size="sm" variant="outline" onClick={() => setLinkContact(true)}>
-                <UserPlus className="h-4 w-4 mr-1" /> Add person
-              </Button>
-            </div>
-          )}
+          <CardTitle className="text-base">Leads linked to this contact</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
-          {kind === "lead" && (linkedContacts.length === 0
-            ? <p className="text-sm text-muted-foreground">No contacts linked yet.</p>
-            : linkedContacts.map((row: any) => (
-              <div key={row.id} className="flex items-center justify-between gap-3 rounded border p-3">
-                <div className="min-w-0">
-                  <div className="font-medium text-sm truncate">
-                    {row.is_primary && (
-                      <Star className="inline-block h-3.5 w-3.5 mr-1 text-amber-500 fill-amber-500" />
-                    )}
-                    {row.contact?.first_name} {row.contact?.last_name}
-                    {row.role_on_deal && (
-                      <Badge className={`ml-2 text-[10px] capitalize ${ROLE_BADGE[row.role_on_deal] ?? "bg-muted text-muted-foreground"}`}>
-                        {fmtLabel(row.role_on_deal)}
-                      </Badge>
-                    )}
-                    {!row.role_on_deal && row.contact?.contact_type && (
-                      <Badge variant="secondary" className="ml-2 text-[10px]">{row.contact.contact_type}</Badge>
-                    )}
-                  </div>
-                  <div className="text-xs text-muted-foreground truncate">
-                    {row.contact?.job_title ? `${row.contact.job_title} · ` : ""}{row.contact?.email ?? "—"}
-                  </div>
-                  <div className="text-xs mt-1">
-                    {editingRole === row.id ? (
-                      <div className="flex items-center gap-1">
-                        <Select value={roleDraft} onValueChange={setRoleDraft}>
-                          <SelectTrigger className="h-7 text-xs w-48"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            {ROLE_ON_DEAL_OPTIONS.map(o => (
-                              <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <Button size="sm" className="h-7" onClick={() => saveRole(row.id)}>Save</Button>
-                        <Button size="sm" variant="ghost" className="h-7" onClick={() => setEditingRole(null)}>Cancel</Button>
-                      </div>
-                    ) : (
-                      <span className="text-muted-foreground">Role: {fmtLabel(row.role_on_deal) || row.role || "—"}</span>
-                    )}
-                  </div>
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  {row.contact_id && (
-                    <Button asChild size="icon" variant="ghost" title="Open contact">
-                      <Link to={`/crm/contacts/${row.contact_id}`}><ExternalLink className="h-4 w-4" /></Link>
-                    </Button>
-                  )}
-                  {!row.is_primary && row.contact_id && (
-                    <Button size="icon" variant="ghost" title="Make primary"
-                      onClick={() => setPrimary(row.id, recordId, row.contact_id)}>
-                      <Star className="h-4 w-4" />
-                    </Button>
-                  )}
-                  <Button size="icon" variant="ghost" title="Change role"
-                    onClick={() => { setEditingRole(row.id); setRoleDraft(row.role_on_deal ?? "other"); }}>
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button size="icon" variant="ghost" title="Unlink" onClick={() => unlinkContact(row.id)}>
-                    <Unlink className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            ))
-          )}
-          {kind === "contact" && (contactLeads.length === 0
+          {contactLeads.length === 0
             ? <p className="text-sm text-muted-foreground">No leads linked yet.</p>
             : contactLeads.map((row: any) => (
               <div key={row.id} className="flex items-center justify-between gap-3 rounded border p-3">
@@ -222,7 +149,7 @@ export function RelationshipsTab({ kind, recordId, linkedContacts, companies, on
                 </div>
               </div>
             ))
-          )}
+          }
         </CardContent>
       </Card>
         </TabsContent>
