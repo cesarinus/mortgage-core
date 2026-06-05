@@ -598,9 +598,27 @@ export default function Leads() {
                           <DropdownMenuItem onClick={() => setSelectedLead(l)}>
                             <Eye className="h-3.5 w-3.5 mr-2" /> View
                           </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => navigate(`/crm/leads/${l.id}`)}>
+                            <ArrowUpRightSquare className="h-3.5 w-3.5 mr-2" /> Open Workspace
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => openEdit(l)}>
                             <Pencil className="h-3.5 w-3.5 mr-2" /> Edit
                           </DropdownMenuItem>
+                          {l.email && (
+                            <DropdownMenuItem
+                              onClick={() => {
+                                navigator.clipboard.writeText(l.email!);
+                                sonnerToast.success("Email copied");
+                              }}
+                            >
+                              <Copy className="h-3.5 w-3.5 mr-2" /> Copy Email
+                            </DropdownMenuItem>
+                          )}
+                          {normalizeStatus(l.status) === "qualified" && (
+                            <DropdownMenuItem onClick={() => handleConvertToPipeline(l)}>
+                              <ArrowRightCircle className="h-3.5 w-3.5 mr-2" /> Move to Pipeline
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
                             className="text-destructive focus:text-destructive"
