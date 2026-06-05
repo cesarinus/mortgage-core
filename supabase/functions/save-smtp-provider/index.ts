@@ -24,14 +24,11 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 
-  const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-  const { data: isAdmin } = await admin.rpc("has_role", { _role: "admin" }).then(() => ({ data: true })).catch(() => ({ data: false }));
-  // Re-check using user context to enforce
-  const { data: roles } = await userClient.from("user_roles").select("role").eq("user_id", claims.claims.sub);
-  const adminOk = (roles ?? []).some((r: any) => r.role === "admin");
-  if (!adminOk) {
+  const { data: isAdmin } = await userClient.rpc("has_role", { _role: "admin" });
+  if (!isAdmin) {
     return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
+  const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
   const body = await req.json().catch(() => ({}));
   const { id, name = "Titan", host, port = 587, username, password, from_email, from_name = "NGCapital Mortgage", is_active = true } = body || {};
