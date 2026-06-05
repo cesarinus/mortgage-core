@@ -1,6 +1,9 @@
 import {
   LayoutDashboard, Users, Contact, Kanban, Settings, LogOut, Building2, FileText, TrendingUp, Share2, Mail, MailPlus,
+  ChevronRight, BookUser,
 } from "lucide-react";
+import { useState } from "react";
+import { useLocation } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -8,11 +11,12 @@ import {
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarFooter, SidebarHeader,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { cn } from "@/lib/utils";
 
 const navItems: { title: string; url: string; icon: any; adminOnly?: boolean }[] = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Leads", url: "/leads", icon: Users },
-  { title: "Contacts", url: "/contacts", icon: Contact },
   { title: "Pipeline", url: "/pipeline", icon: Kanban },
   { title: "Blog Manager", url: "/blog-admin", icon: FileText, adminOnly: true },
   { title: "Social Media", url: "/admin/social-media", icon: Share2, adminOnly: true },
@@ -22,9 +26,17 @@ const navItems: { title: string; url: string; icon: any; adminOnly?: boolean }[]
   { title: "Settings", url: "/settings", icon: Settings },
 ];
 
+const contactsChildren = [
+  { title: "People", url: "/contacts/people", icon: BookUser },
+  { title: "Companies", url: "/contacts/companies", icon: Building2 },
+];
+
 export function AppSidebar() {
   const { signOut, user, role } = useAuth();
   const visibleItems = navItems.filter((i) => !i.adminOnly || role === "admin");
+  const { pathname } = useLocation();
+  const contactsActive = pathname.startsWith("/contacts");
+  const [contactsOpen, setContactsOpen] = useState(contactsActive);
 
   return (
     <Sidebar className="border-r-0">
@@ -64,6 +76,39 @@ export function AppSidebar() {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
+              {/* Contacts parent with collapsible submenu */}
+              <SidebarMenuItem>
+                <Collapsible open={contactsOpen} onOpenChange={setContactsOpen}>
+                  <CollapsibleTrigger asChild>
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                    >
+                      <Contact className="h-4 w-4" />
+                      <span className="flex-1 text-left">Contacts</span>
+                      <ChevronRight className={cn("h-3.5 w-3.5 transition-transform", contactsOpen && "rotate-90")} />
+                    </button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <SidebarMenu className="ml-4 mt-1 border-l border-sidebar-border/60 pl-2">
+                      {contactsChildren.map((child) => (
+                        <SidebarMenuItem key={child.url}>
+                          <SidebarMenuButton asChild>
+                            <NavLink
+                              to={child.url}
+                              className="flex items-center gap-3 rounded-lg px-3 py-1.5 text-sm text-sidebar-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                              activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
+                            >
+                              <child.icon className="h-4 w-4" />
+                              <span>{child.title}</span>
+                            </NavLink>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      ))}
+                    </SidebarMenu>
+                  </CollapsibleContent>
+                </Collapsible>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
