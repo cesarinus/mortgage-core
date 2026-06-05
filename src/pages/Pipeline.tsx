@@ -27,6 +27,8 @@ type Lead = {
   email: string | null;
   status: string;
   property_value: number | null;
+  property_address: string | null;
+  loan_amount: number | null;
   created_at: string;
   company_id: string | null;
   notes: string | null;
@@ -126,6 +128,7 @@ function assemble(
 
   const profile = profilesByLead.get(lead.id);
   const amount =
+    lead.loan_amount ??
     lead.property_value ??
     profile?.purchase_price ??
     profile?.est_monthly_payment ??
@@ -134,7 +137,7 @@ function assemble(
   return {
     lead,
     amount,
-    propertyAddress: null, // no column on leads; left as "—"
+    propertyAddress: lead.property_address ?? null,
     primary: { contact: primaryContact, email: primaryEmail, name: primaryName },
     company,
     titleCompany,
