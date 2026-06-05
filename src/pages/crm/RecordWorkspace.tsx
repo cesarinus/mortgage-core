@@ -236,7 +236,7 @@ export default function RecordWorkspace({ kind }: Props) {
         lost: "lost",
         unqualified: "lost",
       };
-      const mappedStage = leadToDealStage[newStatus];
+      const mappedStage = leadToDealStage[next];
       if (mappedStage) {
         try {
           const { data: lcs } = await supabase
