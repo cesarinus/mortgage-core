@@ -310,7 +310,7 @@ export default function RecordWorkspace({ kind }: Props) {
             </div>
           )}
           <Tabs defaultValue="catch-up">
-            <TabsList className={`w-full grid ${kind === "lead" ? (fromPipeline ? "grid-cols-6" : "grid-cols-7") : "grid-cols-6"}`}>
+            <TabsList className={`w-full grid ${kind === "lead" ? "grid-cols-6" : "grid-cols-6"}`}>
               <TabsTrigger value="catch-up">Catch-up</TabsTrigger>
               <TabsTrigger value="activities">Activities</TabsTrigger>
               {kind === "lead" && (
@@ -327,7 +327,7 @@ export default function RecordWorkspace({ kind }: Props) {
               <TabsTrigger value="documents" className="flex items-center gap-1.5">
                 <FileCheck2 className="h-3.5 w-3.5" /> Documents
               </TabsTrigger>
-              {!fromPipeline && (
+              {kind === "contact" && (
                 <TabsTrigger value="relationships" className="flex items-center gap-1.5">
                   <Users className="h-3.5 w-3.5" /> Relationships
                 </TabsTrigger>
