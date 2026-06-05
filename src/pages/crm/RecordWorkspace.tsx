@@ -224,17 +224,16 @@ export default function RecordWorkspace({ kind }: Props) {
       }
       // Sync any linked deals' stage so the Pipeline kanban reflects this change.
       const leadToDealStage: Record<string, string> = {
-        new: "new_lead",
+        new_lead: "new_lead",
         contacted: "contacted",
-        pre_qualified: "contacted",
+        prequalified: "contacted",
         qualified: "contacted",
-        application_started: "application_sent",
+        application_sent: "application_sent",
         underwriting: "underwriting",
         approved: "approved",
-        converted: "closed",
+        clear_to_close: "clear_to_close",
         closed: "closed",
         lost: "lost",
-        unqualified: "lost",
       };
       const mappedStage = leadToDealStage[next];
       if (mappedStage) {
