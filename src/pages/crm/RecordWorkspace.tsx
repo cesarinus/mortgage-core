@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { useParams, Navigate } from "react-router-dom";
+import { useParams, Navigate, useLocation } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -26,6 +26,11 @@ import {
   NoteModal, TaskModal, CallModal, MeetingModal, EmailModal, UploadModal,
 } from "@/components/crm/actions/ActionModals";
 import { LinkContactModal, LinkCompanyModal } from "@/components/crm/actions/LinkContactCompanyModals";
+import { CompaniesEditDrawer } from "@/components/crm/CompaniesEditDrawer";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { PIPELINE_STAGES, PIPELINE_STAGE_LABELS } from "@/lib/crm/stages";
 import {
   fetchActivities, fetchAttachments, fetchCompanies, fetchContact, fetchDeals, fetchLeadContacts,
   fetchDocCategories, fetchEmailLogs, fetchLead, fetchMortgageProfile, fetchSentiment, fetchTags,
@@ -39,6 +44,8 @@ interface Props { kind: "lead" | "contact" }
 
 export default function RecordWorkspace({ kind }: Props) {
   const { id } = useParams<{ id: string }>();
+  const location = useLocation();
+  const fromPipeline = (location.state as any)?.from === "pipeline";
   const { user } = useAuth();
   const [record, setRecord] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
@@ -50,6 +57,7 @@ export default function RecordWorkspace({ kind }: Props) {
   const [companies, setCompanies] = useState<any[]>([]);
   const [deals, setDeals] = useState<any[]>([]);
   const [opportunities, setOpportunities] = useState<any[]>([]);
+  const [primaryOpp, setPrimaryOpp] = useState<any | null>(null);
   const [linkedContacts, setLinkedContacts] = useState<any[]>([]);
   const [tags, setTags] = useState<any[]>([]);
   const [mortgage, setMortgage] = useState<any | null>(null);
@@ -57,6 +65,9 @@ export default function RecordWorkspace({ kind }: Props) {
   const [categories, setCategories] = useState<any[]>([]);
   const [modal, setModal] = useState<null | "note" | "email" | "call" | "task" | "meeting" | "upload" | "linkContact" | "linkCompany">(null);
   const [intakeOpen, setIntakeOpen] = useState(false);
+  const [oppEditOpen, setOppEditOpen] = useState(false);
+  const [companiesEditOpen, setCompaniesEditOpen] = useState(false);
+  const [oppDraft, setOppDraft] = useState<{ stage: string; property_address: string }>({ stage: "application_sent", property_address: "" });
   const [sources, setSources] = useState<{ id: string; name: string }[]>([]);
   const { toast } = useToast();
   const isMobile = useIsMobile();
@@ -153,13 +164,16 @@ export default function RecordWorkspace({ kind }: Props) {
           .from("pipeline_opportunities")
           .select("*")
           .eq("lead_id", leadId);
-        setOpportunities((opps ?? []).map((o: any) => ({
+        const list = opps ?? [];
+        setPrimaryOpp(list[0] ?? null);
+        setOpportunities(list.map((o: any) => ({
           id: o.id,
           loan_type: o.property_address ? `Mortgage — ${o.property_address}` : "Mortgage deal",
           stage: o.stage,
           loan_amount: o.loan_amount,
         })));
       } else {
+        setPrimaryOpp(null);
         setOpportunities([]);
       }
     } catch (e: any) {
@@ -207,6 +221,24 @@ export default function RecordWorkspace({ kind }: Props) {
 
   const handleStatusChange = async (newStatus: string) => {
     if (!id || kind !== "lead") return;
+    if (fromPipeline) {
+      // Pipeline mode: update pipeline_opportunities.stage only.
+      if (!primaryOpp?.id) {
+        toast({ title: "No pipeline opportunity", description: "Move this lead to the pipeline first.", variant: "destructive" });
+        return;
+      }
+      const prevStage = primaryOpp.stage;
+      setPrimaryOpp((p: any) => p ? { ...p, stage: newStatus } : p);
+      const { error } = await supabase.from("pipeline_opportunities").update({ stage: newStatus }).eq("id", primaryOpp.id);
+      if (error) {
+        setPrimaryOpp((p: any) => p ? { ...p, stage: prevStage } : p);
+        toast({ title: "Failed to update stage", description: error.message, variant: "destructive" });
+      } else {
+        toast({ title: "Pipeline stage updated", description: PIPELINE_STAGE_LABELS[newStatus] ?? newStatus });
+        loadAll();
+      }
+      return;
+    }
     const prev = normalizeStatus(record?.status, "new");
     const next = normalizeStatus(newStatus);
     if (prev === next) return;
@@ -263,7 +295,9 @@ export default function RecordWorkspace({ kind }: Props) {
             tags={tags}
             onAction={(k) => setModal(k)}
             onStatusChange={kind === "lead" ? handleStatusChange : undefined}
-            onEdit={kind === "lead" ? () => setIntakeOpen(true) : undefined}
+            onEdit={kind === "lead" ? () => (fromPipeline ? (setOppDraft({ stage: primaryOpp?.stage ?? "application_sent", property_address: primaryOpp?.property_address ?? "" }), setOppEditOpen(true)) : setIntakeOpen(true)) : undefined}
+            opportunity={primaryOpp}
+            pipelineMode={kind === "lead" && fromPipeline}
           />
         </aside>
 
@@ -276,7 +310,7 @@ export default function RecordWorkspace({ kind }: Props) {
             </div>
           )}
           <Tabs defaultValue="catch-up">
-            <TabsList className={`w-full grid ${kind === "lead" ? "grid-cols-7" : "grid-cols-6"}`}>
+            <TabsList className={`w-full grid ${kind === "lead" ? (fromPipeline ? "grid-cols-6" : "grid-cols-7") : "grid-cols-6"}`}>
               <TabsTrigger value="catch-up">Catch-up</TabsTrigger>
               <TabsTrigger value="activities">Activities</TabsTrigger>
               {kind === "lead" && (
@@ -293,9 +327,11 @@ export default function RecordWorkspace({ kind }: Props) {
               <TabsTrigger value="documents" className="flex items-center gap-1.5">
                 <FileCheck2 className="h-3.5 w-3.5" /> Documents
               </TabsTrigger>
-              <TabsTrigger value="relationships" className="flex items-center gap-1.5">
-                <Users className="h-3.5 w-3.5" /> Relationships
-              </TabsTrigger>
+              {!fromPipeline && (
+                <TabsTrigger value="relationships" className="flex items-center gap-1.5">
+                  <Users className="h-3.5 w-3.5" /> Relationships
+                </TabsTrigger>
+              )}
             </TabsList>
             <TabsContent value="catch-up" className="mt-4">
               <CatchUpTab
@@ -339,15 +375,17 @@ export default function RecordWorkspace({ kind }: Props) {
             <TabsContent value="documents" className="mt-4">
               <DocumentsTab deals={deals} />
             </TabsContent>
-            <TabsContent value="relationships" className="mt-4">
-              <RelationshipsTab
-                kind={kind}
-                recordId={id}
-                linkedContacts={linkedContacts}
-                companies={companies}
-                onChanged={loadAll}
-              />
-            </TabsContent>
+            {!fromPipeline && (
+              <TabsContent value="relationships" className="mt-4">
+                <RelationshipsTab
+                  kind={kind}
+                  recordId={id}
+                  linkedContacts={linkedContacts}
+                  companies={companies}
+                  onChanged={loadAll}
+                />
+              </TabsContent>
+            )}
           </Tabs>
         </main>
 
@@ -360,6 +398,7 @@ export default function RecordWorkspace({ kind }: Props) {
             onUpload={() => setModal("upload")}
             onAddCompany={() => setModal("linkCompany")}
             onAddContact={kind === "lead" ? () => setModal("linkContact") : undefined}
+            onEditCompanies={kind === "lead" ? () => setCompaniesEditOpen(true) : undefined}
             onSignedUrl={onSignedUrl}
           />
         </aside>
@@ -374,6 +413,66 @@ export default function RecordWorkspace({ kind }: Props) {
       <UploadModal open={modal === "upload"} onClose={() => setModal(null)} leadId={kind === "lead" ? id : undefined} contactId={kind === "contact" ? id : undefined} onDone={loadAll} categories={categories} />
       <LinkContactModal open={modal === "linkContact"} onClose={() => setModal(null)} leadId={kind === "lead" ? id : undefined} onDone={loadAll} />
       <LinkCompanyModal open={modal === "linkCompany"} onClose={() => setModal(null)} leadId={kind === "lead" ? id : undefined} contactId={kind === "contact" ? id : undefined} onDone={loadAll} />
+
+      {kind === "lead" && (
+        <CompaniesEditDrawer
+          open={companiesEditOpen}
+          onClose={() => setCompaniesEditOpen(false)}
+          leadId={id}
+          companies={companies}
+          onChanged={loadAll}
+        />
+      )}
+
+      {kind === "lead" && fromPipeline && (
+        <Sheet open={oppEditOpen} onOpenChange={setOppEditOpen}>
+          <SheetContent className="w-full sm:max-w-md overflow-y-auto">
+            <SheetHeader className="mb-4">
+              <SheetTitle>Edit opportunity</SheetTitle>
+            </SheetHeader>
+            <div className="space-y-4">
+              <div>
+                <Label className="text-xs">Pipeline stage</Label>
+                <Select value={oppDraft.stage} onValueChange={(v) => setOppDraft((d) => ({ ...d, stage: v }))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {PIPELINE_STAGES.map((s) => (
+                      <SelectItem key={s} value={s}>{PIPELINE_STAGE_LABELS[s]}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-xs">Property address</Label>
+                <Input
+                  value={oppDraft.property_address}
+                  onChange={(e) => setOppDraft((d) => ({ ...d, property_address: e.target.value }))}
+                  placeholder="123 Main St, City, State"
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setOppEditOpen(false)}>Cancel</Button>
+                <Button
+                  onClick={async () => {
+                    if (!primaryOpp?.id) return;
+                    const { error } = await supabase
+                      .from("pipeline_opportunities")
+                      .update({ stage: oppDraft.stage, property_address: oppDraft.property_address || null })
+                      .eq("id", primaryOpp.id);
+                    if (error) {
+                      toast({ title: "Failed to save", description: error.message, variant: "destructive" });
+                    } else {
+                      toast({ title: "Opportunity updated" });
+                      setOppEditOpen(false);
+                      loadAll();
+                    }
+                  }}
+                >Save</Button>
+              </div>
+            </div>
+          </SheetContent>
+        </Sheet>
+      )}
 
       {kind === "lead" && (
         <Sheet open={intakeOpen} onOpenChange={setIntakeOpen}>
