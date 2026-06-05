@@ -12,6 +12,9 @@ import { Separator } from "@/components/ui/separator";
 import { Check, ChevronLeft, ChevronRight, Flame, Snowflake, ThermometerSun } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { Link } from "react-router-dom";
+import { AlertTriangle, ExternalLink } from "lucide-react";
 import {
   EMPTY_INTAKE, IntakeData, computeDti, computeScore, computeTemperature,
   deriveSignals, estimateMonthlyPayment, saveLeadIntake,
@@ -46,10 +49,43 @@ export function SmartLeadForm({ leadId, initial, sources = [], onSaved, onCancel
 
   const [contactsList, setContactsList] = useState<any[]>([]);
   const [companiesList, setCompaniesList] = useState<any[]>([]);
+  const [emailDup, setEmailDup] = useState<{ id: string; name: string; email: string } | null>(null);
+  const [checkingEmail, setCheckingEmail] = useState(false);
   useEffect(() => {
     fetchAllContacts().then(setContactsList).catch(() => {});
     fetchAllCompanies().then(setCompaniesList).catch(() => {});
   }, []);
+
+  // Real-time duplicate-email check (debounced). Excludes the currently-edited lead.
+  useEffect(() => {
+    const raw = (data.email ?? "").trim().toLowerCase();
+    if (!raw || !/^\S+@\S+\.\S+$/.test(raw)) { setEmailDup(null); return; }
+    setCheckingEmail(true);
+    const handle = setTimeout(async () => {
+      try {
+        let q = supabase
+          .from("leads")
+          .select("id, first_name, last_name, email")
+          .ilike("email", raw)
+          .limit(1);
+        if (leadId) q = q.neq("id", leadId);
+        const { data: rows } = await q;
+        const match = rows?.[0];
+        if (match) {
+          setEmailDup({
+            id: match.id as string,
+            name: `${(match as any).first_name ?? ""} ${(match as any).last_name ?? ""}`.trim() || "(no name)",
+            email: (match as any).email ?? raw,
+          });
+        } else {
+          setEmailDup(null);
+        }
+      } finally {
+        setCheckingEmail(false);
+      }
+    }, 350);
+    return () => clearTimeout(handle);
+  }, [data.email, leadId]);
 
   const contactItems = useMemo(() => contactsList.map((c: any) => ({
     id: c.id,
@@ -81,6 +117,10 @@ export function SmartLeadForm({ leadId, initial, sources = [], onSaved, onCancel
 
   const submit = async () => {
     if (!user?.id) { toast({ title: "Not authenticated", variant: "destructive" }); return; }
+    if (emailDup) {
+      toast({ title: "Duplicate email", description: "Resolve the duplicate before saving.", variant: "destructive" });
+      return;
+    }
     setSaving(true);
     try {
       const result = await saveLeadIntake(user.id, leadId ?? null, data);
