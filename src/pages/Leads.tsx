@@ -23,8 +23,18 @@ import { Link, useNavigate } from "react-router-dom";
 import type { Tables, Enums } from "@/integrations/supabase/types";
 import { SmartLeadForm } from "@/components/crm/SmartLeadForm";
 import { AssistantLauncher } from "@/components/chat/AssistantLauncher";
-import { UNIFIED_STAGES, STAGE_LABELS as UNIFIED_LABELS, STAGE_BADGE as UNIFIED_BADGE, enqueueLosSync } from "@/lib/crm/stages";
-import { getAllowedNext, isTransitionAllowedSync, normalizeStatus, recordLeadTransition } from "@/lib/crm/stateMachine";
+import {
+  LEAD_STATUSES,
+  LEAD_STATUS_LABELS,
+  LEAD_STATUS_BADGE,
+  enqueueLosSync,
+} from "@/lib/crm/stages";
+import {
+  getAllowedNext,
+  isTransitionAllowedSync,
+  normalizeStatus,
+  recordLeadTransition,
+} from "@/lib/crm/stateMachine";
 import { ArrowRightCircle } from "lucide-react";
 
 type Lead = Tables<"leads">;
@@ -46,10 +56,9 @@ interface LeadTag {
   created_at: string;
 }
 
-// Unified stage list shared with the Pipeline view.
-const LEAD_STATUSES = UNIFIED_STAGES;
-const statusColors = UNIFIED_BADGE;
-const stageLabels = UNIFIED_LABELS;
+// Lead-only status list — Pipeline opportunities live in their own table.
+const statusColors = LEAD_STATUS_BADGE;
+const stageLabels = LEAD_STATUS_LABELS;
 
 const eventIcons: Record<string, typeof Eye> = {
   blog_view: Eye,
@@ -122,6 +131,7 @@ export default function Leads() {
   const [sources, setSources] = useState<LeadSource[]>([]);
   const [events, setEvents] = useState<LeadEvent[]>([]);
   const [tags, setTags] = useState<LeadTag[]>([]);
+  const [opportunityLeadIds, setOpportunityLeadIds] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
@@ -135,14 +145,16 @@ export default function Leads() {
   const navigate = useNavigate();
 
   const load = async () => {
-    const [{ data: l }, { data: s }, { data: t }] = await Promise.all([
+    const [{ data: l }, { data: s }, { data: t }, { data: opps }] = await Promise.all([
       supabase.from("leads").select("*").order("created_at", { ascending: false }),
       supabase.from("lead_sources").select("*").order("name"),
       supabase.from("lead_tags").select("*"),
+      supabase.from("pipeline_opportunities").select("lead_id"),
     ]);
     setLeads(l ?? []);
     setSources(s ?? []);
     setTags((t as LeadTag[]) ?? []);
+    setOpportunityLeadIds(new Set(((opps ?? []) as any[]).map((o) => o.lead_id)));
   };
 
   const loadEvents = async (leadId: string) => {
@@ -200,42 +212,71 @@ export default function Leads() {
   };
 
   const handleConvertToPipeline = async (lead: Lead) => {
-    // Validate required application fields
-    const missing: string[] = [];
-    if (!(lead as any).property_address) missing.push("Property address");
-    if (!(lead as any).loan_amount && !lead.property_value) missing.push("Loan amount");
-    if (!lead.loan_purpose) missing.push("Loan purpose / application data");
-    if (missing.length) {
+    // Validate: property address + at least one linked contact.
+    if (!(lead as any).property_address) {
       toast({
         title: "Cannot move to pipeline",
-        description: `Missing required fields: ${missing.join(", ")}.`,
+        description: "Please add a property address and link a contact before moving to Pipeline.",
+        variant: "destructive",
+      });
+      return;
+    }
+    const { data: linkedContacts } = await supabase
+      .from("lead_contacts")
+      .select("contact_id, is_primary")
+      .eq("lead_id", lead.id);
+    if (!linkedContacts || linkedContacts.length === 0) {
+      toast({
+        title: "Cannot move to pipeline",
+        description: "Please add a property address and link a contact before moving to Pipeline.",
         variant: "destructive",
       });
       return;
     }
     const from = normalizeStatus(lead.status);
     if (from !== "qualified") {
-      toast({ title: "Only qualified leads can be converted", variant: "destructive" });
+      toast({ title: "Only qualified leads can be moved to Pipeline", variant: "destructive" });
       return;
     }
-    const { error } = await supabase.from("leads").update({ status: "application_sent" as any }).eq("id", lead.id);
-    if (error) {
-      toast({ title: "Conversion failed", description: error.message, variant: "destructive" });
+    const primary =
+      linkedContacts.find((c: any) => c.is_primary)?.contact_id ?? linkedContacts[0].contact_id;
+
+    // 1) Create the opportunity
+    const { data: opp, error: oppErr } = await supabase
+      .from("pipeline_opportunities")
+      .insert({
+        lead_id: lead.id,
+        stage: "application_sent",
+        loan_amount: (lead as any).loan_amount ?? lead.property_value ?? null,
+        property_address: (lead as any).property_address ?? null,
+        primary_contact_id: primary,
+        created_by: user?.id,
+      })
+      .select("id")
+      .single();
+    if (oppErr) {
+      toast({ title: "Move failed", description: oppErr.message, variant: "destructive" });
       return;
     }
+
+    // 2) Move the lead to Unqualified so it leaves the active list
+    await supabase.from("leads").update({ status: "unqualified" as any }).eq("id", lead.id);
+    await recordLeadTransition(lead.id, from, "unqualified");
     await supabase.from("lead_events").insert({
       lead_id: lead.id,
       event_type: "moved_to_pipeline",
       points: 0,
-      metadata: { note: "Moved to pipeline — application completed", from_status: from, to_status: "application_sent" } as any,
+      metadata: { opportunity_id: opp?.id, stage: "application_sent" } as any,
     });
-    try { await enqueueLosSync(lead.id); } catch (e) { console.warn("LOS enqueue failed", e); }
-    await recordLeadTransition(lead.id, from, "application_sent");
-    toast({ title: "Moved to pipeline", description: "Application Complete — opportunity is now in Application Sent." });
-    load();
-    if (selectedLead?.id === lead.id) {
-      setSelectedLead((prev) => (prev ? { ...prev, status: "application_sent" as any } : null));
+
+    // 3) Stage ARIVE / LOS sync
+    if (opp?.id) {
+      try { await enqueueLosSync(opp.id); } catch (e) { console.warn("LOS enqueue failed", e); }
     }
+
+    toast({ title: "Moved to Pipeline — Application Sent" });
+    setSelectedLead(null);
+    navigate("/pipeline/kanban");
   };
 
   const handleAddTag = async (leadId: string) => {
@@ -266,7 +307,8 @@ export default function Leads() {
   }, []);
 
   const filtered = useMemo(() => {
-    let result = leads;
+    // Hide any lead that already has an opportunity in the pipeline.
+    let result = leads.filter((l) => !opportunityLeadIds.has(l.id));
 
     // Smart view filters
     if (smartView === "hot") result = result.filter(l => (l.lead_score ?? 0) > 70);
@@ -289,7 +331,7 @@ export default function Leads() {
     }
 
     return result;
-  }, [leads, smartView, statusFilter, sourceFilter, search, fourteenDaysAgo]);
+  }, [leads, opportunityLeadIds, smartView, statusFilter, sourceFilter, search, fourteenDaysAgo]);
 
   const uniqueSources = useMemo(() =>
     [...new Set(leads.map(l => l.source).filter(Boolean))] as string[],
