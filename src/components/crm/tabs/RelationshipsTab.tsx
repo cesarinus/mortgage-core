@@ -4,20 +4,23 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ExternalLink, Unlink, Pencil, UserPlus, Building2, Plus } from "lucide-react";
+import { ExternalLink, Unlink, Pencil, UserPlus, Building2, Plus, Star } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { LinkContactModal, LinkCompanyModal } from "@/components/crm/actions/LinkContactCompanyModals";
+import { LinkContactModal, LinkCompanyModal, ROLE_ON_DEAL_OPTIONS } from "@/components/crm/actions/LinkContactCompanyModals";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const ROLE_BADGE: Record<string, string> = {
   lead: "bg-blue-500/10 text-blue-700 border-blue-500/20",
   borrower: "bg-emerald-500/10 text-emerald-700 border-emerald-500/20",
   co_borrower: "bg-teal-500/10 text-teal-700 border-teal-500/20",
+  primary_borrower: "bg-emerald-500/10 text-emerald-700 border-emerald-500/20",
   real_estate_agent: "bg-amber-500/10 text-amber-700 border-amber-500/20",
   title_agent: "bg-purple-500/10 text-purple-700 border-purple-500/20",
   insurance_agent: "bg-cyan-500/10 text-cyan-700 border-cyan-500/20",
   referral_partner: "bg-pink-500/10 text-pink-700 border-pink-500/20",
   internal_staff: "bg-slate-500/10 text-slate-700 border-slate-500/20",
+  other: "bg-muted text-muted-foreground border-border",
 };
 
 const COMPANY_TYPE_BADGE: Record<string, string> = {
@@ -43,7 +46,7 @@ export function RelationshipsTab({ kind, recordId, linkedContacts, companies, on
   const [linkContact, setLinkContact] = useState(false);
   const [linkCompany, setLinkCompany] = useState(false);
   const [editingRole, setEditingRole] = useState<string | null>(null);
-  const [roleDraft, setRoleDraft] = useState("");
+  const [roleDraft, setRoleDraft] = useState<string>("other");
 
   // Contact view: load leads linked via lead_contacts where contact_id = recordId
   const [contactLeads, setContactLeads] = useState<any[]>([]);
@@ -75,10 +78,25 @@ export function RelationshipsTab({ kind, recordId, linkedContacts, companies, on
   };
 
   const saveRole = async (linkId: string) => {
-    const { error } = await supabase.from("lead_contacts").update({ role: roleDraft || null }).eq("id", linkId);
+    const { error } = await supabase.from("lead_contacts")
+      .update({ role_on_deal: (roleDraft || null) as any })
+      .eq("id", linkId);
     if (error) return toast({ title: "Error", description: error.message, variant: "destructive" });
     setEditingRole(null);
     toast({ title: "Role updated" });
+    onChanged();
+  };
+
+  const setPrimary = async (linkId: string, leadId: string, contactId: string) => {
+    // Demote others first to respect unique-primary index
+    await supabase.from("lead_contacts").update({ is_primary: false })
+      .eq("lead_id", leadId).neq("id", linkId);
+    const { error } = await supabase.from("lead_contacts")
+      .update({ is_primary: true }).eq("id", linkId);
+    if (error) return toast({ title: "Error", description: error.message, variant: "destructive" });
+    // Mirror to leads.co_borrower_id? No — primary stays in lead_contacts. But promote contact_id as primary_borrower role.
+    await supabase.from("lead_contacts").update({ role_on_deal: "primary_borrower" as any }).eq("id", linkId);
+    toast({ title: "Marked as primary" });
     onChanged();
   };
 
@@ -112,13 +130,16 @@ export function RelationshipsTab({ kind, recordId, linkedContacts, companies, on
               <div key={row.id} className="flex items-center justify-between gap-3 rounded border p-3">
                 <div className="min-w-0">
                   <div className="font-medium text-sm truncate">
+                    {row.is_primary && (
+                      <Star className="inline-block h-3.5 w-3.5 mr-1 text-amber-500 fill-amber-500" />
+                    )}
                     {row.contact?.first_name} {row.contact?.last_name}
-                    {row.contact?.role && (
-                      <Badge className={`ml-2 text-[10px] capitalize ${ROLE_BADGE[row.contact.role] ?? "bg-muted text-muted-foreground"}`}>
-                        {fmtLabel(row.contact.role)}
+                    {row.role_on_deal && (
+                      <Badge className={`ml-2 text-[10px] capitalize ${ROLE_BADGE[row.role_on_deal] ?? "bg-muted text-muted-foreground"}`}>
+                        {fmtLabel(row.role_on_deal)}
                       </Badge>
                     )}
-                    {!row.contact?.role && row.contact?.contact_type && (
+                    {!row.role_on_deal && row.contact?.contact_type && (
                       <Badge variant="secondary" className="ml-2 text-[10px]">{row.contact.contact_type}</Badge>
                     )}
                   </div>
@@ -128,12 +149,19 @@ export function RelationshipsTab({ kind, recordId, linkedContacts, companies, on
                   <div className="text-xs mt-1">
                     {editingRole === row.id ? (
                       <div className="flex items-center gap-1">
-                        <Input value={roleDraft} onChange={e => setRoleDraft(e.target.value)} className="h-7 text-xs w-40" placeholder="Role" />
+                        <Select value={roleDraft} onValueChange={setRoleDraft}>
+                          <SelectTrigger className="h-7 text-xs w-48"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            {ROLE_ON_DEAL_OPTIONS.map(o => (
+                              <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <Button size="sm" className="h-7" onClick={() => saveRole(row.id)}>Save</Button>
                         <Button size="sm" variant="ghost" className="h-7" onClick={() => setEditingRole(null)}>Cancel</Button>
                       </div>
                     ) : (
-                      <span className="text-muted-foreground">Role: {row.role || "—"}</span>
+                      <span className="text-muted-foreground">Role: {fmtLabel(row.role_on_deal) || row.role || "—"}</span>
                     )}
                   </div>
                 </div>
@@ -143,8 +171,14 @@ export function RelationshipsTab({ kind, recordId, linkedContacts, companies, on
                       <Link to={`/crm/contacts/${row.contact_id}`}><ExternalLink className="h-4 w-4" /></Link>
                     </Button>
                   )}
+                  {!row.is_primary && row.contact_id && (
+                    <Button size="icon" variant="ghost" title="Make primary"
+                      onClick={() => setPrimary(row.id, recordId, row.contact_id)}>
+                      <Star className="h-4 w-4" />
+                    </Button>
+                  )}
                   <Button size="icon" variant="ghost" title="Change role"
-                    onClick={() => { setEditingRole(row.id); setRoleDraft(row.role ?? ""); }}>
+                    onClick={() => { setEditingRole(row.id); setRoleDraft(row.role_on_deal ?? "other"); }}>
                     <Pencil className="h-4 w-4" />
                   </Button>
                   <Button size="icon" variant="ghost" title="Unlink" onClick={() => unlinkContact(row.id)}>
