@@ -102,15 +102,41 @@ export function CatchUpTab({ activities, emailLogs, sentiment, mortgage, record,
       <Card>
         <CardHeader className="pb-3"><CardTitle className="text-base">Mortgage snapshot</CardTitle></CardHeader>
         <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-          <Stat label="Loan program" value={mortgage?.loan_program ?? record?.loan_purpose} />
-          <Stat label="Purchase price" value={fmtMoney(mortgage?.purchase_price ?? record?.property_value)} />
-          <Stat label="Down payment" value={fmtMoney(mortgage?.down_payment)} />
-          <Stat label="Estimated income" value={fmtMoney(mortgage?.est_income ?? record?.annual_income)} />
-          <Stat label="Estimated DTI" value={mortgage?.est_dti ? `${mortgage.est_dti}%` : null} />
-          <Stat label="Monthly payment" value={fmtMoney(mortgage?.est_monthly_payment)} />
-          <Stat label="Property type" value={mortgage?.property_type ?? record?.property_type} />
-          <Stat label="Occupancy" value={mortgage?.occupancy_type} />
-          <Stat label="Pipeline stage" value={mortgage?.pipeline_stage ?? record?.status} />
+          {(() => {
+            let mpExtras: any = {};
+            try { mpExtras = mortgage?.notes ? JSON.parse(mortgage.notes) : {}; } catch {}
+            const loanType = (mpExtras.loan_type ?? "").toString().toLowerCase();
+            const price = Number(mortgage?.purchase_price ?? record?.property_value ?? 0);
+            const dp = Number(mortgage?.down_payment ?? 0);
+            let total: number | null = null;
+            if (price > 0) {
+              if (loanType === "fha") total = price * 0.9825;
+              else if (loanType === "usda") total = price / 0.99;
+              else total = Math.max(0, price - dp);
+            }
+            const dpDisplay =
+              loanType === "fha" ? "3.5%"
+              : loanType === "usda" ? "0%"
+              : fmtMoney(mortgage?.down_payment);
+            const totalDisplay = total !== null
+              ? new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(total)
+              : "---";
+            return (
+              <>
+                <Stat label="Loan program" value={mortgage?.loan_program ?? record?.loan_purpose} />
+                <Stat label={`Loan type${loanType ? "" : ""}`} value={loanType ? loanType.toUpperCase() : null} />
+                <Stat label="Purchase price" value={fmtMoney(mortgage?.purchase_price ?? record?.property_value)} />
+                <Stat label="Down payment" value={dpDisplay} />
+                <Stat label="Total loan amount" value={totalDisplay} />
+                <Stat label="Estimated income" value={fmtMoney(mortgage?.est_income ?? record?.annual_income)} />
+                <Stat label="Estimated DTI" value={mortgage?.est_dti ? `${mortgage.est_dti}%` : null} />
+                <Stat label="Monthly payment" value={fmtMoney(mortgage?.est_monthly_payment)} />
+                <Stat label="Property type" value={mortgage?.property_type ?? record?.property_type} />
+                <Stat label="Occupancy" value={mortgage?.occupancy_type} />
+                <Stat label="Pipeline stage" value={mortgage?.pipeline_stage ?? record?.status} />
+              </>
+            );
+          })()}
         </CardContent>
       </Card>
 
