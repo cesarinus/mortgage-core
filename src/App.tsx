@@ -70,6 +70,7 @@ const App = () => (
                 <Route path="/contacts/people" element={<People />} />
                 <Route path="/contacts/companies" element={<Companies />} />
                 <Route path="/pipeline" element={<Pipeline />} />
+                <Route path="/pipeline/kanban" element={<Pipeline />} />
                 <Route path="/settings" element={<SettingsPage />} />
                 <Route path="/blog-admin" element={<BlogAdmin />} />
                 <Route path="/rate-decision" element={<RateDecision />} />

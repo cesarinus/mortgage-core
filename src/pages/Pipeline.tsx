@@ -1,452 +1,624 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Mail, ExternalLink, MapPin, DollarSign } from "lucide-react";
-import { Link } from "react-router-dom";
-import type { Tables, Enums } from "@/integrations/supabase/types";
-import { Constants } from "@/integrations/supabase/types";
-import { EmailModal } from "@/components/crm/actions/ActionModals";
-import { isTransitionAllowed, getAllowedNext, recordDealTransition } from "@/lib/crm/stateMachine";
-import { getStageSuggestions } from "@/lib/crm/stageTasks";
-import { AlertCircle, CheckSquare } from "lucide-react";
+import { Search, LayoutGrid, List as ListIcon, ArrowUpDown, MapPin, Building2, Landmark } from "lucide-react";
+import {
+  getAllowedNext,
+  isTransitionAllowedSync,
+  normalizeStatus,
+  recordLeadTransition,
+} from "@/lib/crm/stateMachine";
 
-type Deal = Tables<"deals">;
-type Contact = Tables<"contacts">;
-type LeadContact = Tables<"lead_contacts">;
-type Lead = Tables<"leads">;
-
-type BorrowerSummary = {
-  name: string;
+type Lead = {
+  id: string;
+  first_name: string;
+  last_name: string;
+  name: string | null;
   email: string | null;
-  contactId: string | null;
-  leadId: string | null;
+  status: string;
+  property_value: number | null;
+  created_at: string;
+  company_id: string | null;
+  notes: string | null;
 };
 
-const stageLabels: Record<Enums<"deal_stage">, string> = {
-  new_lead: "New Lead",
+type Contact = {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string | null;
+  company_id: string | null;
+};
+
+type Company = { id: string; name: string; company_type: string };
+
+type LeadContactLink = {
+  lead_id: string;
+  contact_id: string;
+  is_primary: boolean;
+  role_on_deal: string | null;
+  company_id: string | null;
+};
+
+type MortgageProfile = {
+  lead_id: string;
+  est_monthly_payment: number | null;
+  purchase_price: number | null;
+};
+
+/** Pipeline stages shown as kanban columns (forward pipeline only). */
+const KANBAN_STAGES = [
+  "new",
+  "contacted",
+  "pre_qualified",
+  "qualified",
+  "application_started",
+  "underwriting",
+  "approved",
+  "closed",
+] as const;
+
+const STAGE_LABELS: Record<string, string> = {
+  new: "New",
   contacted: "Contacted",
-  application_sent: "Application Sent",
-  docs_received: "Docs Received",
+  pre_qualified: "Pre-Qualified",
+  qualified: "Qualified",
+  application_started: "Application Sent",
   underwriting: "Underwriting",
   approved: "Approved",
   clear_to_close: "Clear to Close",
   closed: "Closed",
+  converted: "Converted",
   lost: "Lost",
+  unqualified: "Unqualified",
 };
 
-const stageColors: Record<string, string> = {
-  new_lead: "border-l-primary",
-  contacted: "border-l-accent",
-  application_sent: "border-l-warning",
-  docs_received: "border-l-warning",
-  underwriting: "border-l-primary",
-  approved: "border-l-success",
-  clear_to_close: "border-l-success",
-  closed: "border-l-success",
-  lost: "border-l-destructive",
+// color-coded stage badges per spec
+const STAGE_BADGE: Record<string, string> = {
+  new: "bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/20",
+  contacted: "bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/20",
+  pre_qualified: "bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border-indigo-500/20",
+  qualified: "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/20",
+  application_started: "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/20",
+  underwriting: "bg-teal-500/15 text-teal-600 dark:text-teal-400 border-teal-500/20",
+  approved: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+  clear_to_close: "bg-yellow-500/15 text-yellow-700 dark:text-yellow-400 border-yellow-500/20",
+  closed: "bg-muted text-muted-foreground border-border",
+  converted: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+  lost: "bg-muted text-muted-foreground border-border",
+  unqualified: "bg-muted text-muted-foreground border-border",
 };
 
-export default function Pipeline() {
-  const [deals, setDeals] = useState<Deal[]>([]);
-  const [contacts, setContacts] = useState<Contact[]>([]);
-  const [leadContacts, setLeadContacts] = useState<LeadContact[]>([]);
-  const [leads, setLeads] = useState<Lead[]>([]);
-  const [missingByDeal, setMissingByDeal] = useState<Record<string, number>>({});
-  const [taskCountByDeal, setTaskCountByDeal] = useState<Record<string, number>>({});
+const fmtCurrency = (n: number | null | undefined) =>
+  n == null ? "—" : `$${Number(n).toLocaleString()}`;
+
+const fmtDate = (s: string | null | undefined) =>
+  s ? new Date(s).toLocaleDateString() : "—";
+
+function leadName(l: Lead) {
+  return (l.name && l.name.trim()) || `${l.first_name ?? ""} ${l.last_name ?? ""}`.trim() || "Untitled";
+}
+
+function initials(name: string) {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase())
+    .join("");
+}
+
+type Assembled = {
+  lead: Lead;
+  amount: number | null;
+  propertyAddress: string | null;
+  primary: { contact: Contact | null; email: string | null; name: string };
+  company: Company | null;
+  titleCompany: Company | null;
+  lender: Company | null;
+};
+
+function assemble(
+  lead: Lead,
+  contactsById: Map<string, Contact>,
+  companiesById: Map<string, Company>,
+  linksByLead: Map<string, LeadContactLink[]>,
+  profilesByLead: Map<string, MortgageProfile>,
+): Assembled {
+  const links = linksByLead.get(lead.id) ?? [];
+  const primaryLink = links.find((l) => l.is_primary) ?? null;
+  const primaryContact = primaryLink ? contactsById.get(primaryLink.contact_id) ?? null : null;
+  const primaryName = primaryContact
+    ? `${primaryContact.first_name} ${primaryContact.last_name}`.trim()
+    : leadName(lead);
+  const primaryEmail = primaryContact?.email ?? lead.email ?? null;
+
+  const company = lead.company_id ? companiesById.get(lead.company_id) ?? null : null;
+
+  const titleLink = links.find((l) => (l.role_on_deal ?? "") === "title_agent");
+  const titleCompany =
+    (titleLink?.company_id && companiesById.get(titleLink.company_id)) ||
+    (titleLink?.contact_id && contactsById.get(titleLink.contact_id)?.company_id
+      ? companiesById.get(contactsById.get(titleLink.contact_id)!.company_id!) ?? null
+      : null) ||
+    null;
+
+  // Lender: any linked company with company_type='lender'
+  let lender: Company | null = null;
+  for (const l of links) {
+    const cid = l.company_id ?? contactsById.get(l.contact_id)?.company_id ?? null;
+    const co = cid ? companiesById.get(cid) ?? null : null;
+    if (co?.company_type === "lender") {
+      lender = co;
+      break;
+    }
+  }
+
+  const profile = profilesByLead.get(lead.id);
+  const amount =
+    lead.property_value ??
+    profile?.purchase_price ??
+    profile?.est_monthly_payment ??
+    null;
+
+  return {
+    lead,
+    amount,
+    propertyAddress: null, // no column on leads; left as "—"
+    primary: { contact: primaryContact, email: primaryEmail, name: primaryName },
+    company,
+    titleCompany,
+    lender,
+  };
+}
+
+/** Click-and-hold stage selector. Triggers popover after 500ms hold. */
+function StageHoldButton({
+  current,
+  children,
+  onSelect,
+  disabled,
+}: {
+  current: string;
+  children: React.ReactNode;
+  onSelect: (next: string) => void;
+  disabled?: boolean;
+}) {
   const [open, setOpen] = useState(false);
-  const [emailTarget, setEmailTarget] = useState<{ leadId?: string; contactId?: string; email: string } | null>(null);
-  const { user } = useAuth();
-  const { toast } = useToast();
+  const timer = useRef<number | null>(null);
+  const allowed = getAllowedNext("lead", current);
 
-  const load = async () => {
-    const [{ data: d }, { data: c }, { data: lc }, { data: l }] = await Promise.all([
-      supabase.from("deals").select("*").order("created_at", { ascending: false }),
-      supabase.from("contacts").select("*").order("first_name"),
-      supabase.from("lead_contacts").select("*"),
-      supabase.from("leads").select("*"),
-    ]);
-    setDeals(d ?? []);
-    setContacts(c ?? []);
-    setLeadContacts(lc ?? []);
-    setLeads(l ?? []);
-    // compute missing required docs per deal for compact indicator
-    try {
-      const dealRows = d ?? [];
-      const stages = Array.from(new Set(dealRows.map((x: any) => x.stage)));
-      const [{ data: sd }, { data: dd }] = await Promise.all([
-        (supabase as any).from("stage_documents").select("*").in("stage", stages.length ? stages : ["__none__"]).eq("required", true),
-        (supabase as any).from("deal_documents").select("deal_id, stage_document_id, status").in("deal_id", dealRows.map((x: any) => x.id).length ? dealRows.map((x: any) => x.id) : ["00000000-0000-0000-0000-000000000000"]),
-      ]);
-      const byStage: Record<string, any[]> = {};
-      (sd ?? []).forEach((s: any) => { (byStage[s.stage] ||= []).push(s); });
-      const map: Record<string, number> = {};
-      dealRows.forEach((dl: any) => {
-        const required = byStage[dl.stage] ?? [];
-        if (required.length === 0) { map[dl.id] = 0; return; }
-        const have = new Set((dd ?? []).filter((x: any) => x.deal_id === dl.id && x.status !== "missing").map((x: any) => x.stage_document_id));
-        map[dl.id] = required.filter((r: any) => !have.has(r.id)).length;
-      });
-      setMissingByDeal(map);
-    } catch (e) { console.warn("doc indicator load failed", e); }
-    // compute open task counts per deal for compact indicator
-    try {
-      const dealIds = (d ?? []).map((x: any) => x.id);
-      if (dealIds.length) {
-        const { data: tks } = await (supabase as any)
-          .from("tasks")
-          .select("deal_id, status")
-          .in("deal_id", dealIds);
-        const counts: Record<string, number> = {};
-        (tks ?? []).forEach((t: any) => {
-          if (t.status !== "completed") counts[t.deal_id] = (counts[t.deal_id] ?? 0) + 1;
-        });
-        setTaskCountByDeal(counts);
-      } else {
-        setTaskCountByDeal({});
-      }
-    } catch (e) { console.warn("task indicator load failed", e); }
+  const clear = () => {
+    if (timer.current) {
+      window.clearTimeout(timer.current);
+      timer.current = null;
+    }
+  };
+  const start = () => {
+    if (disabled) return;
+    clear();
+    timer.current = window.setTimeout(() => setOpen(true), 500);
   };
 
-  useEffect(() => { load(); }, []);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <div
+          onMouseDown={start}
+          onMouseUp={clear}
+          onMouseLeave={clear}
+          onTouchStart={start}
+          onTouchEnd={clear}
+          className="cursor-pointer select-none"
+        >
+          {children}
+        </div>
+      </PopoverTrigger>
+      <PopoverContent className="w-56 p-2" onClick={(e) => e.stopPropagation()}>
+        <p className="text-xs text-muted-foreground px-2 pb-2">Move to stage</p>
+        {allowed.length === 0 && (
+          <p className="text-xs text-muted-foreground px-2 pb-1">No transitions available.</p>
+        )}
+        {allowed.map((s) => (
+          <button
+            key={s}
+            className="w-full text-left px-2 py-1.5 text-sm rounded-md hover:bg-muted"
+            onClick={() => {
+              setOpen(false);
+              onSelect(s);
+            }}
+          >
+            {STAGE_LABELS[s] ?? s}
+          </button>
+        ))}
+      </PopoverContent>
+    </Popover>
+  );
+}
 
-  const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-    const { error } = await supabase.from("deals").insert({
-      contact_id: (fd.get("contact_id") as string) || null,
-      loan_amount: fd.get("loan_amount") ? Number(fd.get("loan_amount")) : null,
-      loan_type: (fd.get("loan_type") as string) || null,
-      property_address: (fd.get("property_address") as string) || null,
-      notes: (fd.get("notes") as string) || null,
-      loan_officer_id: user!.id,
-      created_by: user!.id,
+export default function Pipeline() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { toast } = useToast();
+  const view: "table" | "kanban" = location.pathname.endsWith("/kanban") ? "kanban" : "table";
+
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [links, setLinks] = useState<LeadContactLink[]>([]);
+  const [profiles, setProfiles] = useState<MortgageProfile[]>([]);
+  const [search, setSearch] = useState("");
+  const [stageFilter, setStageFilter] = useState<string>("all");
+  const [sortKey, setSortKey] = useState<"name" | "amount" | "stage" | "close">("close");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [editingNameId, setEditingNameId] = useState<string | null>(null);
+  const [nameDraft, setNameDraft] = useState("");
+
+  const load = async () => {
+    const [{ data: l }, { data: c }, { data: co }, { data: lc }, { data: mp }] = await Promise.all([
+      supabase.from("leads").select("id,first_name,last_name,name,email,status,property_value,created_at,company_id,notes").order("created_at", { ascending: false }),
+      supabase.from("contacts").select("id,first_name,last_name,email,company_id"),
+      supabase.from("crm_companies").select("id,name,company_type"),
+      supabase.from("lead_contacts").select("lead_id,contact_id,is_primary,role_on_deal,company_id"),
+      supabase.from("mortgage_profiles").select("lead_id,est_monthly_payment,purchase_price"),
+    ]);
+    setLeads((l ?? []) as Lead[]);
+    setContacts((c ?? []) as Contact[]);
+    setCompanies((co ?? []) as Company[]);
+    setLinks((lc ?? []) as LeadContactLink[]);
+    setProfiles((mp ?? []) as MortgageProfile[]);
+  };
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  const contactsById = useMemo(() => new Map(contacts.map((c) => [c.id, c])), [contacts]);
+  const companiesById = useMemo(() => new Map(companies.map((c) => [c.id, c])), [companies]);
+  const profilesByLead = useMemo(() => new Map(profiles.map((p) => [p.lead_id, p])), [profiles]);
+  const linksByLead = useMemo(() => {
+    const m = new Map<string, LeadContactLink[]>();
+    links.forEach((l) => {
+      const arr = m.get(l.lead_id) ?? [];
+      arr.push(l);
+      m.set(l.lead_id, arr);
     });
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Deal created" });
-      setOpen(false);
-      load();
+    return m;
+  }, [links]);
+
+  const assembled = useMemo(
+    () => leads.map((l) => assemble(l, contactsById, companiesById, linksByLead, profilesByLead)),
+    [leads, contactsById, companiesById, linksByLead, profilesByLead],
+  );
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return assembled.filter((a) => {
+      const status = normalizeStatus(a.lead.status);
+      if (stageFilter !== "all" && status !== stageFilter) return false;
+      if (!q) return true;
+      return (
+        leadName(a.lead).toLowerCase().includes(q) ||
+        a.primary.name.toLowerCase().includes(q) ||
+        (a.primary.email ?? "").toLowerCase().includes(q) ||
+        (a.company?.name ?? "").toLowerCase().includes(q)
+      );
+    });
+  }, [assembled, search, stageFilter]);
+
+  const sorted = useMemo(() => {
+    const arr = [...filtered];
+    arr.sort((a, b) => {
+      let r = 0;
+      if (sortKey === "name") r = leadName(a.lead).localeCompare(leadName(b.lead));
+      else if (sortKey === "amount") r = (a.amount ?? 0) - (b.amount ?? 0);
+      else if (sortKey === "stage") r = normalizeStatus(a.lead.status).localeCompare(normalizeStatus(b.lead.status));
+      else r = +new Date(a.lead.created_at) - +new Date(b.lead.created_at);
+      return sortDir === "asc" ? r : -r;
+    });
+    return arr;
+  }, [filtered, sortKey, sortDir]);
+
+  const toggleSort = (k: typeof sortKey) => {
+    if (sortKey === k) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    else {
+      setSortKey(k);
+      setSortDir("asc");
     }
   };
 
-  const moveDeal = async (dealId: string, newStage: Enums<"deal_stage">) => {
-    const current = deals.find((d) => d.id === dealId);
-    const from = current?.stage ?? "new_lead";
-    const ok = await isTransitionAllowed("deal", from, newStage);
-    if (!ok) {
-      const next = getAllowedNext("deal", from);
+  const moveStage = async (leadId: string, fromRaw: string, to: string) => {
+    const from = normalizeStatus(fromRaw);
+    const next = normalizeStatus(to);
+    if (from === next) return;
+    if (!isTransitionAllowedSync("lead", from, next)) {
+      const allowed = getAllowedNext("lead", from).map((s) => STAGE_LABELS[s] ?? s).join(", ");
       toast({
         title: "Invalid stage change",
-        description: next.length ? `Allowed next: ${next.join(", ")}` : "No further transitions allowed.",
+        description: `Cannot move from ${STAGE_LABELS[from] ?? from} to ${STAGE_LABELS[next] ?? next}. Next allowed: ${allowed || "none"}.`,
         variant: "destructive",
       });
       return;
     }
-    const { error } = await supabase.from("deals").update({ stage: newStage }).eq("id", dealId);
+    // optimistic update
+    setLeads((prev) => prev.map((l) => (l.id === leadId ? { ...l, status: next } : l)));
+    const { error } = await supabase.from("leads").update({ status: next as any }).eq("id", leadId);
     if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    } else {
-      await recordDealTransition(dealId, from, newStage, user?.id ?? null);
-      const suggested = getStageSuggestions(newStage);
-      if (suggested.length > 0) {
-        toast({
-          title: `Suggested ${suggested.length} next action${suggested.length === 1 ? "" : "s"}`,
-          description: "View in Tasks tab",
-        });
-      }
+      toast({ title: "Update failed", description: error.message, variant: "destructive" });
       load();
-    }
-  };
-
-  const sendReviewRequest = async (deal: Deal) => {
-    const borrower = resolveBorrower(deal);
-    if (!borrower?.email) {
-      toast({ title: "No contact email", description: "Link a contact with an email to this deal first.", variant: "destructive" });
       return;
     }
-    const { data, error } = await supabase.functions.invoke("send-review-request", {
-      body: { email: borrower.email, first_name: borrower.name.split(" ")[0] ?? "", last_name: borrower.name.split(" ").slice(1).join(" "), lead_id: borrower.leadId ?? deal.contact_id },
-    });
-    if (error || (data as any)?.error) {
-      toast({ title: "Send failed", description: error?.message || (data as any)?.error, variant: "destructive" });
-    } else {
-      toast({ title: "Review request sent", description: borrower.email });
-    }
+    await recordLeadTransition(leadId, from, next);
+    toast({ title: "Stage updated", description: `${STAGE_LABELS[from] ?? from} → ${STAGE_LABELS[next] ?? next}` });
   };
 
-  const invitePortal = async (deal: Deal, borrower: { email: string; leadId?: string | null; contactId?: string | null }) => {
-    const { data, error } = await supabase.functions.invoke("portal-invite-create", {
-      body: {
-        deal_id: deal.id,
-        email: borrower.email,
-        lead_id: borrower.leadId ?? null,
-        contact_id: borrower.contactId ?? null,
-        app_origin: window.location.origin,
-      },
-    });
-    if (error || (data as any)?.error) {
-      toast({ title: "Invite failed", description: error?.message || (data as any)?.error, variant: "destructive" });
-    } else {
-      toast({ title: "Portal invite sent", description: borrower.email });
+  const saveName = async (leadId: string) => {
+    const value = nameDraft.trim();
+    setEditingNameId(null);
+    if (!value) return;
+    const { error } = await supabase.from("leads").update({ name: value }).eq("id", leadId);
+    if (error) {
+      toast({ title: "Rename failed", description: error.message, variant: "destructive" });
+      return;
     }
+    setLeads((prev) => prev.map((l) => (l.id === leadId ? { ...l, name: value } : l)));
   };
 
-  const hiddenStages: Enums<"deal_stage">[] = ["new_lead", "contacted"];
-  const stages = Constants.public.Enums.deal_stage.filter(
-    (s) => !hiddenStages.includes(s)
-  );
-
-  const leadStatusMatchesDealStage = (lead: Lead, stage: Enums<"deal_stage">) => {
-    if (stage === "application_sent") return lead.status === "qualified";
-    return lead.status === stage;
+  const onDragStart = (e: React.DragEvent, leadId: string, from: string) => {
+    e.dataTransfer.setData("text/lead-id", leadId);
+    e.dataTransfer.setData("text/lead-from", from);
+    e.dataTransfer.effectAllowed = "move";
   };
-
-  // Resolve the actual borrower for a deal. A deal.contact_id can point to a
-  // referral partner, so prefer the matching lead/borrower over the linked contact.
-  // Returns null when no lead with a status matching the deal stage can be found
-  // — those deals are stale/mis-staged and should not appear on the kanban.
-  const resolveBorrower = (deal: Deal): BorrowerSummary | null => {
-    const linked = deal.contact_id ? contacts.find((c) => c.id === deal.contact_id) ?? null : null;
-    if (linked && linked.contact_type === "borrower") {
-      const lcRow = leadContacts.find((r) => r.contact_id === linked.id);
-      const lead = lcRow ? leads.find((l) => l.id === lcRow.lead_id) ?? null : null;
-      if (!lead || !leadStatusMatchesDealStage(lead, deal.stage)) return null;
-      return {
-        name: `${linked.first_name} ${linked.last_name}`.trim(),
-        email: linked.email,
-        contactId: linked.id,
-        leadId: lead.id,
-      };
-    }
-
-    const candidateLeadLinks = linked ? leadContacts.filter((r) => r.contact_id === linked.id) : [];
-    const lcRow = candidateLeadLinks.find((r) => {
-      const lead = leads.find((l) => l.id === r.lead_id);
-      return lead ? leadStatusMatchesDealStage(lead, deal.stage) : false;
-    });
-    if (!lcRow) return null;
-
-    const borrowerLink = leadContacts.find(
-      (r) => r.lead_id === lcRow.lead_id && ["borrower", "primary_borrower", "applicant", "primary"].includes((r.role ?? "").toLowerCase())
-    );
-    const borrowerContact = borrowerLink
-      ? contacts.find((c) => c.id === borrowerLink.contact_id) ?? null
-      : contacts.find((c) => {
-          const link = leadContacts.find((r) => r.contact_id === c.id && r.lead_id === lcRow.lead_id);
-          return !!link && c.contact_type === "borrower";
-        }) ?? null;
-    if (borrowerContact) {
-      return {
-        name: `${borrowerContact.first_name} ${borrowerContact.last_name}`.trim(),
-        email: borrowerContact.email,
-        contactId: borrowerContact.id,
-        leadId: lcRow.lead_id,
-      };
-    }
-
-    const lead = leads.find((l) => l.id === lcRow.lead_id);
-    if (lead) {
-      return {
-        name: `${lead.first_name} ${lead.last_name}`.trim(),
-        email: lead.email,
-        contactId: null,
-        leadId: lead.id,
-      };
-    }
-    return null;
+  const onDropStage = (e: React.DragEvent, to: string) => {
+    e.preventDefault();
+    const id = e.dataTransfer.getData("text/lead-id");
+    const from = e.dataTransfer.getData("text/lead-from");
+    if (id) moveStage(id, from, to);
   };
-
-  const formatCurrency = (n: number | null | undefined) =>
-    n == null ? null : `$${Number(n).toLocaleString()}`;
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Pipeline</h1>
-          <p className="text-muted-foreground">Track deals through your pipeline stages</p>
+          <h1 className="text-2xl font-bold tracking-tight">Opportunities</h1>
+          <p className="text-muted-foreground">Track and move opportunities through your pipeline</p>
         </div>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button><Plus className="mr-2 h-4 w-4" />New Deal</Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Create Deal</DialogTitle></DialogHeader>
-            <form onSubmit={handleCreate} className="space-y-4">
-              <div className="space-y-1">
-                <Label>Contact</Label>
-                <Select name="contact_id">
-                  <SelectTrigger><SelectValue placeholder="Link a contact" /></SelectTrigger>
-                  <SelectContent>
-                    {contacts.map((c) => (
-                      <SelectItem key={c.id} value={c.id}>{c.first_name} {c.last_name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label htmlFor="loan_amount">Loan Amount</Label>
-                  <Input id="loan_amount" name="loan_amount" type="number" placeholder="350000" />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="loan_type">Loan Type</Label>
-                  <Input id="loan_type" name="loan_type" placeholder="Conventional" />
-                </div>
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="property_address">Property Address</Label>
-                <Input id="property_address" name="property_address" />
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="notes">Notes</Label>
-                <Textarea id="notes" name="notes" rows={3} />
-              </div>
-              <Button type="submit" className="w-full">Create Deal</Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <div className="inline-flex rounded-lg border border-border bg-card p-1">
+          <button
+            onClick={() => navigate("/pipeline")}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+              view === "table" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <ListIcon className="h-4 w-4" /> All Opportunities
+          </button>
+          <button
+            onClick={() => navigate("/pipeline/kanban")}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+              view === "kanban" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <LayoutGrid className="h-4 w-4" /> By Stage
+          </button>
+        </div>
       </div>
 
-      <div className="flex gap-3 overflow-x-auto pb-4">
-        {stages.map((stage) => {
-          const stageDeals = deals
-            .filter((d) => d.stage === stage)
-            .map((d) => ({ deal: d, borrower: resolveBorrower(d) }))
-            .filter((x): x is { deal: Deal; borrower: BorrowerSummary } => x.borrower !== null);
-          return (
-            <div key={stage} className="flex-shrink-0 w-72">
-              <div className="mb-2 flex items-center justify-between">
-                <h3 className="text-sm font-semibold">{stageLabels[stage]}</h3>
-                <Badge variant="secondary" className="text-xs">{stageDeals.length}</Badge>
-              </div>
-              <div className="space-y-2 min-h-[200px] rounded-lg bg-muted/50 p-2">
-                {stageDeals.map(({ deal, borrower }) => {
-                  const workspaceId = borrower.contactId;
+      <div className="flex items-center gap-3 flex-wrap">
+        <div className="relative flex-1 min-w-[220px] max-w-md">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search by name, contact, company"
+            className="pl-9"
+          />
+        </div>
+        <Select value={stageFilter} onValueChange={setStageFilter}>
+          <SelectTrigger className="w-[200px]"><SelectValue placeholder="All stages" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All stages</SelectItem>
+            {KANBAN_STAGES.map((s) => (
+              <SelectItem key={s} value={s}>{STAGE_LABELS[s]}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {view === "table" ? (
+        <Card>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>
+                    <button onClick={() => toggleSort("name")} className="inline-flex items-center gap-1 font-medium">
+                      Name <ArrowUpDown className="h-3 w-3" />
+                    </button>
+                  </TableHead>
+                  <TableHead>
+                    <button onClick={() => toggleSort("amount")} className="inline-flex items-center gap-1 font-medium">
+                      Loan Amount <ArrowUpDown className="h-3 w-3" />
+                    </button>
+                  </TableHead>
+                  <TableHead>Point of Contact</TableHead>
+                  <TableHead>Company</TableHead>
+                  <TableHead>
+                    <button onClick={() => toggleSort("stage")} className="inline-flex items-center gap-1 font-medium">
+                      Stage <ArrowUpDown className="h-3 w-3" />
+                    </button>
+                  </TableHead>
+                  <TableHead>
+                    <button onClick={() => toggleSort("close")} className="inline-flex items-center gap-1 font-medium">
+                      Close date <ArrowUpDown className="h-3 w-3" />
+                    </button>
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {sorted.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-12">
+                      No opportunities match your filters.
+                    </TableCell>
+                  </TableRow>
+                )}
+                {sorted.map((a) => {
+                  const status = normalizeStatus(a.lead.status);
                   return (
-                  <Card
-                    key={deal.id}
-                    className={`border-l-4 ${stageColors[deal.stage]} hover:shadow-md transition-shadow`}
-                  >
-                     <CardContent className="p-3 space-y-2">
-                       <div className="flex items-center justify-between gap-2">
-                          <p className="font-medium text-sm truncate">{borrower.name}</p>
-                          <div className="flex items-center gap-1 shrink-0">
-                            {missingByDeal[deal.id] > 0 && (
-                              <span
-                                title={`${missingByDeal[deal.id]} required doc(s) missing`}
-                                className="inline-flex items-center gap-0.5 text-[10px] font-medium text-destructive bg-destructive/10 rounded px-1.5 py-0.5"
-                              >
-                                <AlertCircle className="h-3 w-3" />
-                                {missingByDeal[deal.id]}
-                              </span>
-                            )}
-                            {taskCountByDeal[deal.id] > 0 && (
-                              <span
-                                title={`${taskCountByDeal[deal.id]} open task(s)`}
-                                className="inline-flex items-center gap-0.5 text-[10px] font-medium text-primary bg-primary/10 rounded px-1.5 py-0.5"
-                              >
-                                <CheckSquare className="h-3 w-3" />
-                                {taskCountByDeal[deal.id]}
-                              </span>
-                            )}
-                            {workspaceId && (
-                              <Link
-                                to={`/crm/contacts/${workspaceId}`}
-                                title="Open workspace"
-                                onClick={(e) => e.stopPropagation()}
-                                className="text-muted-foreground hover:text-primary"
-                              >
-                                <ExternalLink className="h-3.5 w-3.5" />
-                              </Link>
-                            )}
-                          </div>
-                       </div>
-                       {deal.property_address && (
-                         <p className="text-xs text-muted-foreground flex items-start gap-1">
-                           <MapPin className="h-3 w-3 mt-0.5 shrink-0" />
-                           <span className="truncate">{deal.property_address}</span>
-                         </p>
-                       )}
-                       {(deal.loan_amount || deal.loan_type) && (
-                         <p className="text-xs text-muted-foreground flex items-center gap-1">
-                           <DollarSign className="h-3 w-3 shrink-0" />
-                           <span>
-                             {formatCurrency(deal.loan_amount) ?? "—"}
-                             {deal.loan_type ? ` · ${deal.loan_type}` : ""}
-                           </span>
-                         </p>
-                       )}
-                        {borrower.email && (
-                         <button
-                           type="button"
-                           onClick={(e) => {
-                             e.stopPropagation();
-                             setEmailTarget({
-                                leadId: borrower.leadId ?? undefined,
-                                contactId: borrower.contactId ?? undefined,
-                                email: borrower.email,
-                             });
-                           }}
-                           className="text-xs text-primary hover:underline flex items-center gap-1 truncate w-full text-left"
-                            title={`Email ${borrower.email}`}
-                         >
-                           <Mail className="h-3 w-3 shrink-0" />
-                           <span className="truncate">{borrower.email}</span>
-                         </button>
-                       )}
-                       <div className="flex gap-1 flex-wrap pt-1 border-t border-border/50">
-                        {stages.filter(s => s !== deal.stage).slice(0, 3).map(s => (
+                    <TableRow
+                      key={a.lead.id}
+                      className="cursor-pointer hover:bg-muted/40"
+                      onClick={() => navigate(`/crm/leads/${a.lead.id}`)}
+                    >
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        {editingNameId === a.lead.id ? (
+                          <Input
+                            autoFocus
+                            value={nameDraft}
+                            onChange={(e) => setNameDraft(e.target.value)}
+                            onBlur={() => saveName(a.lead.id)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") saveName(a.lead.id);
+                              if (e.key === "Escape") setEditingNameId(null);
+                            }}
+                            className="h-8"
+                          />
+                        ) : (
                           <button
-                            key={s}
-                            onClick={(e) => { e.stopPropagation(); moveDeal(deal.id, s); }}
-                            className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-secondary-foreground hover:bg-primary hover:text-primary-foreground transition-colors"
+                            className="font-medium text-left hover:text-primary"
+                            onClick={() => {
+                              setEditingNameId(a.lead.id);
+                              setNameDraft(leadName(a.lead));
+                            }}
                           >
-                            → {stageLabels[s]}
+                            {leadName(a.lead)}
                           </button>
-                        ))}
-                      </div>
-                      {deal.stage === "closed" && (
-                        <Button size="sm" variant="outline" className="w-full h-7 text-xs"
-                          onClick={(e) => { e.stopPropagation(); sendReviewRequest(deal); }}>
-                          <Mail className="mr-1 h-3 w-3" />Send Review Request
-                        </Button>
-                      )}
-                      {borrower.email && (
-                        <Button size="sm" variant="outline" className="w-full h-7 text-xs"
-                          onClick={(e) => { e.stopPropagation(); invitePortal(deal, borrower); }}>
-                          <Mail className="mr-1 h-3 w-3" />Invite to Portal
-                        </Button>
-                      )}
-                    </CardContent>
-                  </Card>
+                        )}
+                      </TableCell>
+                      <TableCell>{fmtCurrency(a.amount)}</TableCell>
+                      <TableCell>
+                        <div className="text-sm">{a.primary.name || "—"}</div>
+                        {a.primary.email && (
+                          <div className="text-xs text-muted-foreground">{a.primary.email}</div>
+                        )}
+                      </TableCell>
+                      <TableCell>{a.company?.name ?? "—"}</TableCell>
+                      <TableCell onClick={(e) => e.stopPropagation()}>
+                        <StageHoldButton current={status} onSelect={(next) => moveStage(a.lead.id, status, next)}>
+                          <Badge variant="outline" className={STAGE_BADGE[status] ?? ""}>
+                            {STAGE_LABELS[status] ?? status}
+                          </Badge>
+                        </StageHoldButton>
+                      </TableCell>
+                      <TableCell>{fmtDate(a.lead.created_at)}</TableCell>
+                    </TableRow>
                   );
                 })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="flex gap-3 overflow-x-auto pb-4">
+          {KANBAN_STAGES.map((stage) => {
+            const items = filtered.filter((a) => normalizeStatus(a.lead.status) === stage);
+            const sum = items.reduce((acc, a) => acc + (a.amount ?? 0), 0);
+            return (
+              <div
+                key={stage}
+                className="flex-shrink-0 w-80"
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => onDropStage(e, stage)}
+              >
+                <div className="mb-2 flex items-center justify-between px-1">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className={STAGE_BADGE[stage] ?? ""}>
+                      {STAGE_LABELS[stage]}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">{items.length}</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">{fmtCurrency(sum)}</span>
+                </div>
+                <div className="space-y-2 min-h-[200px] rounded-lg bg-muted/40 p-2">
+                  {items.map((a) => {
+                    const status = normalizeStatus(a.lead.status);
+                    return (
+                      <StageHoldButton
+                        key={a.lead.id}
+                        current={status}
+                        onSelect={(next) => moveStage(a.lead.id, status, next)}
+                      >
+                        <Card
+                          draggable
+                          onDragStart={(e) => onDragStart(e, a.lead.id, status)}
+                          className="hover:shadow-md transition-shadow"
+                        >
+                          <CardContent className="p-3 space-y-2">
+                            <div className="flex items-start justify-between gap-2">
+                              <Link
+                                to={`/crm/leads/${a.lead.id}`}
+                                onClick={(e) => e.stopPropagation()}
+                                onMouseDown={(e) => e.stopPropagation()}
+                                className="font-semibold text-sm hover:text-primary truncate"
+                              >
+                                {leadName(a.lead)}
+                              </Link>
+                              <Badge variant="outline" className={`${STAGE_BADGE[status] ?? ""} shrink-0 text-[10px]`}>
+                                {STAGE_LABELS[status] ?? status}
+                              </Badge>
+                            </div>
+                            <div className="text-sm font-medium">{fmtCurrency(a.amount)}</div>
+                            {a.propertyAddress && (
+                              <p className="text-xs text-muted-foreground flex items-start gap-1">
+                                <MapPin className="h-3 w-3 mt-0.5 shrink-0" />
+                                <span className="truncate">{a.propertyAddress}</span>
+                              </p>
+                            )}
+                            <div className="flex items-center gap-2 pt-1 border-t border-border/60">
+                              <Avatar className="h-6 w-6">
+                                <AvatarFallback className="text-[10px] bg-primary/15 text-primary">
+                                  {initials(a.primary.name) || "?"}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="min-w-0 flex-1">
+                                <div className="text-xs font-medium truncate">{a.primary.name || "—"}</div>
+                                {a.primary.email && (
+                                  <div className="text-[10px] text-muted-foreground truncate">{a.primary.email}</div>
+                                )}
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-1 text-[10px] text-muted-foreground">
+                              <div className="flex items-center gap-1 truncate" title="Title Company">
+                                <Building2 className="h-3 w-3 shrink-0" />
+                                <span className="truncate">{a.titleCompany?.name ?? "—"}</span>
+                              </div>
+                              <div className="flex items-center gap-1 truncate" title="Lender">
+                                <Landmark className="h-3 w-3 shrink-0" />
+                                <span className="truncate">{a.lender?.name ?? "—"}</span>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      </StageHoldButton>
+                    );
+                  })}
+                  {items.length === 0 && (
+                    <p className="text-xs text-muted-foreground text-center py-6">No opportunities</p>
+                  )}
+                </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {emailTarget && (
-        <EmailModal
-          open={!!emailTarget}
-          onClose={() => setEmailTarget(null)}
-          leadId={emailTarget.leadId}
-          contactId={emailTarget.contactId}
-          recipientEmail={emailTarget.email}
-          onDone={() => setEmailTarget(null)}
-        />
+            );
+          })}
+        </div>
       )}
     </div>
   );
