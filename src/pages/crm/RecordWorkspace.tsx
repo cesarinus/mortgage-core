@@ -375,7 +375,7 @@ export default function RecordWorkspace({ kind }: Props) {
             <TabsContent value="documents" className="mt-4">
               <DocumentsTab deals={deals} />
             </TabsContent>
-            {!fromPipeline && (
+            {kind === "contact" && (
               <TabsContent value="relationships" className="mt-4">
                 <RelationshipsTab
                   kind={kind}
