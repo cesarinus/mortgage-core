@@ -1892,7 +1892,7 @@ export type Database = {
             foreignKeyName: "los_sync_queue_opportunity_id_fkey"
             columns: ["opportunity_id"]
             isOneToOne: false
-            referencedRelation: "leads"
+            referencedRelation: "pipeline_opportunities"
             referencedColumns: ["id"]
           },
         ]
@@ -1952,6 +1952,83 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: true
             referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pipeline_opportunities: {
+        Row: {
+          close_date: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          lead_id: string
+          lender_company_id: string | null
+          loan_amount: number | null
+          notes: string | null
+          primary_contact_id: string | null
+          property_address: string | null
+          stage: string
+          title_company_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          close_date?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lead_id: string
+          lender_company_id?: string | null
+          loan_amount?: number | null
+          notes?: string | null
+          primary_contact_id?: string | null
+          property_address?: string | null
+          stage?: string
+          title_company_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          close_date?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lead_id?: string
+          lender_company_id?: string | null
+          loan_amount?: number | null
+          notes?: string | null
+          primary_contact_id?: string | null
+          property_address?: string | null
+          stage?: string
+          title_company_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pipeline_opportunities_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: true
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pipeline_opportunities_lender_company_id_fkey"
+            columns: ["lender_company_id"]
+            isOneToOne: false
+            referencedRelation: "crm_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pipeline_opportunities_primary_contact_id_fkey"
+            columns: ["primary_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pipeline_opportunities_title_company_id_fkey"
+            columns: ["title_company_id"]
+            isOneToOne: false
+            referencedRelation: "crm_companies"
             referencedColumns: ["id"]
           },
         ]
