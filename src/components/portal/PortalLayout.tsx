@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { LayoutDashboard, FileText, Calculator, MessageSquare, LogOut, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import MfaGate from "@/components/auth/MfaGate";
+import { AssistantLauncher } from "@/components/chat/AssistantLauncher";
 
 const nav = [
   { to: "/portal", label: "Overview", icon: LayoutDashboard, end: true },
@@ -93,6 +94,7 @@ function PortalLayoutInner() {
         </nav>
         <main className="min-w-0"><Outlet /></main>
       </div>
+      <AssistantLauncher scope="portal" recordKind="portal" />
     </div>
   );
 }

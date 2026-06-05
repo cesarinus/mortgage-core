@@ -22,6 +22,7 @@ import {
 import { Link, useNavigate } from "react-router-dom";
 import type { Tables, Enums } from "@/integrations/supabase/types";
 import { SmartLeadForm } from "@/components/crm/SmartLeadForm";
+import { AssistantLauncher } from "@/components/chat/AssistantLauncher";
 
 type Lead = Tables<"leads">;
 type LeadSource = Tables<"lead_sources">;
@@ -256,6 +257,7 @@ export default function Leads() {
   const statuses = LEAD_STATUSES;
 
   return (
+    <>
     <div className="flex h-[calc(100vh-3.5rem)] overflow-hidden">
       {/* Left Sidebar — Filters */}
       <div className="hidden lg:flex w-56 flex-col border-r bg-card p-4 gap-5 overflow-y-auto">
@@ -655,5 +657,7 @@ export default function Leads() {
         </SheetContent>
       </Sheet>
     </div>
+    <AssistantLauncher scope="crm" />
+    </>
   );
 }
