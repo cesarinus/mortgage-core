@@ -17,6 +17,10 @@ export interface IntakeData {
   source_id?: string | null;
   preferred_contact_time?: ContactTime | "";
   referral_source?: ReferralSource | "";
+  // Relationship lookups (Twenty-style)
+  primary_borrower_id?: string | null;
+  co_borrower_id?: string | null;
+  company_id?: string | null;
   // Intent
   loan_purpose?: LoanPurpose | "";
   property_type?: PropertyTypeOpt | "";
@@ -37,6 +41,7 @@ export interface IntakeData {
 export const EMPTY_INTAKE: IntakeData = {
   first_name: "", last_name: "", email: "", phone: "",
   source_id: null, preferred_contact_time: "", referral_source: "",
+  primary_borrower_id: null, co_borrower_id: null, company_id: null,
   loan_purpose: "", property_type: "", occupancy: "", timeline: "",
   property_value: null, down_payment: null, credit_range: "",
   annual_income: null, monthly_debts: null, employment_type: "",
@@ -172,6 +177,8 @@ export async function saveLeadIntake(
     timeline: data.timeline || null,
     lead_score: score,
     notes: data.notes || null,
+    company_id: data.company_id || null,
+    co_borrower_id: data.co_borrower_id || null,
   };
 
   let leadId = existingLeadId;
@@ -186,6 +193,72 @@ export async function saveLeadIntake(
   } else {
     const { error } = await supabase.from("leads").update(leadRow).eq("id", leadId);
     if (error) throw error;
+  }
+
+  // Ensure a primary lead_contacts row exists for this lead.
+  // If the user picked one, link it; otherwise auto-create a contact from intake basics.
+  try {
+    let primaryContactId: string | null = data.primary_borrower_id || null;
+    if (!primaryContactId) {
+      const { data: existingLink } = await supabase
+        .from("lead_contacts")
+        .select("contact_id")
+        .eq("lead_id", leadId!)
+        .eq("is_primary", true)
+        .maybeSingle();
+      if (existingLink?.contact_id) {
+        primaryContactId = existingLink.contact_id as string;
+      } else if (data.first_name || data.last_name) {
+        const { data: createdContact, error: ccErr } = await supabase
+          .from("contacts")
+          .insert({
+            first_name: data.first_name || "Unknown",
+            last_name: data.last_name || "",
+            email: data.email || null,
+            phone: data.phone || null,
+            contact_type: "borrower",
+            role: "borrower",
+            company_id: data.company_id || null,
+            created_by: userId,
+          } as any)
+          .select("id")
+          .maybeSingle();
+        if (!ccErr) primaryContactId = createdContact?.id ?? null;
+      }
+    }
+    if (primaryContactId) {
+      // Unset existing primaries on this lead before promoting the new one
+      await supabase
+        .from("lead_contacts")
+        .update({ is_primary: false })
+        .eq("lead_id", leadId!)
+        .neq("contact_id", primaryContactId);
+      await supabase.from("lead_contacts").upsert(
+        {
+          lead_id: leadId!,
+          contact_id: primaryContactId,
+          role_on_deal: "primary_borrower" as any,
+          is_primary: true,
+          company_id: data.company_id || null,
+          created_by: userId,
+        } as any,
+        { onConflict: "lead_id,contact_id" } as any,
+      );
+    }
+    if (data.co_borrower_id) {
+      await supabase.from("lead_contacts").upsert(
+        {
+          lead_id: leadId!,
+          contact_id: data.co_borrower_id,
+          role_on_deal: "co_borrower" as any,
+          is_primary: false,
+          created_by: userId,
+        } as any,
+        { onConflict: "lead_id,contact_id" } as any,
+      );
+    }
+  } catch (linkErr) {
+    console.warn("primary/co-borrower link failed:", (linkErr as any)?.message);
   }
 
   // mortgage_profiles upsert (lead_id unique)
@@ -262,6 +335,9 @@ export function intakeFromLead(lead: any, mp: any | null): IntakeData {
     email: lead?.email ?? "",
     phone: lead?.phone ?? "",
     source_id: lead?.source_id ?? null,
+    primary_borrower_id: null,
+    co_borrower_id: lead?.co_borrower_id ?? null,
+    company_id: lead?.company_id ?? null,
     preferred_contact_time: mpExtras.preferred_contact_time ?? "",
     referral_source: (mpExtras.referral_source ?? lead?.source) ?? "",
     loan_purpose: lead?.loan_purpose ?? "",
