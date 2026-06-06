@@ -1,6 +1,6 @@
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-notify-secret",
 };
 
 const GATEWAY_URL = "https://connector-gateway.lovable.dev/resend";
@@ -27,6 +27,24 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Shared-secret authentication — this function is internal-only.
+    const NOTIFY_INGEST_SECRET = Deno.env.get("NOTIFY_INGEST_SECRET");
+    if (!NOTIFY_INGEST_SECRET) {
+      return new Response(JSON.stringify({ error: "Server not configured" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const provided =
+      req.headers.get("x-notify-secret") ||
+      (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
+    if (provided !== NOTIFY_INGEST_SECRET) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
     if (!LOVABLE_API_KEY || !RESEND_API_KEY) {
