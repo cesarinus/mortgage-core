@@ -159,7 +159,9 @@ Deno.serve(async (req) => {
 
     // Notify the loan officer that a new lead was created (fire-and-forget)
     try {
+      const NOTIFY_INGEST_SECRET = Deno.env.get("NOTIFY_INGEST_SECRET");
       await supabase.functions.invoke("notify-lead-event", {
+        headers: NOTIFY_INGEST_SECRET ? { "x-notify-secret": NOTIFY_INGEST_SECRET } : {},
         body: {
           event: "created",
           lead_id: leadData?.id,
