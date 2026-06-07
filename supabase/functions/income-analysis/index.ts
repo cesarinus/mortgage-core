@@ -126,11 +126,13 @@ Deno.serve(async (req) => {
   let body: any = {};
   try { body = await req.json(); } catch {}
   const leadId: string | undefined = body?.lead_id;
+  const filterContactId: string | null = typeof body?.contact_id === "string" ? body.contact_id : null;
   const force: boolean = !!body?.force;
   if (!leadId) return json({ error: "lead_id required" }, 400);
 
   // Cache
-  const cached = CACHE.get(leadId);
+  const cacheKey = `${leadId}::${filterContactId ?? "all"}`;
+  const cached = CACHE.get(cacheKey);
   if (!force && cached && Date.now() - cached.at < TTL_MS) {
     return json({ ...cached.data, cached: true });
   }
@@ -176,7 +178,7 @@ Deno.serve(async (req) => {
     return { name: nm || "Borrower", isPrimary: !!(lc as any)?.is_primary };
   };
 
-  const borrowers = keys.map((k) => {
+  let borrowers = keys.map((k) => {
     const meta = nameFor(k);
     return {
       key: k,
@@ -186,6 +188,13 @@ Deno.serve(async (req) => {
       calc: calcMap.get(k) ?? null,
     };
   }).sort((a, b) => Number(b.is_primary) - Number(a.is_primary));
+
+  if (filterContactId) {
+    borrowers = borrowers.filter((b) => b.key === filterContactId);
+    if (borrowers.length === 0) {
+      return json({ ...FALLBACK, summary: "No income data yet for your record." });
+    }
+  }
 
   const totalMonthly = borrowers.reduce((s, b) => s + Number(b.calc?.monthly_income ?? 0), 0);
   const totalAnnual = borrowers.reduce((s, b) => s + Number(b.calc?.annual_income ?? 0), 0);
@@ -233,7 +242,7 @@ Deno.serve(async (req) => {
     } else {
       data.combined = { monthly: totalMonthly, annual: totalAnnual, assessment: "" };
     }
-    CACHE.set(leadId, { at: Date.now(), data });
+    CACHE.set(cacheKey, { at: Date.now(), data });
     return json(data);
   } catch (e) {
     console.error("income-analysis error", e);
