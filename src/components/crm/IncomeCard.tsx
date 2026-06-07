@@ -28,6 +28,15 @@ interface Props {
 const fmt = (n: number | null | undefined) =>
   n == null ? "—" : `$${Number(n).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
 
+/** Corrected current-year-fraction: preceding_months + day / days_in_month. */
+function computeYearFraction(dateStr: string | null | undefined): number | null {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return null;
+  const dim = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  return d.getMonth() + d.getDate() / dim;
+}
+
 const empty = (leadId: string): PaymentDetails => ({
   lead_id: leadId,
   borrower_type: "employed",
@@ -153,7 +162,18 @@ export function IncomeCard({ leadId, editable = true, hideClassification = false
               className="h-8 text-xs"
             />
           </div>
-          <FieldNum label="Period days" value={form.pay_stub_period_days ?? 0} onChange={setNum("pay_stub_period_days")} disabled={disabled} />
+          <div className="space-y-1">
+            <Label className="text-[11px] text-muted-foreground">Period fraction (auto)</Label>
+            <Input
+              type="text"
+              readOnly
+              value={(() => {
+                const f = computeYearFraction(form.pay_stub_ending_date);
+                return f == null ? "—" : f.toFixed(2);
+              })()}
+              className="h-8 text-xs bg-muted/40"
+            />
+          </div>
         </div>
       </div>
 
