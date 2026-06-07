@@ -123,6 +123,31 @@ function normalize(data: any) {
   };
 }
 
+function borrowerLabel(borrowers: any[], index: number) {
+  if (borrowers[index]?.is_primary) return "Primary";
+  const nonPrimaryCount = borrowers.filter((b) => !b.is_primary).length;
+  const nonPrimaryIndex = borrowers.slice(0, index + 1).filter((b) => !b.is_primary).length;
+  return nonPrimaryCount > 1 ? `Co-Borrower ${nonPrimaryIndex}` : "Co-Borrower";
+}
+
+function authoritativeBorrowerAnalysis(borrowers: any[], aiBorrowers: any[] = []) {
+  return borrowers.map((b, i) => {
+    const byName = aiBorrowers.find((x: any) => String(x?.name ?? "").trim().toLowerCase() === String(b.borrower_name ?? "").trim().toLowerCase());
+    const ai = byName ?? aiBorrowers[i] ?? {};
+    const trendRaw = String(ai?.trend ?? "unknown").toLowerCase();
+    const trend = ["stable", "increasing", "decreasing", "volatile", "unknown"].includes(trendRaw) ? trendRaw : "unknown";
+    const arr = (x: any) => Array.isArray(x) ? x.filter((s) => typeof s === "string" && s.trim()) : [];
+    return {
+      label: borrowerLabel(borrowers, i),
+      name: String(b.borrower_name ?? "Borrower"),
+      trend,
+      summary: String(ai?.summary ?? "Income data is pending for this borrower.").trim(),
+      highlights: arr(ai?.highlights),
+      risk_flags: arr(ai?.risk_flags),
+    };
+  });
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
@@ -161,10 +186,6 @@ Deno.serve(async (req) => {
     supabase.from("pipeline_opportunities").select("primary_contact_id").eq("lead_id", leadId),
     supabase.from("contacts").select("id,first_name,last_name,contact_type,lead_id").eq("lead_id", leadId).eq("contact_type", "borrower"),
   ]);
-
-  if ((!pdRows || pdRows.length === 0) && (!calcRows || calcRows.length === 0)) {
-    return json({ ...FALLBACK, summary: "No income data yet — add pay stub or W-2 details to enable analysis." });
-  }
 
   // Index latest pd and calc by contact_id key
   const latest = <T extends { contact_id?: string | null }>(rows: T[]) => {
@@ -249,6 +270,15 @@ Deno.serve(async (req) => {
   const totalMonthly = borrowers.reduce((s, b) => s + Number(b.calc?.monthly_income ?? 0), 0);
   const totalAnnual = borrowers.reduce((s, b) => s + Number(b.calc?.annual_income ?? 0), 0);
 
+  if ((!pdRows || pdRows.length === 0) && (!calcRows || calcRows.length === 0)) {
+    return json({
+      ...FALLBACK,
+      summary: "No income data yet — add pay stub or W-2 details to enable analysis.",
+      borrowers: authoritativeBorrowerAnalysis(borrowers),
+      combined: { monthly: totalMonthly, annual: totalAnnual, assessment: "Combined income is pending." },
+    });
+  }
+
   const apiKey = Deno.env.get("LOVABLE_API_KEY");
   if (!apiKey) {
     const fb = { ...FALLBACK };
@@ -285,6 +315,7 @@ Deno.serve(async (req) => {
     const parsed = tryParseJson(text);
     if (!parsed) return json(FALLBACK);
     const data = normalize(parsed);
+    data.borrowers = authoritativeBorrowerAnalysis(borrowers, data.borrowers);
     // Ensure combined numbers reflect our authoritative totals
     if (data.combined) {
       data.combined.monthly = totalMonthly;
