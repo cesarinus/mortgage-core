@@ -8,8 +8,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
-import { Search, LayoutGrid, List as ListIcon, ArrowUpDown, MapPin, Building2, Landmark } from "lucide-react";
+import {
+  Search, LayoutGrid, List as ListIcon, ArrowUpDown, MapPin, Building2, Landmark,
+  Briefcase, Flame, Zap, Home, AlertTriangle,
+} from "lucide-react";
 import {
   getAllowedNext,
   isTransitionAllowedSync,
@@ -37,6 +41,8 @@ type Lead = {
   last_name: string;
   name: string | null;
   email: string | null;
+  source?: string | null;
+  intent_tag?: string | null;
 };
 
 type Contact = { id: string; first_name: string; last_name: string; email: string | null };
@@ -138,6 +144,8 @@ export default function Pipeline() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [search, setSearch] = useState("");
   const [stageFilter, setStageFilter] = useState<string>("all");
+  const [sourceFilter, setSourceFilter] = useState<string>("all");
+  const [smartView, setSmartView] = useState<"all" | "hot" | "ready" | "fha" | "inactive">("all");
   const [sortKey, setSortKey] = useState<"name" | "amount" | "stage" | "close">("close");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
@@ -163,7 +171,7 @@ export default function Pipeline() {
 
     const [{ data: l }, { data: c }, { data: co }] = await Promise.all([
       leadIds.length
-        ? supabase.from("leads").select("id,first_name,last_name,name,email").in("id", leadIds)
+        ? supabase.from("leads").select("id,first_name,last_name,name,email,source,intent_tag").in("id", leadIds)
         : Promise.resolve({ data: [] as Lead[] } as any),
       contactIds.length
         ? supabase.from("contacts").select("id,first_name,last_name,email").in("id", contactIds)
@@ -205,9 +213,21 @@ export default function Pipeline() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
+    const now = Date.now();
+    const fourteenDays = 14 * 24 * 3600 * 1000;
     return assembled.filter((a) => {
       const stage = normalizeStatus(a.opp.stage);
       if (stageFilter !== "all" && stage !== stageFilter) return false;
+      const source = (a.lead?.source ?? "").toLowerCase();
+      if (sourceFilter !== "all" && source !== sourceFilter.toLowerCase()) return false;
+      const intent = (a.lead?.intent_tag ?? "").toLowerCase();
+      if (smartView === "hot" && !(stage === "approved" || stage === "clear_to_close")) return false;
+      if (smartView === "ready" && stage !== "clear_to_close") return false;
+      if (smartView === "fha" && !intent.includes("fha")) return false;
+      if (smartView === "inactive") {
+        const age = now - new Date(a.opp.created_at).getTime();
+        if (!(age > fourteenDays && stage !== "closed" && stage !== "lost")) return false;
+      }
       if (!q) return true;
       return (
         opportunityName(a.lead).toLowerCase().includes(q) ||
@@ -216,7 +236,43 @@ export default function Pipeline() {
         (a.opp.property_address ?? "").toLowerCase().includes(q)
       );
     });
-  }, [assembled, search, stageFilter]);
+  }, [assembled, search, stageFilter, sourceFilter, smartView]);
+
+  const smartViewCounts = useMemo(() => {
+    const now = Date.now();
+    const fourteenDays = 14 * 24 * 3600 * 1000;
+    return {
+      all: assembled.length,
+      hot: assembled.filter((a) => {
+        const s = normalizeStatus(a.opp.stage);
+        return s === "approved" || s === "clear_to_close";
+      }).length,
+      ready: assembled.filter((a) => normalizeStatus(a.opp.stage) === "clear_to_close").length,
+      fha: assembled.filter((a) => (a.lead?.intent_tag ?? "").toLowerCase().includes("fha")).length,
+      inactive: assembled.filter((a) => {
+        const s = normalizeStatus(a.opp.stage);
+        const age = now - new Date(a.opp.created_at).getTime();
+        return age > fourteenDays && s !== "closed" && s !== "lost";
+      }).length,
+    };
+  }, [assembled]);
+
+  const sourceOptions = ["realtor", "manual", "other", "referral", "website"];
+  const statusOptions: { key: string; label: string }[] = [
+    { key: "application_sent", label: "Application Sent" },
+    { key: "underwriting", label: "Underwriting" },
+    { key: "approved", label: "Approved" },
+    { key: "clear_to_close", label: "Clear To Close" },
+    { key: "closed", label: "Closed" },
+    { key: "lost", label: "Lost" },
+  ];
+  const smartViewItems: { key: typeof smartView; label: string; icon: typeof Flame }[] = [
+    { key: "all", label: "All Deals", icon: Briefcase },
+    { key: "hot", label: "Hot Deals", icon: Flame },
+    { key: "ready", label: "Ready to Close", icon: Zap },
+    { key: "fha", label: "FHA Deals", icon: Home },
+    { key: "inactive", label: "Inactive / Stalled", icon: AlertTriangle },
+  ];
 
   const sorted = useMemo(() => {
     const arr = [...filtered];
@@ -284,7 +340,80 @@ export default function Pipeline() {
   };
 
   return (
-    <div className="space-y-6 p-4 md:p-6">
+    <div className="flex h-[calc(100vh-3.5rem)] overflow-hidden">
+      {/* Left Sidebar — Filters */}
+      <div className="hidden lg:flex w-56 flex-col border-r bg-card p-4 gap-5 overflow-y-auto">
+        <div>
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Smart Views</h3>
+          <div className="space-y-0.5">
+            {smartViewItems.map((v) => (
+              <button
+                key={v.key}
+                onClick={() => setSmartView(v.key)}
+                className={`flex items-center gap-2 w-full rounded-md px-2.5 py-1.5 text-sm transition-colors ${
+                  smartView === v.key
+                    ? "bg-primary/10 text-primary font-medium"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                }`}
+              >
+                <v.icon className="h-3.5 w-3.5" />
+                {v.label}
+                <span className="ml-auto text-xs opacity-70">{smartViewCounts[v.key]}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <Separator />
+
+        <div>
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Status</h3>
+          <div className="space-y-0.5">
+            <button
+              onClick={() => setStageFilter("all")}
+              className={`w-full text-left rounded-md px-2.5 py-1.5 text-sm transition-colors ${
+                stageFilter === "all" ? "bg-muted font-medium" : "text-muted-foreground hover:bg-muted"
+              }`}
+            >All</button>
+            {statusOptions.map((s) => (
+              <button
+                key={s.key}
+                onClick={() => setStageFilter(s.key)}
+                className={`w-full text-left rounded-md px-2.5 py-1.5 text-sm transition-colors ${
+                  stageFilter === s.key ? "bg-muted font-medium" : "text-muted-foreground hover:bg-muted"
+                }`}
+              >{s.label}</button>
+            ))}
+          </div>
+        </div>
+
+        <Separator />
+
+        <div>
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Source</h3>
+          <div className="space-y-0.5">
+            <button
+              onClick={() => setSourceFilter("all")}
+              className={`w-full text-left rounded-md px-2.5 py-1.5 text-sm transition-colors ${
+                sourceFilter === "all" ? "bg-muted font-medium" : "text-muted-foreground hover:bg-muted"
+              }`}
+            >All</button>
+            {sourceOptions.map((s) => (
+              <button
+                key={s}
+                onClick={() => setSourceFilter(s)}
+                className={`w-full text-left rounded-md px-2.5 py-1.5 text-sm capitalize transition-colors ${
+                  sourceFilter === s ? "bg-muted font-medium" : "text-muted-foreground hover:bg-muted"
+                }`}
+              >{s}</button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col overflow-auto">
+      <div className="space-y-6 p-4 md:p-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Opportunities</h1>
@@ -499,6 +628,8 @@ export default function Pipeline() {
           })}
         </div>
       )}
+      </div>
+      </div>
     </div>
   );
 }
