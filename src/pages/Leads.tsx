@@ -140,6 +140,7 @@ export default function Leads() {
   const [events, setEvents] = useState<LeadEvent[]>([]);
   const [tags, setTags] = useState<LeadTag[]>([]);
   const [opportunityLeadIds, setOpportunityLeadIds] = useState<Set<string>>(new Set());
+  const [pipelineBorrowerEmails, setPipelineBorrowerEmails] = useState<Set<string>>(new Set());
   const [selectedLeadContactCount, setSelectedLeadContactCount] = useState<number>(0);
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
@@ -167,7 +168,30 @@ export default function Leads() {
     setLeads(l ?? []);
     setSources(s ?? []);
     setTags((t as LeadTag[]) ?? []);
-    setOpportunityLeadIds(new Set(((opps ?? []) as any[]).map((o) => o.lead_id)));
+    const oppLeadIds = Array.from(new Set(((opps ?? []) as any[]).map((o) => o.lead_id).filter(Boolean)));
+    setOpportunityLeadIds(new Set(oppLeadIds));
+
+    // Also hide leads whose own email matches a contact already linked as a
+    // borrower on another lead's pipeline opportunity (e.g. a co-borrower with
+    // their own intake row should not stay on the active lead list).
+    const borrowerEmails = new Set<string>();
+    if (oppLeadIds.length > 0) {
+      const { data: lcRows } = await supabase
+        .from("lead_contacts")
+        .select("contact_id")
+        .in("lead_id", oppLeadIds);
+      const contactIds = Array.from(new Set(((lcRows ?? []) as any[]).map((r) => r.contact_id).filter(Boolean)));
+      if (contactIds.length > 0) {
+        const { data: cts } = await supabase
+          .from("contacts")
+          .select("email")
+          .in("id", contactIds);
+        for (const c of (cts ?? []) as any[]) {
+          if (c.email) borrowerEmails.add(String(c.email).toLowerCase().trim());
+        }
+      }
+    }
+    setPipelineBorrowerEmails(borrowerEmails);
   };
 
   const loadEvents = async (leadId: string) => {
@@ -390,7 +414,12 @@ export default function Leads() {
 
   const filtered = useMemo(() => {
     // Hide any lead that already has an opportunity in the pipeline.
-    let result = leads.filter((l) => !opportunityLeadIds.has(l.id));
+    let result = leads.filter((l) => {
+      if (opportunityLeadIds.has(l.id)) return false;
+      const email = (l.email ?? "").toLowerCase().trim();
+      if (email && pipelineBorrowerEmails.has(email)) return false;
+      return true;
+    });
 
     // Smart view filters
     if (smartView === "hot") result = result.filter(l => (l.lead_score ?? 0) > 70);
@@ -413,7 +442,7 @@ export default function Leads() {
     }
 
     return result;
-  }, [leads, opportunityLeadIds, smartView, statusFilter, sourceFilter, search, fourteenDaysAgo]);
+  }, [leads, opportunityLeadIds, pipelineBorrowerEmails, smartView, statusFilter, sourceFilter, search, fourteenDaysAgo]);
 
   const uniqueSources = useMemo(() =>
     [...new Set(leads.map(l => l.source).filter(Boolean))] as string[],
