@@ -54,14 +54,18 @@ Deno.serve(async (req) => {
   if (!contactId) {
     const { data: primary } = await supabase
       .from("lead_contacts")
-      .select("contact_id,is_primary,contacts(first_name,last_name)")
+      .select("contact_id,is_primary")
       .eq("lead_id", leadId)
       .eq("is_primary", true)
       .maybeSingle();
     if (primary?.contact_id) {
       contactId = primary.contact_id as string;
       if (!borrowerName) {
-        const c: any = (primary as any).contacts;
+        const { data: c } = await supabase
+          .from("contacts")
+          .select("first_name,last_name")
+          .eq("id", contactId)
+          .maybeSingle();
         const nm = c ? `${c.first_name ?? ""} ${c.last_name ?? ""}`.trim() : "";
         borrowerName = nm || null;
       }
