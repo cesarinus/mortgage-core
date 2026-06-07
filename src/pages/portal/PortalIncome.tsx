@@ -158,7 +158,12 @@ export default function PortalIncome() {
             </Card>
           )}
 
-          <IncomeAiAnalysis leadId={binding.lead_id} audience="borrower" refreshKey={calc?.id ?? "none"} />
+          <IncomeAiAnalysis
+            leadId={binding.lead_id}
+            contactId={binding.contact_id ?? null}
+            audience="borrower"
+            refreshKey={calc?.id ?? "none"}
+          />
         </>
       )}
     </div>
