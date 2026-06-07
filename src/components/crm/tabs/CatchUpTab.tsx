@@ -7,8 +7,10 @@ import { format } from "date-fns";
 import FinancialWorkspace from "@/components/crm/finance/FinancialWorkspace";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { useEffect, useState } from "react";
-import { fetchLatestIncome, IncomeCalc } from "@/lib/crm/income";
+import { fetchLatestIncome, fetchAllLatestIncome, IncomeCalc } from "@/lib/crm/income";
 import { IncomeAiAnalysis } from "@/components/crm/IncomeAiAnalysis";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
   activities: any[];
@@ -26,16 +28,77 @@ export function CatchUpTab({ activities, emailLogs, sentiment, mortgage, record,
   const outbound = activities.filter((a) => ["email", "call", "task", "meeting"].includes(a.activity_type)).slice(0, 6);
   const [incomeModalOpen, setIncomeModalOpen] = useState(false);
   const borrowerName = `${record?.first_name ?? ""} ${record?.last_name ?? ""}`.trim() || "Borrower";
+
+  // Multi-borrower
+  type BorrowerOpt = { contactId: string | null; name: string; isPrimary: boolean; role?: string | null };
+  const [borrowers, setBorrowers] = useState<BorrowerOpt[]>([]);
+  const [selectedBorrower, setSelectedBorrower] = useState<string>("__primary__");
+  const [allIncome, setAllIncome] = useState<IncomeCalc[]>([]);
   const [income, setIncome] = useState<IncomeCalc | null>(null);
 
+  // Load lead_contacts (with contact info)
   useEffect(() => {
-    if (!leadId) { setIncome(null); return; }
+    if (!leadId) { setBorrowers([]); return; }
     let cancelled = false;
-    const tick = () => fetchLatestIncome(leadId).then((d) => { if (!cancelled) setIncome(d); }).catch(() => {});
+    (async () => {
+      const { data } = await (supabase as any)
+        .from("lead_contacts")
+        .select("contact_id,is_primary,role_on_deal,contacts(id,first_name,last_name)")
+        .eq("lead_id", leadId);
+      if (cancelled) return;
+      const rows: BorrowerOpt[] = (data ?? []).map((r: any) => ({
+        contactId: r.contact_id,
+        name: `${r.contacts?.first_name ?? ""} ${r.contacts?.last_name ?? ""}`.trim() || "Borrower",
+        isPrimary: !!r.is_primary,
+        role: r.role_on_deal,
+      }));
+      // Always offer a "Primary Borrower" fallback for legacy/unmapped data
+      const primaryFromContacts = rows.find((r) => r.isPrimary);
+      const list: BorrowerOpt[] = primaryFromContacts
+        ? rows.sort((a, b) => Number(b.isPrimary) - Number(a.isPrimary))
+        : [{ contactId: null, name: borrowerName, isPrimary: true }, ...rows];
+      setBorrowers(list);
+      const initial = list[0];
+      setSelectedBorrower(initial?.contactId ?? "__primary__");
+    })();
+    return () => { cancelled = true; };
+  }, [leadId, borrowerName]);
+
+  const refreshIncome = async () => {
+    if (!leadId) return;
+    const all = await fetchAllLatestIncome(leadId).catch(() => []);
+    setAllIncome(all);
+    const contactKey = selectedBorrower === "__primary__" ? null : selectedBorrower;
+    setIncome(all.find((c) => (c.contact_id ?? null) === contactKey) ?? null);
+  };
+
+  useEffect(() => {
+    if (!leadId) { setIncome(null); setAllIncome([]); return; }
+    let cancelled = false;
+    const tick = async () => {
+      const all = await fetchAllLatestIncome(leadId).catch(() => []);
+      if (cancelled) return;
+      setAllIncome(all);
+      const contactKey = selectedBorrower === "__primary__" ? null : selectedBorrower;
+      setIncome(all.find((c) => (c.contact_id ?? null) === contactKey) ?? null);
+    };
     tick();
     const i = setInterval(tick, 5000);
     return () => { cancelled = true; clearInterval(i); };
-  }, [leadId, incomeModalOpen]);
+  }, [leadId, selectedBorrower, incomeModalOpen]);
+
+  const selectedBorrowerObj = borrowers.find((b) => (b.contactId ?? "__primary__") === selectedBorrower);
+  const selectedContactId = selectedBorrowerObj?.contactId ?? null;
+  const selectedName = selectedBorrowerObj?.name ?? borrowerName;
+
+  // Combined totals
+  const totalMonthly = allIncome.reduce((s, c) => s + Number(c.monthly_income ?? 0), 0);
+  const totalAnnual = allIncome.reduce((s, c) => s + Number(c.annual_income ?? 0), 0);
+  const nameForCalc = (c: IncomeCalc): string => {
+    if (c.borrower_name) return c.borrower_name;
+    const b = borrowers.find((x) => (x.contactId ?? null) === (c.contact_id ?? null));
+    return b?.name ?? "Borrower";
+  };
 
   const challenges: string[] = sentiment?.challenges ?? deriveChallenges(record);
   const positives: string[] = sentiment?.positives ?? derivePositives(record);
@@ -171,19 +234,70 @@ export function CatchUpTab({ activities, emailLogs, sentiment, mortgage, record,
               ? "Classify the borrower as Employee or Self-Employed and build P&L, Balance Sheet, and Cash Flow statements."
               : "Open a lead workspace to use Income Analysis."}
           </p>
+
+          {leadId && borrowers.length > 0 && (
+            <div className="mt-3 flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Borrower:</span>
+              <Select value={selectedBorrower} onValueChange={setSelectedBorrower}>
+                <SelectTrigger className="h-8 w-[260px] text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {borrowers.map((b) => {
+                    const val = b.contactId ?? "__primary__";
+                    const role = b.isPrimary ? "Primary Borrower" : (b.role ? b.role : "Co-Borrower");
+                    return <SelectItem key={val} value={val}>{role} — {b.name}</SelectItem>;
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           {leadId && (
             <div className="mt-3 rounded-md bg-muted/40 p-3 text-sm divide-y">
+              <div className="pb-1.5 text-[11px] uppercase tracking-wide text-muted-foreground">{selectedName}</div>
               <SummaryRow label="Monthly income" value={fmtIncome(income?.monthly_income)} />
               <SummaryRow label="Annual income" value={fmtIncome(income?.annual_income)} />
               <SummaryRow label="Years average" value={fmtIncome((income as any)?.years_average)} />
             </div>
           )}
+
+          {leadId && allIncome.length > 1 && (
+            <div className="mt-3 rounded-md border p-3">
+              <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2">Combined Qualifying Income</div>
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="text-left text-muted-foreground">
+                    <th className="py-1 font-medium">Borrower</th>
+                    <th className="py-1 font-medium text-right">Monthly</th>
+                    <th className="py-1 font-medium text-right">Annual</th>
+                    <th className="py-1 font-medium text-right">Years Avg</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {allIncome.map((c) => (
+                    <tr key={c.id}>
+                      <td className="py-1.5">{nameForCalc(c)}</td>
+                      <td className="py-1.5 text-right tabular-nums">{fmtIncome(c.monthly_income)}</td>
+                      <td className="py-1.5 text-right tabular-nums">{fmtIncome(c.annual_income)}</td>
+                      <td className="py-1.5 text-right tabular-nums">{fmtIncome((c as any).years_average)}</td>
+                    </tr>
+                  ))}
+                  <tr className="border-t-2 font-semibold">
+                    <td className="py-1.5">Total</td>
+                    <td className="py-1.5 text-right tabular-nums">{fmtIncome(totalMonthly)}</td>
+                    <td className="py-1.5 text-right tabular-nums">{fmtIncome(totalAnnual)}</td>
+                    <td className="py-1.5 text-right text-muted-foreground">—</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          )}
+
           {leadId && (
             <div className="mt-3">
               <IncomeAiAnalysis
                 leadId={leadId}
                 audience="admin"
-                refreshKey={income?.id ?? "none"}
+                refreshKey={allIncome.map((c) => c.id).join("|") || "none"}
               />
             </div>
           )}
@@ -197,15 +311,15 @@ export function CatchUpTab({ activities, emailLogs, sentiment, mortgage, record,
               <Calculator className="h-5 w-5" /> Borrower Income Classification
             </SheetTitle>
             <SheetDescription>
-              {borrowerName} — categorize income, enter financials, and generate statements.
+              {selectedName} — categorize income, enter financials, and generate statements.
             </SheetDescription>
           </SheetHeader>
           <div className="mt-4">
             {leadId && (
               <FinancialWorkspace
                 leadId={leadId}
-                contactId={contactId ?? null}
-                borrowerName={borrowerName}
+                contactId={selectedContactId}
+                borrowerName={selectedName}
               />
             )}
           </div>
