@@ -9,7 +9,6 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "
 import { useEffect, useState } from "react";
 import { fetchLatestIncome, fetchAllLatestIncome, IncomeCalc } from "@/lib/crm/income";
 import { IncomeAiAnalysis } from "@/components/crm/IncomeAiAnalysis";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
@@ -236,18 +235,34 @@ export function CatchUpTab({ activities, emailLogs, sentiment, mortgage, record,
           </p>
 
           {leadId && borrowers.length > 0 && (
-            <div className="mt-3 flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">Borrower:</span>
-              <Select value={selectedBorrower} onValueChange={setSelectedBorrower}>
-                <SelectTrigger className="h-8 w-[260px] text-xs"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {borrowers.map((b) => {
-                    const val = b.contactId ?? "__primary__";
-                    const role = b.isPrimary ? "Primary Borrower" : (b.role ? b.role : "Co-Borrower");
-                    return <SelectItem key={val} value={val}>{role} — {b.name}</SelectItem>;
-                  })}
-                </SelectContent>
-              </Select>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <span className="text-xs text-muted-foreground mr-1">Borrowers:</span>
+              {borrowers.map((b) => {
+                const val = b.contactId ?? "__primary__";
+                const active = selectedBorrower === val;
+                const roleLabel = b.isPrimary
+                  ? "Primary"
+                  : (b.role && b.role !== "co_borrower" ? b.role.replace(/_/g, " ") : "Co-Borrower");
+                const base = "text-xs h-7 px-2.5 rounded-full border transition-colors cursor-pointer";
+                const cls = b.isPrimary
+                  ? (active
+                      ? "bg-[#F97316] text-white border-[#F97316] hover:bg-[#F97316]/90"
+                      : "border-[#F97316]/40 text-[#F97316] bg-[#F97316]/10 hover:bg-[#F97316]/20")
+                  : (active
+                      ? "bg-secondary text-secondary-foreground border-foreground/30"
+                      : "border-border bg-muted/40 text-muted-foreground hover:bg-muted");
+                return (
+                  <button
+                    key={val}
+                    type="button"
+                    onClick={() => setSelectedBorrower(val)}
+                    className={`${base} ${cls} capitalize`}
+                    aria-pressed={active}
+                  >
+                    {b.name} <span className="opacity-80">({roleLabel})</span>
+                  </button>
+                );
+              })}
             </div>
           )}
 

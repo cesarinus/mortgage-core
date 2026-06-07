@@ -45,10 +45,28 @@ Deno.serve(async (req) => {
   try { body = await req.json(); } catch { return json({ error: "Invalid JSON" }, 400); }
 
   const leadId = typeof body?.lead_id === "string" ? body.lead_id : null;
-  const contactId = typeof body?.contact_id === "string" ? body.contact_id : null;
-  const borrowerName = typeof body?.borrower_name === "string" ? body.borrower_name : null;
+  let contactId = typeof body?.contact_id === "string" ? body.contact_id : null;
+  let borrowerName = typeof body?.borrower_name === "string" ? body.borrower_name : null;
   const mode = body?.mode === "calculate" ? "calculate" : "read";
   if (!leadId) return json({ error: "lead_id required" }, 400);
+
+  // If no contact_id provided, fall back to the primary borrower on the deal.
+  if (!contactId) {
+    const { data: primary } = await supabase
+      .from("lead_contacts")
+      .select("contact_id,is_primary,contacts(first_name,last_name)")
+      .eq("lead_id", leadId)
+      .eq("is_primary", true)
+      .maybeSingle();
+    if (primary?.contact_id) {
+      contactId = primary.contact_id as string;
+      if (!borrowerName) {
+        const c: any = (primary as any).contacts;
+        const nm = c ? `${c.first_name ?? ""} ${c.last_name ?? ""}`.trim() : "";
+        borrowerName = nm || null;
+      }
+    }
+  }
 
   const { data: conditions } = await supabase
     .from("loan_conditions")
