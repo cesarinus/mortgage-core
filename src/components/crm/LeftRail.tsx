@@ -42,7 +42,7 @@ export function LeftRail({ record, kind, tags = [], onAction, onStatusChange, on
   const initials = `${record?.first_name?.[0] ?? ""}${record?.last_name?.[0] ?? ""}`.toUpperCase() || "?";
   const backTo = kind === "contact"
     ? { href: "/contacts", label: "Contacts" }
-    : from === "pipeline"
+    : (pipelineMode || from === "pipeline")
       ? { href: "/pipeline", label: "Pipeline" }
       : { href: "/leads", label: "Leads" };
   const currentStageRaw = pipelineMode
