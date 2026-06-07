@@ -202,7 +202,7 @@ Deno.serve(async (req) => {
   const apiKey = Deno.env.get("LOVABLE_API_KEY");
   if (!apiKey) {
     const fb = { ...FALLBACK };
-    CACHE.set(leadId, { at: Date.now(), data: fb });
+    CACHE.set(cacheKey, { at: Date.now(), data: fb });
     return json(fb);
   }
 
