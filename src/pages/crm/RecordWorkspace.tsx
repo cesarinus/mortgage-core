@@ -403,7 +403,16 @@ export default function RecordWorkspace({ kind }: Props) {
           <RightRail
             companies={companies}
             deals={kind === "lead" ? opportunities : deals}
-            contacts={linkedContacts}
+            contacts={(() => {
+              if (kind !== "lead") return linkedContacts;
+              // Hide the lead's own self-link (same email as the lead) so the
+              // borrower in the left rail isn't duplicated in the Contacts card.
+              const selfEmail = (record?.email ?? "").toLowerCase().trim();
+              return (linkedContacts ?? []).filter((lc: any) => {
+                const e = (lc?.contact?.email ?? "").toLowerCase().trim();
+                return !selfEmail || e !== selfEmail;
+              });
+            })()}
             attachments={attachments}
             onUpload={() => setModal("upload")}
             onAddCompany={() => setModal("linkCompany")}
