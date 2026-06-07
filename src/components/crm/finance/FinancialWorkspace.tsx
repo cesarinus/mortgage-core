@@ -325,7 +325,13 @@ export default function FinancialWorkspace({ dealId, leadId, contactId, borrower
           </CardHeader>
           <CardContent>
             {leadId ? (
-              <IncomeCard leadId={leadId} hideClassification compact />
+              <IncomeCard
+                leadId={leadId}
+                contactId={contactId}
+                borrowerName={borrowerName}
+                hideClassification
+                compact
+              />
             ) : (
               <p className="text-sm text-muted-foreground">
                 Income calculation is available once a lead is linked.

@@ -354,10 +354,12 @@ export type Database = {
           annual_income: number | null
           base_income: number | null
           bonus: number | null
+          borrower_name: string | null
           borrower_type: string
           calculated_by: string
           calculation_date: string
           commission: number | null
+          contact_id: string | null
           created_at: string
           id: string
           income_breakdown: Json | null
@@ -377,10 +379,12 @@ export type Database = {
           annual_income?: number | null
           base_income?: number | null
           bonus?: number | null
+          borrower_name?: string | null
           borrower_type: string
           calculated_by?: string
           calculation_date?: string
           commission?: number | null
+          contact_id?: string | null
           created_at?: string
           id?: string
           income_breakdown?: Json | null
@@ -400,10 +404,12 @@ export type Database = {
           annual_income?: number | null
           base_income?: number | null
           bonus?: number | null
+          borrower_name?: string | null
           borrower_type?: string
           calculated_by?: string
           calculation_date?: string
           commission?: number | null
+          contact_id?: string | null
           created_at?: string
           id?: string
           income_breakdown?: Json | null
@@ -421,6 +427,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "borrower_income_calculations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "borrower_income_calculations_lead_id_fkey"
             columns: ["lead_id"]
             isOneToOne: false
@@ -432,6 +445,7 @@ export type Database = {
       borrower_payment_details: {
         Row: {
           borrower_type: string
+          contact_id: string | null
           created_at: string
           id: string
           lead_id: string
@@ -459,6 +473,7 @@ export type Database = {
         }
         Insert: {
           borrower_type?: string
+          contact_id?: string | null
           created_at?: string
           id?: string
           lead_id: string
@@ -486,6 +501,7 @@ export type Database = {
         }
         Update: {
           borrower_type?: string
+          contact_id?: string | null
           created_at?: string
           id?: string
           lead_id?: string
@@ -512,6 +528,13 @@ export type Database = {
           ytd_total?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "borrower_payment_details_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "borrower_payment_details_lead_id_fkey"
             columns: ["lead_id"]

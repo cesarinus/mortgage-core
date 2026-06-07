@@ -45,6 +45,8 @@ Deno.serve(async (req) => {
   try { body = await req.json(); } catch { return json({ error: "Invalid JSON" }, 400); }
 
   const leadId = typeof body?.lead_id === "string" ? body.lead_id : null;
+  const contactId = typeof body?.contact_id === "string" ? body.contact_id : null;
+  const borrowerName = typeof body?.borrower_name === "string" ? body.borrower_name : null;
   const mode = body?.mode === "calculate" ? "calculate" : "read";
   if (!leadId) return json({ error: "lead_id required" }, 400);
 
@@ -56,10 +58,13 @@ Deno.serve(async (req) => {
     .eq("status", "received");
 
   if (mode === "read") {
-    const { data: calc, error: kErr } = await supabase
+    let q = supabase
       .from("borrower_income_calculations")
       .select("*")
-      .eq("lead_id", leadId)
+      .eq("lead_id", leadId);
+    if (contactId) q = q.eq("contact_id", contactId);
+    else q = q.is("contact_id", null);
+    const { data: calc, error: kErr } = await q
       .order("calculation_date", { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -68,10 +73,13 @@ Deno.serve(async (req) => {
   }
 
   // mode === "calculate" — load payment details and apply formulas
-  const { data: pd, error: pErr } = await supabase
+  let pdq = supabase
     .from("borrower_payment_details")
     .select("*")
-    .eq("lead_id", leadId)
+    .eq("lead_id", leadId);
+  if (contactId) pdq = pdq.eq("contact_id", contactId);
+  else pdq = pdq.is("contact_id", null);
+  const { data: pd, error: pErr } = await pdq
     .order("updated_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -123,6 +131,8 @@ Deno.serve(async (req) => {
 
   const row = {
     lead_id: leadId,
+    contact_id: contactId,
+    borrower_name: borrowerName,
     borrower_type: borrowerType,
     monthly_income: monthly,
     annual_income: annual,

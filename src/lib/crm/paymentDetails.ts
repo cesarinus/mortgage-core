@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 export type PaymentDetails = {
   id?: string;
   lead_id: string;
+  contact_id?: string | null;
   borrower_type: "employed" | "self_employed";
   pay_period_type: string;
   pay_stub_ending_date: string | null;
@@ -20,11 +21,17 @@ export type PaymentDetails = {
   se_avg_monthly_net: number;
 };
 
-export async function fetchPaymentDetails(leadId: string): Promise<PaymentDetails | null> {
-  const { data, error } = await (supabase as any)
+export async function fetchPaymentDetails(
+  leadId: string,
+  contactId?: string | null,
+): Promise<PaymentDetails | null> {
+  let q = (supabase as any)
     .from("borrower_payment_details")
     .select("*")
-    .eq("lead_id", leadId)
+    .eq("lead_id", leadId);
+  if (contactId) q = q.eq("contact_id", contactId);
+  else q = q.is("contact_id", null);
+  const { data, error } = await q
     .order("updated_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -33,8 +40,8 @@ export async function fetchPaymentDetails(leadId: string): Promise<PaymentDetail
 }
 
 export async function savePaymentDetails(input: PaymentDetails) {
-  // upsert by lead_id (latest row replaces snapshot)
-  const existing = await fetchPaymentDetails(input.lead_id).catch(() => null);
+  // upsert by (lead_id, contact_id) — latest row replaces snapshot per borrower
+  const existing = await fetchPaymentDetails(input.lead_id, input.contact_id ?? null).catch(() => null);
   if (existing?.id) {
     const { data, error } = await (supabase as any)
       .from("borrower_payment_details")
@@ -54,9 +61,9 @@ export async function savePaymentDetails(input: PaymentDetails) {
   return data as PaymentDetails;
 }
 
-export async function calculateIncomeFromInputs(leadId: string) {
+export async function calculateIncomeFromInputs(leadId: string, contactId?: string | null, borrowerName?: string | null) {
   const { data, error } = await supabase.functions.invoke("calculate-income", {
-    body: { lead_id: leadId, mode: "calculate" },
+    body: { lead_id: leadId, contact_id: contactId ?? null, borrower_name: borrowerName ?? null, mode: "calculate" },
   });
   if (error) throw error;
   return data as { calculation: any; income_conditions: any[] };

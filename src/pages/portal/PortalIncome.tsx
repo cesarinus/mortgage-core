@@ -39,9 +39,10 @@ export default function PortalIncome() {
     let cancelled = false;
     (async () => {
       if (!binding?.lead_id) return;
+      const contactId = binding.contact_id ?? null;
       const [c, d] = await Promise.all([
-        fetchLatestIncome(binding.lead_id).catch(() => null),
-        fetchPaymentDetails(binding.lead_id).catch(() => null),
+        fetchLatestIncome(binding.lead_id, contactId).catch(() => null),
+        fetchPaymentDetails(binding.lead_id, contactId).catch(() => null),
       ]);
       if (cancelled) return;
       setCalc(c);
@@ -157,7 +158,12 @@ export default function PortalIncome() {
             </Card>
           )}
 
-          <IncomeAiAnalysis leadId={binding.lead_id} audience="borrower" refreshKey={calc?.id ?? "none"} />
+          <IncomeAiAnalysis
+            leadId={binding.lead_id}
+            contactId={binding.contact_id ?? null}
+            audience="borrower"
+            refreshKey={calc?.id ?? "none"}
+          />
         </>
       )}
     </div>

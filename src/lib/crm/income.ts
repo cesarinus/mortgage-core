@@ -3,6 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 export type IncomeCalc = {
   id: string;
   lead_id: string;
+  contact_id?: string | null;
+  borrower_name?: string | null;
   borrower_type: "employed" | "self_employed" | string;
   calculation_date: string;
   monthly_income: number | null;
@@ -13,22 +15,43 @@ export type IncomeCalc = {
   commission: number | null;
   self_employment_income: number | null;
   other_income: number | null;
+  years_average?: number | null;
   income_breakdown: any;
   source: "manual" | "ocr" | string;
   calculated_by: string;
   created_at: string;
 };
 
-export async function fetchLatestIncome(leadId: string): Promise<IncomeCalc | null> {
-  const { data, error } = await (supabase as any)
+export async function fetchLatestIncome(leadId: string, contactId?: string | null): Promise<IncomeCalc | null> {
+  let q = (supabase as any)
     .from("borrower_income_calculations")
     .select("*")
-    .eq("lead_id", leadId)
+    .eq("lead_id", leadId);
+  if (contactId) q = q.eq("contact_id", contactId);
+  else q = q.is("contact_id", null);
+  const { data, error } = await q
     .order("calculation_date", { ascending: false })
     .limit(1)
     .maybeSingle();
   if (error) throw error;
   return (data as IncomeCalc) ?? null;
+}
+
+/** Latest income calculation per contact_id for a lead. */
+export async function fetchAllLatestIncome(leadId: string): Promise<IncomeCalc[]> {
+  const { data, error } = await (supabase as any)
+    .from("borrower_income_calculations")
+    .select("*")
+    .eq("lead_id", leadId)
+    .order("calculation_date", { ascending: false });
+  if (error) throw error;
+  const rows = (data ?? []) as IncomeCalc[];
+  const byContact = new Map<string, IncomeCalc>();
+  for (const r of rows) {
+    const key = r.contact_id ?? "__primary__";
+    if (!byContact.has(key)) byContact.set(key, r);
+  }
+  return Array.from(byContact.values());
 }
 
 export type IncomeInput = {
