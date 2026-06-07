@@ -349,6 +349,80 @@ export type Database = {
           },
         ]
       }
+      borrower_income_calculations: {
+        Row: {
+          annual_income: number | null
+          base_income: number | null
+          bonus: number | null
+          borrower_type: string
+          calculated_by: string
+          calculation_date: string
+          commission: number | null
+          created_at: string
+          id: string
+          income_breakdown: Json | null
+          lead_id: string
+          monthly_income: number | null
+          ocr_log: Json | null
+          other_income: number | null
+          overtime: number | null
+          self_employment_income: number | null
+          source: string
+          supporting_doc_ids: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          annual_income?: number | null
+          base_income?: number | null
+          bonus?: number | null
+          borrower_type: string
+          calculated_by?: string
+          calculation_date?: string
+          commission?: number | null
+          created_at?: string
+          id?: string
+          income_breakdown?: Json | null
+          lead_id: string
+          monthly_income?: number | null
+          ocr_log?: Json | null
+          other_income?: number | null
+          overtime?: number | null
+          self_employment_income?: number | null
+          source?: string
+          supporting_doc_ids?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          annual_income?: number | null
+          base_income?: number | null
+          bonus?: number | null
+          borrower_type?: string
+          calculated_by?: string
+          calculation_date?: string
+          commission?: number | null
+          created_at?: string
+          id?: string
+          income_breakdown?: Json | null
+          lead_id?: string
+          monthly_income?: number | null
+          ocr_log?: Json | null
+          other_income?: number | null
+          overtime?: number | null
+          self_employment_income?: number | null
+          source?: string
+          supporting_doc_ids?: string[] | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "borrower_income_calculations_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chat_messages: {
         Row: {
           content: string
@@ -1791,6 +1865,90 @@ export type Database = {
             columns: ["source_id"]
             isOneToOne: false
             referencedRelation: "lead_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      loan_conditions: {
+        Row: {
+          category: string
+          condition_type: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          document_name: string | null
+          document_url: string | null
+          id: string
+          lead_id: string
+          notes: string | null
+          ocr_raw: Json | null
+          ocr_status: string
+          pipeline_opportunity_id: string | null
+          received_at: string | null
+          received_via: string | null
+          required: boolean
+          source: string
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          condition_type: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          document_name?: string | null
+          document_url?: string | null
+          id?: string
+          lead_id: string
+          notes?: string | null
+          ocr_raw?: Json | null
+          ocr_status?: string
+          pipeline_opportunity_id?: string | null
+          received_at?: string | null
+          received_via?: string | null
+          required?: boolean
+          source?: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          condition_type?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          document_name?: string | null
+          document_url?: string | null
+          id?: string
+          lead_id?: string
+          notes?: string | null
+          ocr_raw?: Json | null
+          ocr_status?: string
+          pipeline_opportunity_id?: string | null
+          received_at?: string | null
+          received_via?: string | null
+          required?: boolean
+          source?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "loan_conditions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "loan_conditions_pipeline_opportunity_id_fkey"
+            columns: ["pipeline_opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_opportunities"
             referencedColumns: ["id"]
           },
         ]
