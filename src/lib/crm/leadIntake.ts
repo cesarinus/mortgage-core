@@ -31,6 +31,8 @@ export interface IntakeData {
   property_value?: number | null;
   down_payment?: number | null;
   credit_range?: CreditRange | "";
+  // Subject property
+  property_address?: string;
   // Financial
   annual_income?: number | null;
   monthly_debts?: number | null;
@@ -46,6 +48,7 @@ export const EMPTY_INTAKE: IntakeData = {
   primary_borrower_id: null, co_borrower_id: null, company_id: null,
   loan_purpose: "", loan_type: "", property_type: "", occupancy: "", timeline: "",
   property_value: null, down_payment: null, credit_range: "",
+  property_address: "",
   annual_income: null, monthly_debts: null, employment_type: "",
   self_employed: false, notes: "",
 };
@@ -173,6 +176,7 @@ export async function saveLeadIntake(
     loan_purpose: data.loan_purpose || null,
     property_type: data.property_type || null,
     property_value: data.property_value ?? null,
+    property_address: (data.property_address ?? "").trim() || null,
     credit_range: data.credit_range || null,
     employment_type: data.self_employed ? "self_employed" : (data.employment_type || null),
     annual_income: data.annual_income ?? null,
@@ -349,6 +353,7 @@ export function intakeFromLead(lead: any, mp: any | null): IntakeData {
     occupancy: mp?.occupancy_type ?? "",
     timeline: lead?.timeline ?? "",
     property_value: lead?.property_value ?? mp?.purchase_price ?? null,
+    property_address: lead?.property_address ?? "",
     down_payment: mp?.down_payment ?? null,
     credit_range: lead?.credit_range ?? "",
     annual_income: lead?.annual_income ?? mp?.est_income ?? null,
