@@ -216,6 +216,19 @@ function Row({ icon, label, sub }: { icon: any; label: string; sub: string }) {
     </div>
   );
 }
+
+function SummaryRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex justify-between py-1.5 first:pt-0 last:pb-0">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="font-medium">{value}</span>
+    </div>
+  );
+}
+
+function fmtIncome(n: number | null | undefined) {
+  return n == null ? "—" : `$${Number(n).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+}
 function Empty({ text }: { text: string }) { return <p className="text-sm text-muted-foreground">{text}</p>; }
 function Stat({ label, value }: { label: string; value?: any }) {
   return (
