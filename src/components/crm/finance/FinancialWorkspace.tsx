@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, Download, FileText, Building2 } from "lucide-react";
 import { IncomeCard } from "@/components/crm/IncomeCard";
+import { fetchLatestIncome, IncomeCalc } from "@/lib/crm/income";
 import {
   computeBalanceSheet,
   computeCashFlow,
@@ -66,6 +67,7 @@ export default function FinancialWorkspace({ dealId, leadId, contactId, borrower
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [snapshots, setSnapshots] = useState<any[]>([]);
+  const [income, setIncome] = useState<IncomeCalc | null>(null);
 
   const scopeColumn: "deal_id" | "lead_id" = dealId ? "deal_id" : "lead_id";
   const scopeId = dealId ?? leadId ?? null;
@@ -74,6 +76,15 @@ export default function FinancialWorkspace({ dealId, leadId, contactId, borrower
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dealId, leadId]);
+
+  useEffect(() => {
+    if (!leadId) { setIncome(null); return; }
+    let cancelled = false;
+    const tick = () => fetchLatestIncome(leadId).then((d) => { if (!cancelled) setIncome(d); }).catch(() => {});
+    tick();
+    const i = setInterval(tick, 5000);
+    return () => { cancelled = true; clearInterval(i); };
+  }, [leadId]);
 
   async function load() {
     if (!scopeId) { setLoading(false); return; }
@@ -289,6 +300,12 @@ export default function FinancialWorkspace({ dealId, leadId, contactId, borrower
             ))}
           </div>
 
+          <div className="rounded-md bg-muted/40 p-3 text-sm divide-y">
+            <SummaryRow label="Monthly income" value={fmtMoney(income?.monthly_income)} />
+            <SummaryRow label="Annual income" value={fmtMoney(income?.annual_income)} />
+            <SummaryRow label="Years average" value={fmtMoney((income as any)?.years_average)} />
+          </div>
+
           {profile.borrower_type === "self_employed" && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
               <div>
@@ -478,4 +495,17 @@ function Row({ label, value, bold }: { label: string; value: string; bold?: bool
       <span>{value}</span>
     </div>
   );
+}
+
+function SummaryRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex justify-between py-1.5 first:pt-0 last:pb-0">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="font-medium">{value}</span>
+    </div>
+  );
+}
+
+function fmtMoney(n: number | null | undefined) {
+  return n == null ? "—" : `$${Number(n).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
 }
