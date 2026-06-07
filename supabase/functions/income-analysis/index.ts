@@ -199,6 +199,13 @@ Deno.serve(async (req) => {
   const primaryIds = new Set<string>();
   for (const r of linkRows ?? []) if ((r as any).is_primary && (r as any).contact_id) primaryIds.add((r as any).contact_id);
   for (const o of opportunities ?? []) if ((o as any).primary_contact_id) primaryIds.add((o as any).primary_contact_id);
+  const primaryKey = Array.from(primaryIds)[0] ?? null;
+  if (primaryKey) {
+    if (pdMap.has("__primary__") && !pdMap.has(primaryKey)) pdMap.set(primaryKey, pdMap.get("__primary__"));
+    if (calcMap.has("__primary__") && !calcMap.has(primaryKey)) calcMap.set(primaryKey, calcMap.get("__primary__"));
+    pdMap.delete("__primary__");
+    calcMap.delete("__primary__");
+  }
 
   const borrowerKeys = new Map<string, { key: string; name: string; is_primary: boolean }>();
   const addBorrower = (key: string, forcedPrimary = false) => {
