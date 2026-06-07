@@ -74,6 +74,10 @@ export default function RecordWorkspace({ kind }: Props) {
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const [chatOpen, setChatOpen] = useState(true);
+  // Pipeline mode is sticky: detected from router state OR from the existence
+  // of a pipeline_opportunity for this lead, so refreshes / re-renders after
+  // edits don't lose the pipeline context (back link + stage dropdown).
+  const fromPipeline = fromPipelineState || !!primaryOpp;
   useEffect(() => {
     // Default-open on desktop when viewing a lead; mobile stays closed (bottom sheet).
     setChatOpen(kind === "lead" && !isMobile);
