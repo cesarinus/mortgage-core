@@ -17,6 +17,13 @@ function daysInMonth(d: Date) {
   return new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
 }
 
+function currentYearFraction(d: Date) {
+  const dim = daysInMonth(d);
+  const day = d.getDate();
+  const precedingMonths = d.getMonth(); // 0-based: Jan=0
+  return { fraction: precedingMonths + day / dim, dim, day, precedingMonths };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
@@ -83,10 +90,9 @@ Deno.serve(async (req) => {
     annual = selfEmployment * 12;
     breakdown.self_employment_monthly = selfEmployment;
   } else {
-    const periodDays = Number(pd.pay_stub_period_days ?? 0);
     const ending = pd.pay_stub_ending_date ? new Date(pd.pay_stub_ending_date) : new Date();
-    const dim = daysInMonth(ending);
-    const safeDiv = (n: number) => (periodDays > 0 ? (n / periodDays) * dim : 0);
+    const { fraction, dim, day, precedingMonths } = currentYearFraction(ending);
+    const safeDiv = (n: number) => (fraction > 0 ? n / fraction : 0);
 
     base = safeDiv(Number(pd.pay_stub_gross_base ?? 0));
     overtime = safeDiv(Number(pd.pay_stub_overtime ?? 0));
@@ -99,7 +105,7 @@ Deno.serve(async (req) => {
       Number(pd.w2_year_1_wages ?? 0) +
       Number(pd.w2_year_2_wages ?? 0) +
       Number(pd.ytd_total ?? 0);
-    const denom = 24 + (ending.getDate() / dim);
+    const denom = 24 + fraction;
     yearsAverage = denom > 0 ? w2Total / denom : null;
 
     breakdown.monthly_base = base;
@@ -107,7 +113,9 @@ Deno.serve(async (req) => {
     breakdown.monthly_bonus = bonus;
     breakdown.monthly_commission = commission;
     breakdown.days_in_current_month = dim;
-    breakdown.period_days = periodDays;
+    breakdown.day_of_month = day;
+    breakdown.preceding_months = precedingMonths;
+    breakdown.current_year_fraction = fraction;
     breakdown.w2_total = w2Total;
     breakdown.denominator_months = denom;
     breakdown.years_average = yearsAverage;
