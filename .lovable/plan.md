@@ -1,86 +1,75 @@
-# Real Email Engine via Titan SMTP
+# Loan Conditions & Income Calculation Module
 
-## Scope
-Add a production-ready email pipeline using your Titan account (`CMartinez@NGCapital.net`) with stored SMTP credentials, a server-side send function, automated triggers, and full logging. All additive — no changes to `leads`, `pipeline_opportunities`, `crm_contacts` schemas, or n8n/borrower portal.
+Additive build on top of the migration you provided. Before I implement, a few things in your SQL need adjustment — flagged below — otherwise the tables will be unreachable from the app.
 
-## 1. Database (additive migrations)
+## 1. Migration corrections (must run before UI work)
 
-**`email_providers`**
-- name, host, port, username, password (encrypted/server-only), from_email, from_name, is_active, created_at
-- RLS: only admins can read/write
-- GRANTs to `authenticated` + `service_role`
+Your SQL creates the tables but omits required Lovable Cloud setup. I'll run a follow-up migration that:
 
-**`email_logs`**
-- to_email, subject, template_id → email_templates(id), lead_id → leads(id), opportunity_id → pipeline_opportunities(id), status (sent/failed/bounced), error_message, sent_at
-- RLS: admins + owners of related lead can read; service_role inserts
-- GRANTs accordingly
+- Adds `GRANT SELECT, INSERT, UPDATE, DELETE ... TO authenticated` and `GRANT ALL ... TO service_role` on both new tables (PostgREST returns permission errors without this).
+- Enables RLS and adds policies mirroring the existing `leads` ownership model: `is_admin()` full access; owners (via `user_owns_lead(lead_id)`) can read/insert/update/delete their own rows. Borrowers reading via portal: `is_portal_user_for_deal()` for read.
+- Adds the `ocr_log jsonb` column on `borrower_income_calculations` (referenced in section E of your prompt but missing from the CREATE TABLE).
+- Adds `updated_at` trigger using existing `public.update_updated_at_column()`.
+- Keeps the seed `INSERT ... WHERE false` statements as-is (they are no-ops by design — the real seeding happens in the trigger).
+- The trigger function gets `SECURITY DEFINER` + `SET search_path = public` to match project conventions.
 
-**`email_templates`** (extend existing)
-- Add `merge_fields text[]` and `trigger_event text` columns (additive)
+I will NOT touch your existing trigger logic or column names — purely additive.
 
-## 2. Edge Functions
+## 2. UI placement
 
-**`send-email`** (new, `verify_jwt = true`)
-- Inputs: `to`, `subject`, `body` OR `template_alias` + `vars`, optional `lead_id`, `opportunity_id`
-- Loads active `email_providers` row (service-role client)
-- Sends via SMTP using `nodemailer` (npm: specifier in Deno)
-- Renders `{{merge}}` fields server-side
-- Writes row to `email_logs`
-- Returns `{ ok, id, error? }`
+The "Pipeline detail page" in this codebase is `src/pages/crm/RecordWorkspace.tsx` (route `/crm/leads/:id`, also reached from the Pipeline). It already has tabs: Catch-up, Activities, Scenarios, Messages, Tasks, Documents, Emails, Relationships.
 
-**`test-smtp`** (new) — sends a single test email to caller's email using a supplied or active provider config without persisting unless `save=true`.
+- New **Conditions** tab inserted between Tasks and Documents (closest to "between Financials and Documents" — there is no standalone Financials tab; financials live inside the left rail / scenarios area).
+- New **Income** card added to the left rail (`LeftRail.tsx`) under existing financial summary.
 
-**Trigger functions** (DB → pg_net → edge):
+## 3. New files
 
-- `notify-lead-created` — DB trigger on `leads` AFTER INSERT → invokes `send-email` with `welcome-email`.
-- `notify-deal-closed` — DB trigger on `pipeline_opportunities` AFTER UPDATE WHERE new.stage='closed' → invokes `send-email` with `google-review-request`.
-- `document-reminder-cron` — scheduled (pg_cron daily) → finds leads with `status='qualified'` whose linked deal/portal has 0 documents and `last_activity_at < now()-3d` → invokes `send-email` with `document-reminder`.
+```text
+src/components/crm/tabs/ConditionsTab.tsx        # grouped checklist UI
+src/components/crm/conditions/ConditionRow.tsx   # row + status dropdown
+src/components/crm/conditions/MarkReceivedDrawer.tsx  # received_at, via, notes, upload
+src/components/crm/IncomeCard.tsx                # left-rail income editor
+src/lib/crm/conditions.ts                        # queries + mutations
+src/lib/crm/income.ts                            # upsert + calc helper
+supabase/functions/calculate-income/index.ts     # edge function
+```
 
-## 3. Settings → Email page
+Portal: add `src/pages/portal/PortalIncome.tsx` + route in portal layout, reusing `IncomeCard` in editable mode with a one-time borrower_type prompt.
 
-New route `/settings/email` (admin only):
-- Form: Host (default `smtp.titan.email`), Port (587/465 toggle), Username, App Password, From Name
-- Save → upserts active `email_providers` row (server side via edge fn `save-smtp-provider` to avoid exposing password reads)
-- "Test Connection" button → calls `test-smtp` edge function, shows toast with result
-- Status badge: "Active provider: …"
+## 4. Conditions tab behavior
 
-## 4. Email Templates page upgrade
+- Loads `loan_conditions` for current `lead_id`, grouped by `category` (Income, Asset, ID, Liability, Other).
+- Each row: title, required badge, status dropdown (`pending` | `received` | `waived`), "Mark complete" button.
+- Mark complete → `MarkReceivedDrawer` (shadcn Sheet): received_at (default today), received_via select, notes textarea, optional file upload to existing `crm-documents` bucket at path `conditions/{lead_id}/{condition_id}/{filename}`.
+- Save writes `status='received'`, `received_at`, `received_via`, `document_url`, `document_name`, `source='manual'`.
+- If saved row's `category='income'`, invoke edge function `calculate-income` with `{ lead_id }`, show sonner loading→success toast, refetch Income card.
 
-Keep `/email/templates`. Additions:
-- `merge_fields` chips below subject
-- `trigger_event` dropdown (none / lead_created / qualified_no_docs / deal_closed)
-- Preview drawer renders with sample data (existing)
-- Highlight `{{var}}` tokens in HTML textarea (simple regex-styled overlay)
-- Seed templates if missing: `welcome-email`, `document-reminder`, `google-review-request` (with the bodies specified)
+## 5. Income card behavior
 
-## 5. Lead/Opportunity detail integration
+- Fields: `borrower_type` select, numeric inputs for base_income, overtime, bonus, commission, self_employment_income, other_income.
+- On blur: monthly = sum, annual = monthly * 12 (displayed read-only).
+- Save button upserts `borrower_income_calculations` keyed by `lead_id` (latest snapshot; we insert a new row per save so history is preserved — query uses `order by calculation_date desc limit 1`).
+- Shows `source` badge (manual / auto) and breakdown list.
 
-- New "Emails" sub-tab inside Activities (or extend existing email log component) showing rows from `email_logs` filtered by `lead_id` / `opportunity_id`
-- Columns: Sent at · Subject · To · Status · Error
+## 6. Edge function `calculate-income`
 
-## 6. Security
+- POST `{ lead_id }`, validates with zod, uses inline `corsHeaders`, validates JWT in code.
+- Reads `loan_conditions` where `lead_id=$1 AND category='income' AND status='received'`.
+- Reads latest `borrower_income_calculations` for the lead.
+- Returns `{ calculation, income_conditions }`. No mutation yet — Path A is manual entry; this endpoint exists so Path B (OCR) can later overwrite via the same surface.
 
-- SMTP password stored in `email_providers`; RLS denies anon/authenticated SELECT of password column (separate view exposing non-secret fields for UI).
-- All sends go through edge functions using service role.
-- Client never sees password; settings form only writes via edge fn.
-- Input validation with zod in all functions.
+## 7. Path B reservation
 
-## Technical Notes
-- nodemailer via `npm:nodemailer@6` in Deno edge runtime.
-- DB triggers use `net.http_post` with project anon key (pattern already used by `notify_lead_status_change`).
-- pg_cron job created via `insert` tool (not migration) since it embeds project URL/anon key.
+- All client writes go through `src/lib/crm/income.ts` which calls the edge function for reads. The UI never reads `borrower_income_calculations` directly (except as a fallback hydrate). This lets us later add OCR processing inside the edge function without touching components.
+- `ocr_log`, `ocr_status`, `source`, `ocr_raw` columns left untouched; no UI surfaces them.
 
-## Files
-- `supabase/migrations/<ts>_email_engine.sql`
-- `supabase/functions/send-email/index.ts`
-- `supabase/functions/test-smtp/index.ts`
-- `supabase/functions/save-smtp-provider/index.ts`
-- `src/pages/settings/EmailSettings.tsx` + route
-- `src/components/email/EmailLogList.tsx` + integration in `RecordWorkspace`
-- Updates to `src/pages/EmailTemplates.tsx`
+## 8. Style
 
-## Out of scope (unchanged)
-- `leads`, `pipeline_opportunities`, `crm_contacts` schemas
-- Leads list / smart views / filters
-- Existing n8n workflows
-- Borrower portal
+- shadcn/ui components (Sheet, Select, Input, Badge, Button, Card).
+- Reuses existing tokens (warm orange accent, dark mode) — no new colors.
+- Status strings lowercase throughout.
+- No changes to existing tabs, deals, leads schema, or RLS.
+
+## Open question
+
+Your migration uses `pipeline_opportunities` for the FK and trigger, which matches `src/pages/Pipeline.tsx`. Confirm this is the table you want — there is also a separate `deals` table in the schema. I'll proceed with `pipeline_opportunities` as written.
