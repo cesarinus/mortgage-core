@@ -40,25 +40,53 @@ export function CatchUpTab({ activities, emailLogs, sentiment, mortgage, record,
     if (!leadId) { setBorrowers([]); return; }
     let cancelled = false;
     (async () => {
-      const { data } = await (supabase as any)
-        .from("lead_contacts")
-        .select("contact_id,is_primary,role_on_deal,contacts(id,first_name,last_name)")
-        .eq("lead_id", leadId);
+      // Pull from both lead_contacts (explicit links) and contacts (contact_type='borrower' on the lead).
+      const [{ data: lcRows }, { data: cRows }] = await Promise.all([
+        (supabase as any)
+          .from("lead_contacts")
+          .select("contact_id,is_primary,role_on_deal,contacts(id,first_name,last_name,contact_type)")
+          .eq("lead_id", leadId),
+        (supabase as any)
+          .from("contacts")
+          .select("id,first_name,last_name,contact_type")
+          .eq("lead_id", leadId)
+          .eq("contact_type", "borrower"),
+      ]);
       if (cancelled) return;
-      const rows: BorrowerOpt[] = (data ?? []).map((r: any) => ({
-        contactId: r.contact_id,
-        name: `${r.contacts?.first_name ?? ""} ${r.contacts?.last_name ?? ""}`.trim() || "Borrower",
-        isPrimary: !!r.is_primary,
-        role: r.role_on_deal,
-      }));
-      // Always offer a "Primary Borrower" fallback for legacy/unmapped data
+
+      const byId = new Map<string, BorrowerOpt>();
+      for (const r of (lcRows ?? [])) {
+        const ct = r.contacts?.contact_type;
+        const role = r.role_on_deal ?? "";
+        // Treat as borrower if explicitly a borrower role or contact_type
+        const isBorrowerRole = ct === "borrower" || /borrower/i.test(role);
+        if (!isBorrowerRole && !r.is_primary) continue;
+        byId.set(r.contact_id, {
+          contactId: r.contact_id,
+          name: `${r.contacts?.first_name ?? ""} ${r.contacts?.last_name ?? ""}`.trim() || "Borrower",
+          isPrimary: !!r.is_primary,
+          role: r.role_on_deal,
+        });
+      }
+      for (const c of (cRows ?? [])) {
+        if (byId.has(c.id)) continue;
+        byId.set(c.id, {
+          contactId: c.id,
+          name: `${c.first_name ?? ""} ${c.last_name ?? ""}`.trim() || "Borrower",
+          isPrimary: false,
+          role: "co_borrower",
+        });
+      }
+      const rows = Array.from(byId.values());
       const primaryFromContacts = rows.find((r) => r.isPrimary);
       const list: BorrowerOpt[] = primaryFromContacts
         ? rows.sort((a, b) => Number(b.isPrimary) - Number(a.isPrimary))
         : [{ contactId: null, name: borrowerName, isPrimary: true }, ...rows];
       setBorrowers(list);
-      const initial = list[0];
-      setSelectedBorrower(initial?.contactId ?? "__primary__");
+      setSelectedBorrower((prev) => {
+        if (prev && list.some((b) => (b.contactId ?? "__primary__") === prev)) return prev;
+        return list[0]?.contactId ?? "__primary__";
+      });
     })();
     return () => { cancelled = true; };
   }, [leadId, borrowerName]);
@@ -331,11 +359,45 @@ export function CatchUpTab({ activities, emailLogs, sentiment, mortgage, record,
           </SheetHeader>
           <div className="mt-4">
             {leadId && (
-              <FinancialWorkspace
-                leadId={leadId}
-                contactId={selectedContactId}
-                borrowerName={selectedName}
-              />
+              <>
+                {borrowers.length > 1 && (
+                  <div className="mb-4 flex flex-wrap items-center gap-2">
+                    <span className="text-xs text-muted-foreground mr-1">Borrower:</span>
+                    {borrowers.map((b) => {
+                      const val = b.contactId ?? "__primary__";
+                      const active = selectedBorrower === val;
+                      const roleLabel = b.isPrimary
+                        ? "Primary"
+                        : (b.role && b.role !== "co_borrower" ? b.role.replace(/_/g, " ") : "Co-Borrower");
+                      const base = "text-xs h-7 px-2.5 rounded-full border transition-colors cursor-pointer";
+                      const cls = b.isPrimary
+                        ? (active
+                            ? "bg-[#F97316] text-white border-[#F97316] hover:bg-[#F97316]/90"
+                            : "border-[#F97316]/40 text-[#F97316] bg-[#F97316]/10 hover:bg-[#F97316]/20")
+                        : (active
+                            ? "bg-secondary text-secondary-foreground border-foreground/30"
+                            : "border-border bg-muted/40 text-muted-foreground hover:bg-muted");
+                      return (
+                        <button
+                          key={val}
+                          type="button"
+                          onClick={() => setSelectedBorrower(val)}
+                          className={`${base} ${cls} capitalize`}
+                          aria-pressed={active}
+                        >
+                          {b.name} <span className="opacity-80">({roleLabel})</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                <FinancialWorkspace
+                  key={selectedContactId ?? "__primary__"}
+                  leadId={leadId}
+                  contactId={selectedContactId}
+                  borrowerName={selectedName}
+                />
+              </>
             )}
           </div>
         </SheetContent>

@@ -73,16 +73,17 @@ export default function FinancialWorkspace({ dealId, leadId, contactId, borrower
   useEffect(() => {
     void load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dealId, leadId]);
+  }, [dealId, leadId, contactId]);
 
   async function load() {
     if (!scopeId) { setLoading(false); return; }
     setLoading(true);
-    const { data, error } = await (supabase as any)
+    let query = (supabase as any)
       .from("self_employed_profiles")
       .select("*")
-      .eq(scopeColumn, scopeId)
-      .maybeSingle();
+      .eq(scopeColumn, scopeId);
+    query = contactId ? query.eq("contact_id", contactId) : query.is("contact_id", null);
+    const { data, error } = await query.maybeSingle();
     if (error) {
       toast({ title: "Could not load financial profile", description: error.message, variant: "destructive" });
     }
@@ -143,11 +144,12 @@ export default function FinancialWorkspace({ dealId, leadId, contactId, borrower
         .select()
         .maybeSingle();
     } else {
-      const { data: existing, error: lookupError } = await (supabase as any)
-        .from("self_employed_profiles")
-        .select("id")
-        .eq(scopeColumn, scopeId)
-        .maybeSingle();
+        let lookup = (supabase as any)
+          .from("self_employed_profiles")
+          .select("id")
+          .eq(scopeColumn, scopeId);
+        lookup = contactId ? lookup.eq("contact_id", contactId) : lookup.is("contact_id", null);
+        const { data: existing, error: lookupError } = await lookup.maybeSingle();
 
       if (lookupError) {
         result = { data: null, error: lookupError };
