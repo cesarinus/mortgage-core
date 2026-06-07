@@ -320,12 +320,24 @@ export default function Leads() {
     setDeleteLead(lead);
     setDeleteBlock(null);
     setDeleteChecking(true);
-    const [{ count: opps }, { count: contacts }, { count: portal }] = await Promise.all([
+    // Clean up orphaned lead_contacts rows (contact already deleted) before counting,
+    // otherwise stale links inflate the contact count and block deletion.
+    const { data: links } = await supabase
+      .from("lead_contacts")
+      .select("id, contact:contacts(id)")
+      .eq("lead_id", lead.id);
+    const orphanIds = (links ?? [])
+      .filter((l: any) => !l.contact)
+      .map((l: any) => l.id);
+    if (orphanIds.length > 0) {
+      await supabase.from("lead_contacts").delete().in("id", orphanIds);
+    }
+    const liveContacts = (links ?? []).length - orphanIds.length;
+    const [{ count: opps }, { count: portal }] = await Promise.all([
       supabase.from("pipeline_opportunities").select("id", { count: "exact", head: true }).eq("lead_id", lead.id),
-      supabase.from("lead_contacts").select("contact_id", { count: "exact", head: true }).eq("lead_id", lead.id),
       supabase.from("portal_users").select("user_id", { count: "exact", head: true }).eq("lead_id", lead.id as any),
     ]);
-    setDeleteBlock({ opps: opps ?? 0, contacts: contacts ?? 0, portal: portal ?? 0 });
+    setDeleteBlock({ opps: opps ?? 0, contacts: liveContacts, portal: portal ?? 0 });
     setDeleteChecking(false);
   };
 
