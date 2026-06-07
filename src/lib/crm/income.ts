@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { fetchDealBorrowers } from "@/lib/crm/borrowers";
 
 export type IncomeCalc = {
   id: string;
@@ -46,16 +47,29 @@ export async function fetchAllLatestIncome(leadId: string): Promise<IncomeCalc[]
     .order("calculation_date", { ascending: false });
   if (error) throw error;
   const rows = (data ?? []) as IncomeCalc[];
+  const borrowers = await fetchDealBorrowers(leadId).catch(() => []);
+  const primaryContactId = borrowers.find((b) => b.isPrimary && b.contactId)?.contactId ?? null;
   const byContact = new Map<string, IncomeCalc>();
   for (const r of rows) {
-    const key = r.contact_id ?? "__primary__";
-    if (!byContact.has(key)) byContact.set(key, r);
+    const key = r.contact_id ?? primaryContactId ?? "__primary__";
+    const existing = byContact.get(key);
+    if (!existing || (!existing.contact_id && r.contact_id)) byContact.set(key, r);
+  }
+  if (borrowers.length > 0) {
+    return borrowers
+      .map((b) => {
+        const calc = byContact.get(b.contactId ?? "__primary__");
+        return calc ? { ...calc, borrower_name: calc.borrower_name ?? b.name } : null;
+      })
+      .filter(Boolean) as IncomeCalc[];
   }
   return Array.from(byContact.values());
 }
 
 export type IncomeInput = {
   lead_id: string;
+  contact_id?: string | null;
+  borrower_name?: string | null;
   borrower_type: "employed" | "self_employed";
   base_income?: number;
   overtime?: number;
@@ -81,6 +95,8 @@ export async function saveIncome(input: IncomeInput, calculatedBy = "manual") {
   const annual = monthly * 12;
   const row = {
     lead_id: input.lead_id,
+    contact_id: input.contact_id ?? null,
+    borrower_name: input.borrower_name ?? null,
     borrower_type: input.borrower_type,
     base_income: input.base_income ?? 0,
     overtime: input.overtime ?? 0,

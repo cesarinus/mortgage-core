@@ -6,10 +6,10 @@ import { SentimentGauge } from "../SentimentGauge";
 import { format } from "date-fns";
 import FinancialWorkspace from "@/components/crm/finance/FinancialWorkspace";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { useEffect, useState } from "react";
-import { fetchLatestIncome, fetchAllLatestIncome, IncomeCalc } from "@/lib/crm/income";
+import { useEffect, useMemo, useState } from "react";
+import { fetchAllLatestIncome, IncomeCalc } from "@/lib/crm/income";
+import { fetchDealBorrowers, type DealBorrower } from "@/lib/crm/borrowers";
 import { IncomeAiAnalysis } from "@/components/crm/IncomeAiAnalysis";
-import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
   activities: any[];
@@ -29,59 +29,17 @@ export function CatchUpTab({ activities, emailLogs, sentiment, mortgage, record,
   const borrowerName = `${record?.first_name ?? ""} ${record?.last_name ?? ""}`.trim() || "Borrower";
 
   // Multi-borrower
-  type BorrowerOpt = { contactId: string | null; name: string; isPrimary: boolean; role?: string | null };
-  const [borrowers, setBorrowers] = useState<BorrowerOpt[]>([]);
+  const [borrowers, setBorrowers] = useState<DealBorrower[]>([]);
   const [selectedBorrower, setSelectedBorrower] = useState<string>("__primary__");
   const [allIncome, setAllIncome] = useState<IncomeCalc[]>([]);
-  const [income, setIncome] = useState<IncomeCalc | null>(null);
 
   // Load lead_contacts (with contact info)
   useEffect(() => {
     if (!leadId) { setBorrowers([]); return; }
     let cancelled = false;
     (async () => {
-      // Pull from both lead_contacts (explicit links) and contacts (contact_type='borrower' on the lead).
-      const [{ data: lcRows }, { data: cRows }] = await Promise.all([
-        (supabase as any)
-          .from("lead_contacts")
-          .select("contact_id,is_primary,role_on_deal,contacts(id,first_name,last_name,contact_type)")
-          .eq("lead_id", leadId),
-        (supabase as any)
-          .from("contacts")
-          .select("id,first_name,last_name,contact_type")
-          .eq("lead_id", leadId)
-          .eq("contact_type", "borrower"),
-      ]);
+      const list = await fetchDealBorrowers(leadId, borrowerName).catch(() => []);
       if (cancelled) return;
-
-      const byId = new Map<string, BorrowerOpt>();
-      for (const r of (lcRows ?? [])) {
-        const ct = r.contacts?.contact_type;
-        const role = r.role_on_deal ?? "";
-        // Treat as borrower if explicitly a borrower role or contact_type
-        const isBorrowerRole = ct === "borrower" || /borrower/i.test(role);
-        if (!isBorrowerRole && !r.is_primary) continue;
-        byId.set(r.contact_id, {
-          contactId: r.contact_id,
-          name: `${r.contacts?.first_name ?? ""} ${r.contacts?.last_name ?? ""}`.trim() || "Borrower",
-          isPrimary: !!r.is_primary,
-          role: r.role_on_deal,
-        });
-      }
-      for (const c of (cRows ?? [])) {
-        if (byId.has(c.id)) continue;
-        byId.set(c.id, {
-          contactId: c.id,
-          name: `${c.first_name ?? ""} ${c.last_name ?? ""}`.trim() || "Borrower",
-          isPrimary: false,
-          role: "co_borrower",
-        });
-      }
-      const rows = Array.from(byId.values());
-      const primaryFromContacts = rows.find((r) => r.isPrimary);
-      const list: BorrowerOpt[] = primaryFromContacts
-        ? rows.sort((a, b) => Number(b.isPrimary) - Number(a.isPrimary))
-        : [{ contactId: null, name: borrowerName, isPrimary: true }, ...rows];
       setBorrowers(list);
       setSelectedBorrower((prev) => {
         if (prev && list.some((b) => (b.contactId ?? "__primary__") === prev)) return prev;
@@ -95,28 +53,28 @@ export function CatchUpTab({ activities, emailLogs, sentiment, mortgage, record,
     if (!leadId) return;
     const all = await fetchAllLatestIncome(leadId).catch(() => []);
     setAllIncome(all);
-    const contactKey = selectedBorrower === "__primary__" ? null : selectedBorrower;
-    setIncome(all.find((c) => (c.contact_id ?? null) === contactKey) ?? null);
   };
 
   useEffect(() => {
-    if (!leadId) { setIncome(null); setAllIncome([]); return; }
+    if (!leadId) { setAllIncome([]); return; }
     let cancelled = false;
     const tick = async () => {
       const all = await fetchAllLatestIncome(leadId).catch(() => []);
       if (cancelled) return;
       setAllIncome(all);
-      const contactKey = selectedBorrower === "__primary__" ? null : selectedBorrower;
-      setIncome(all.find((c) => (c.contact_id ?? null) === contactKey) ?? null);
     };
     tick();
     const i = setInterval(tick, 5000);
     return () => { cancelled = true; clearInterval(i); };
-  }, [leadId, selectedBorrower, incomeModalOpen]);
+  }, [leadId, incomeModalOpen]);
 
   const selectedBorrowerObj = borrowers.find((b) => (b.contactId ?? "__primary__") === selectedBorrower);
   const selectedContactId = selectedBorrowerObj?.contactId ?? null;
   const selectedName = selectedBorrowerObj?.name ?? borrowerName;
+  const income = useMemo(() => {
+    const key = selectedBorrower === "__primary__" ? null : selectedBorrower;
+    return allIncome.find((c) => (c.contact_id ?? null) === key) ?? null;
+  }, [allIncome, selectedBorrower]);
 
   // Combined totals
   const totalMonthly = allIncome.reduce((s, c) => s + Number(c.monthly_income ?? 0), 0);
