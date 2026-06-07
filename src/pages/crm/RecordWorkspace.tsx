@@ -13,7 +13,6 @@ import { DocumentsTab } from "@/components/crm/tabs/DocumentsTab";
 import { RelationshipsTab } from "@/components/crm/tabs/RelationshipsTab";
 import { TasksTab } from "@/components/crm/tabs/TasksTab";
 import { ConditionsTab } from "@/components/crm/tabs/ConditionsTab";
-import { IncomeCard } from "@/components/crm/IncomeCard";
 import { BarChart2, MessageSquare, FileCheck2, Users, CheckSquare, Mail, ClipboardCheck } from "lucide-react";
 import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -302,11 +301,6 @@ export default function RecordWorkspace({ kind }: Props) {
             opportunity={primaryOpp}
             pipelineMode={kind === "lead" && fromPipeline}
           />
-          {kind === "lead" && (
-            <div className="mt-4">
-              <IncomeCard leadId={id} />
-            </div>
-          )}
         </aside>
 
         <main className="col-span-12 lg:col-span-6">
