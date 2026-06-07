@@ -6,7 +6,8 @@ import { SentimentGauge } from "../SentimentGauge";
 import { format } from "date-fns";
 import FinancialWorkspace from "@/components/crm/finance/FinancialWorkspace";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { fetchLatestIncome, IncomeCalc } from "@/lib/crm/income";
 
 interface Props {
   activities: any[];
@@ -24,6 +25,16 @@ export function CatchUpTab({ activities, emailLogs, sentiment, mortgage, record,
   const outbound = activities.filter((a) => ["email", "call", "task", "meeting"].includes(a.activity_type)).slice(0, 6);
   const [incomeModalOpen, setIncomeModalOpen] = useState(false);
   const borrowerName = `${record?.first_name ?? ""} ${record?.last_name ?? ""}`.trim() || "Borrower";
+  const [income, setIncome] = useState<IncomeCalc | null>(null);
+
+  useEffect(() => {
+    if (!leadId) { setIncome(null); return; }
+    let cancelled = false;
+    const tick = () => fetchLatestIncome(leadId).then((d) => { if (!cancelled) setIncome(d); }).catch(() => {});
+    tick();
+    const i = setInterval(tick, 5000);
+    return () => { cancelled = true; clearInterval(i); };
+  }, [leadId, incomeModalOpen]);
 
   const challenges: string[] = sentiment?.challenges ?? deriveChallenges(record);
   const positives: string[] = sentiment?.positives ?? derivePositives(record);
@@ -159,6 +170,13 @@ export function CatchUpTab({ activities, emailLogs, sentiment, mortgage, record,
               ? "Classify the borrower as Employee or Self-Employed and build P&L, Balance Sheet, and Cash Flow statements."
               : "Open a lead workspace to use Income Analysis."}
           </p>
+          {leadId && (
+            <div className="mt-3 rounded-md bg-muted/40 p-3 text-sm divide-y">
+              <SummaryRow label="Monthly income" value={fmtIncome(income?.monthly_income)} />
+              <SummaryRow label="Annual income" value={fmtIncome(income?.annual_income)} />
+              <SummaryRow label="Years average" value={fmtIncome((income as any)?.years_average)} />
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -197,6 +215,19 @@ function Row({ icon, label, sub }: { icon: any; label: string; sub: string }) {
       </div>
     </div>
   );
+}
+
+function SummaryRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex justify-between py-1.5 first:pt-0 last:pb-0">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="font-medium">{value}</span>
+    </div>
+  );
+}
+
+function fmtIncome(n: number | null | undefined) {
+  return n == null ? "—" : `$${Number(n).toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
 }
 function Empty({ text }: { text: string }) { return <p className="text-sm text-muted-foreground">{text}</p>; }
 function Stat({ label, value }: { label: string; value?: any }) {
