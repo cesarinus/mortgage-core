@@ -40,25 +40,53 @@ export function CatchUpTab({ activities, emailLogs, sentiment, mortgage, record,
     if (!leadId) { setBorrowers([]); return; }
     let cancelled = false;
     (async () => {
-      const { data } = await (supabase as any)
-        .from("lead_contacts")
-        .select("contact_id,is_primary,role_on_deal,contacts(id,first_name,last_name)")
-        .eq("lead_id", leadId);
+      // Pull from both lead_contacts (explicit links) and contacts (contact_type='borrower' on the lead).
+      const [{ data: lcRows }, { data: cRows }] = await Promise.all([
+        (supabase as any)
+          .from("lead_contacts")
+          .select("contact_id,is_primary,role_on_deal,contacts(id,first_name,last_name,contact_type)")
+          .eq("lead_id", leadId),
+        (supabase as any)
+          .from("contacts")
+          .select("id,first_name,last_name,contact_type")
+          .eq("lead_id", leadId)
+          .eq("contact_type", "borrower"),
+      ]);
       if (cancelled) return;
-      const rows: BorrowerOpt[] = (data ?? []).map((r: any) => ({
-        contactId: r.contact_id,
-        name: `${r.contacts?.first_name ?? ""} ${r.contacts?.last_name ?? ""}`.trim() || "Borrower",
-        isPrimary: !!r.is_primary,
-        role: r.role_on_deal,
-      }));
-      // Always offer a "Primary Borrower" fallback for legacy/unmapped data
+
+      const byId = new Map<string, BorrowerOpt>();
+      for (const r of (lcRows ?? [])) {
+        const ct = r.contacts?.contact_type;
+        const role = r.role_on_deal ?? "";
+        // Treat as borrower if explicitly a borrower role or contact_type
+        const isBorrowerRole = ct === "borrower" || /borrower/i.test(role);
+        if (!isBorrowerRole && !r.is_primary) continue;
+        byId.set(r.contact_id, {
+          contactId: r.contact_id,
+          name: `${r.contacts?.first_name ?? ""} ${r.contacts?.last_name ?? ""}`.trim() || "Borrower",
+          isPrimary: !!r.is_primary,
+          role: r.role_on_deal,
+        });
+      }
+      for (const c of (cRows ?? [])) {
+        if (byId.has(c.id)) continue;
+        byId.set(c.id, {
+          contactId: c.id,
+          name: `${c.first_name ?? ""} ${c.last_name ?? ""}`.trim() || "Borrower",
+          isPrimary: false,
+          role: "co_borrower",
+        });
+      }
+      const rows = Array.from(byId.values());
       const primaryFromContacts = rows.find((r) => r.isPrimary);
       const list: BorrowerOpt[] = primaryFromContacts
         ? rows.sort((a, b) => Number(b.isPrimary) - Number(a.isPrimary))
         : [{ contactId: null, name: borrowerName, isPrimary: true }, ...rows];
       setBorrowers(list);
-      const initial = list[0];
-      setSelectedBorrower(initial?.contactId ?? "__primary__");
+      setSelectedBorrower((prev) => {
+        if (prev && list.some((b) => (b.contactId ?? "__primary__") === prev)) return prev;
+        return list[0]?.contactId ?? "__primary__";
+      });
     })();
     return () => { cancelled = true; };
   }, [leadId, borrowerName]);
