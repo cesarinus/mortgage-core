@@ -47,7 +47,7 @@ interface Props { kind: "lead" | "contact" }
 export default function RecordWorkspace({ kind }: Props) {
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
-  const fromPipeline = (location.state as any)?.from === "pipeline";
+  const fromPipelineState = (location.state as any)?.from === "pipeline";
   const { user } = useAuth();
   const [record, setRecord] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
