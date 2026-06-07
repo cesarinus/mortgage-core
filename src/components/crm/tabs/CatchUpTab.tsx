@@ -6,8 +6,8 @@ import { SentimentGauge } from "../SentimentGauge";
 import { format } from "date-fns";
 import FinancialWorkspace from "@/components/crm/finance/FinancialWorkspace";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { useEffect, useState } from "react";
-import { fetchLatestIncome, fetchAllLatestIncome, IncomeCalc } from "@/lib/crm/income";
+import { useEffect, useMemo, useState } from "react";
+import { fetchAllLatestIncome, IncomeCalc } from "@/lib/crm/income";
 import { fetchDealBorrowers, type DealBorrower } from "@/lib/crm/borrowers";
 import { IncomeAiAnalysis } from "@/components/crm/IncomeAiAnalysis";
 
@@ -32,7 +32,6 @@ export function CatchUpTab({ activities, emailLogs, sentiment, mortgage, record,
   const [borrowers, setBorrowers] = useState<DealBorrower[]>([]);
   const [selectedBorrower, setSelectedBorrower] = useState<string>("__primary__");
   const [allIncome, setAllIncome] = useState<IncomeCalc[]>([]);
-  const [income, setIncome] = useState<IncomeCalc | null>(null);
 
   // Load lead_contacts (with contact info)
   useEffect(() => {
@@ -54,24 +53,20 @@ export function CatchUpTab({ activities, emailLogs, sentiment, mortgage, record,
     if (!leadId) return;
     const all = await fetchAllLatestIncome(leadId).catch(() => []);
     setAllIncome(all);
-    const contactKey = selectedBorrower === "__primary__" ? null : selectedBorrower;
-    setIncome(all.find((c) => (c.contact_id ?? null) === contactKey) ?? null);
   };
 
   useEffect(() => {
-    if (!leadId) { setIncome(null); setAllIncome([]); return; }
+    if (!leadId) { setAllIncome([]); return; }
     let cancelled = false;
     const tick = async () => {
       const all = await fetchAllLatestIncome(leadId).catch(() => []);
       if (cancelled) return;
       setAllIncome(all);
-      const contactKey = selectedBorrower === "__primary__" ? null : selectedBorrower;
-      setIncome(all.find((c) => (c.contact_id ?? null) === contactKey) ?? null);
     };
     tick();
     const i = setInterval(tick, 5000);
     return () => { cancelled = true; clearInterval(i); };
-  }, [leadId, selectedBorrower, incomeModalOpen]);
+  }, [leadId, incomeModalOpen]);
 
   const selectedBorrowerObj = borrowers.find((b) => (b.contactId ?? "__primary__") === selectedBorrower);
   const selectedContactId = selectedBorrowerObj?.contactId ?? null;
