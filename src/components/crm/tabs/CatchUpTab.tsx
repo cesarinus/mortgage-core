@@ -71,6 +71,10 @@ export function CatchUpTab({ activities, emailLogs, sentiment, mortgage, record,
   const selectedBorrowerObj = borrowers.find((b) => (b.contactId ?? "__primary__") === selectedBorrower);
   const selectedContactId = selectedBorrowerObj?.contactId ?? null;
   const selectedName = selectedBorrowerObj?.name ?? borrowerName;
+  const income = useMemo(() => {
+    const key = selectedBorrower === "__primary__" ? null : selectedBorrower;
+    return allIncome.find((c) => (c.contact_id ?? null) === key) ?? null;
+  }, [allIncome, selectedBorrower]);
 
   // Combined totals
   const totalMonthly = allIncome.reduce((s, c) => s + Number(c.monthly_income ?? 0), 0);
