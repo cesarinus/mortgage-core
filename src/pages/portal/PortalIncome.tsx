@@ -7,6 +7,7 @@ import { Separator } from "@/components/ui/separator";
 import { ChevronRight, DollarSign } from "lucide-react";
 import { fetchLatestIncome, type IncomeCalc } from "@/lib/crm/income";
 import { fetchPaymentDetails, type PaymentDetails } from "@/lib/crm/paymentDetails";
+import { IncomeAiAnalysis } from "@/components/crm/IncomeAiAnalysis";
 
 const fmtMoney = (n: number | null | undefined) =>
   n == null || Number.isNaN(Number(n))
@@ -155,6 +156,8 @@ export default function PortalIncome() {
               </CardContent>
             </Card>
           )}
+
+          <IncomeAiAnalysis leadId={binding.lead_id} audience="borrower" refreshKey={calc?.id ?? "none"} />
         </>
       )}
     </div>
