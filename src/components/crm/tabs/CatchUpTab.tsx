@@ -8,6 +8,7 @@ import FinancialWorkspace from "@/components/crm/finance/FinancialWorkspace";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { useEffect, useState } from "react";
 import { fetchLatestIncome, IncomeCalc } from "@/lib/crm/income";
+import { IncomeAiAnalysis } from "@/components/crm/IncomeAiAnalysis";
 
 interface Props {
   activities: any[];
@@ -175,6 +176,15 @@ export function CatchUpTab({ activities, emailLogs, sentiment, mortgage, record,
               <SummaryRow label="Monthly income" value={fmtIncome(income?.monthly_income)} />
               <SummaryRow label="Annual income" value={fmtIncome(income?.annual_income)} />
               <SummaryRow label="Years average" value={fmtIncome((income as any)?.years_average)} />
+            </div>
+          )}
+          {leadId && (
+            <div className="mt-3">
+              <IncomeAiAnalysis
+                leadId={leadId}
+                audience="admin"
+                refreshKey={income?.id ?? "none"}
+              />
             </div>
           )}
         </CardContent>
