@@ -32,6 +32,7 @@ import PortalDashboard from "@/pages/portal/PortalDashboard";
 import PortalDocuments from "@/pages/portal/PortalDocuments";
 import PortalScenarios from "@/pages/portal/PortalScenarios";
 import PortalMessages from "@/pages/portal/PortalMessages";
+import PortalIncome from "@/pages/portal/PortalIncome";
 
 const queryClient = new QueryClient();
 
@@ -56,6 +57,7 @@ const App = () => (
                 <Route path="documents" element={<PortalDocuments />} />
                 <Route path="scenarios" element={<PortalScenarios />} />
                 <Route path="messages" element={<PortalMessages />} />
+                <Route path="income" element={<PortalIncome />} />
               </Route>
               <Route
                 element={

@@ -12,7 +12,9 @@ import { MessagesTab } from "@/components/crm/tabs/MessagesTab";
 import { DocumentsTab } from "@/components/crm/tabs/DocumentsTab";
 import { RelationshipsTab } from "@/components/crm/tabs/RelationshipsTab";
 import { TasksTab } from "@/components/crm/tabs/TasksTab";
-import { BarChart2, MessageSquare, FileCheck2, Users, CheckSquare, Mail } from "lucide-react";
+import { ConditionsTab } from "@/components/crm/tabs/ConditionsTab";
+import { IncomeCard } from "@/components/crm/IncomeCard";
+import { BarChart2, MessageSquare, FileCheck2, Users, CheckSquare, Mail, ClipboardCheck } from "lucide-react";
 import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -300,6 +302,11 @@ export default function RecordWorkspace({ kind }: Props) {
             opportunity={primaryOpp}
             pipelineMode={kind === "lead" && fromPipeline}
           />
+          {kind === "lead" && (
+            <div className="mt-4">
+              <IncomeCard leadId={id} />
+            </div>
+          )}
         </aside>
 
         <main className="col-span-12 lg:col-span-6">
@@ -311,7 +318,7 @@ export default function RecordWorkspace({ kind }: Props) {
             </div>
           )}
           <Tabs defaultValue="catch-up">
-            <TabsList className="w-full grid grid-cols-7">
+            <TabsList className={`w-full grid ${kind === "lead" ? "grid-cols-8" : "grid-cols-7"}`}>
               <TabsTrigger value="catch-up">Catch-up</TabsTrigger>
               <TabsTrigger value="activities">Activities</TabsTrigger>
               {kind === "lead" && (
@@ -325,6 +332,11 @@ export default function RecordWorkspace({ kind }: Props) {
               <TabsTrigger value="tasks" className="flex items-center gap-1.5">
                 <CheckSquare className="h-3.5 w-3.5" /> Tasks
               </TabsTrigger>
+              {kind === "lead" && (
+                <TabsTrigger value="conditions" className="flex items-center gap-1.5">
+                  <ClipboardCheck className="h-3.5 w-3.5" /> Conditions
+                </TabsTrigger>
+              )}
               <TabsTrigger value="documents" className="flex items-center gap-1.5">
                 <FileCheck2 className="h-3.5 w-3.5" /> Documents
               </TabsTrigger>
@@ -376,6 +388,11 @@ export default function RecordWorkspace({ kind }: Props) {
                 stage={kind === "lead" ? record?.status : deals?.[0]?.stage}
               />
             </TabsContent>
+            {kind === "lead" && (
+              <TabsContent value="conditions" className="mt-4">
+                <ConditionsTab leadId={id} />
+              </TabsContent>
+            )}
             <TabsContent value="documents" className="mt-4">
               <DocumentsTab deals={deals} />
             </TabsContent>

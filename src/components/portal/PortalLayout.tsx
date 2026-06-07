@@ -3,7 +3,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { usePortalBinding } from "@/hooks/usePortalBinding";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { LayoutDashboard, FileText, Calculator, MessageSquare, LogOut, Building2 } from "lucide-react";
+import { LayoutDashboard, FileText, Calculator, MessageSquare, LogOut, Building2, DollarSign } from "lucide-react";
 import { cn } from "@/lib/utils";
 import MfaGate from "@/components/auth/MfaGate";
 import { AssistantLauncher } from "@/components/chat/AssistantLauncher";
@@ -11,6 +11,7 @@ import { AssistantLauncher } from "@/components/chat/AssistantLauncher";
 const nav = [
   { to: "/portal", label: "Overview", icon: LayoutDashboard, end: true },
   { to: "/portal/documents", label: "Documents", icon: FileText },
+  { to: "/portal/income", label: "Income", icon: DollarSign },
   { to: "/portal/scenarios", label: "Loan Options", icon: Calculator },
   { to: "/portal/messages", label: "Messages", icon: MessageSquare },
 ];
