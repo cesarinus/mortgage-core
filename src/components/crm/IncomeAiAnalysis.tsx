@@ -3,8 +3,18 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { AlertTriangle, Brain, Info, RefreshCw, Sparkles } from "lucide-react";
+
+export type BorrowerAnalysis = {
+  label: string;
+  name: string;
+  trend: string;
+  summary: string;
+  highlights: string[];
+  risk_flags: string[];
+};
 
 export type IncomeAnalysis = {
   trend: "stable" | "increasing" | "decreasing" | "volatile" | "unknown" | string;
@@ -12,6 +22,8 @@ export type IncomeAnalysis = {
   highlights: string[];
   suggestions: string[];
   risk_flags: string[];
+  borrowers?: BorrowerAnalysis[];
+  combined?: { monthly: number; annual: number; assessment: string } | null;
 };
 
 interface Props {
@@ -66,6 +78,8 @@ export function IncomeAiAnalysis({ leadId, audience = "admin", refreshKey }: Pro
   const isBorrower = audience === "borrower";
   const trend = (data?.trend ?? "unknown").toLowerCase();
   const trendCls = TREND_STYLE[trend] ?? TREND_STYLE.unknown;
+  const borrowers = data?.borrowers ?? [];
+  const multi = !isBorrower && borrowers.length > 1;
 
   return (
     <Card className={isBorrower ? "" : "bg-card border-border"}>
@@ -100,6 +114,47 @@ export function IncomeAiAnalysis({ leadId, audience = "admin", refreshKey }: Pro
         ) : data ? (
           <>
             <p className="text-sm font-semibold leading-snug">{data.summary}</p>
+
+            {multi && (
+              <Tabs defaultValue={borrowers[0]?.label || "0"}>
+                <TabsList className="h-8">
+                  {borrowers.map((b, i) => (
+                    <TabsTrigger key={i} value={b.label || String(i)} className="text-[11px]">
+                      {b.label}{b.name ? ` — ${b.name}` : ""}
+                    </TabsTrigger>
+                  ))}
+                  <TabsTrigger value="__combined" className="text-[11px]">combined</TabsTrigger>
+                </TabsList>
+                {borrowers.map((b, i) => (
+                  <TabsContent key={i} value={b.label || String(i)} className="space-y-2 pt-2">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className={`text-[10px] capitalize ${TREND_STYLE[b.trend] ?? TREND_STYLE.unknown}`}>{b.trend}</Badge>
+                      <span className="text-xs text-muted-foreground">{b.summary}</span>
+                    </div>
+                    {b.highlights.length > 0 && (
+                      <ul className="space-y-1">
+                        {b.highlights.map((h, j) => (
+                          <li key={j} className="flex items-start gap-2 text-xs">
+                            <Info className="h-3.5 w-3.5 mt-0.5 text-[#F97316] shrink-0" /><span>{h}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {b.risk_flags.length > 0 && (
+                      <div className="rounded-md border border-red-500/40 bg-red-500/10 p-2 text-xs text-red-300">
+                        <div className="flex items-center gap-1 font-medium text-red-400 mb-1"><AlertTriangle className="h-3 w-3" /> risk flags</div>
+                        <ul className="space-y-0.5">{b.risk_flags.map((r, j) => <li key={j}>• {r}</li>)}</ul>
+                      </div>
+                    )}
+                  </TabsContent>
+                ))}
+                <TabsContent value="__combined" className="space-y-1 pt-2 text-xs">
+                  <div className="flex justify-between"><span className="text-muted-foreground">Combined monthly</span><span className="font-medium">${(data.combined?.monthly ?? 0).toLocaleString()}</span></div>
+                  <div className="flex justify-between"><span className="text-muted-foreground">Combined annual</span><span className="font-medium">${(data.combined?.annual ?? 0).toLocaleString()}</span></div>
+                  {data.combined?.assessment && <p className="pt-1 text-muted-foreground">{data.combined.assessment}</p>}
+                </TabsContent>
+              </Tabs>
+            )}
 
             {data.highlights.length > 0 && (
               <div className="space-y-1.5">
