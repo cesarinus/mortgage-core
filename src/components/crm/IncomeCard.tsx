@@ -6,16 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Calculator, DollarSign, Save, Pencil } from "lucide-react";
+import { Calculator, DollarSign, Save } from "lucide-react";
 import { fetchLatestIncome, IncomeCalc } from "@/lib/crm/income";
 import {
   PaymentDetails,
@@ -27,7 +19,8 @@ import {
 interface Props {
   leadId?: string;
   editable?: boolean;
-  borrowerName?: string;
+  /** When true, hides the borrower type selector (used when embedded inside an existing classification UI). */
+  hideClassification?: boolean;
 }
 
 const fmt = (n: number | null | undefined) =>
