@@ -28,6 +28,7 @@ export type IncomeAnalysis = {
 
 interface Props {
   leadId?: string;
+  contactId?: string | null;
   /** "admin" shows everything incl. risk flags. "borrower" hides risks and softens suggestions. */
   audience?: "admin" | "borrower";
   /** Bump to force refetch (e.g. after Save/Calculate). */
@@ -50,7 +51,7 @@ function softenForBorrower(s: string): string {
     .replace(/loan officer/gi, "your loan team");
 }
 
-export function IncomeAiAnalysis({ leadId, audience = "admin", refreshKey }: Props) {
+export function IncomeAiAnalysis({ leadId, contactId = null, audience = "admin", refreshKey }: Props) {
   const [data, setData] = useState<IncomeAnalysis | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -60,7 +61,7 @@ export function IncomeAiAnalysis({ leadId, audience = "admin", refreshKey }: Pro
     setLoading(true); setError(null);
     try {
       const { data: res, error: err } = await supabase.functions.invoke("income-analysis", {
-        body: { lead_id: leadId, force },
+        body: { lead_id: leadId, contact_id: contactId, force },
       });
       if (err) throw err;
       setData(res as IncomeAnalysis);
@@ -69,7 +70,7 @@ export function IncomeAiAnalysis({ leadId, audience = "admin", refreshKey }: Pro
     } finally {
       setLoading(false);
     }
-  }, [leadId]);
+  }, [leadId, contactId]);
 
   useEffect(() => { run(false); }, [run, refreshKey]);
 
