@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, Download, FileText, Building2 } from "lucide-react";
+import { IncomeCard } from "@/components/crm/IncomeCard";
 import {
   computeBalanceSheet,
   computeCashFlow,
@@ -319,10 +320,17 @@ export default function FinancialWorkspace({ dealId, leadId, contactId, borrower
 
       {profile.borrower_type === "employee" ? (
         <Card>
-          <CardContent className="p-6 text-sm text-muted-foreground">
-            Employee borrowers use standard W-2 income fields collected in the loan application.
-            Switch to <span className="font-medium">Self-Employed</span> to enable the financial
-            analysis workspace (P&amp;L, Balance Sheet, Cash Flow).
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Employee Income Calculation</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {leadId ? (
+              <IncomeCard leadId={leadId} hideClassification compact />
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Income calculation is available once a lead is linked.
+              </p>
+            )}
           </CardContent>
         </Card>
       ) : (
