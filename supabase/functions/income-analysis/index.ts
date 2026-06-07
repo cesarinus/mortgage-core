@@ -23,29 +23,54 @@ const FALLBACK = {
   highlights: [],
   suggestions: ["Review W-2s and pay stubs manually."],
   risk_flags: [],
+  borrowers: [] as any[],
+  combined: null as any,
 };
 
-function buildPrompt(pd: any, calc: any) {
-  return `You are a mortgage underwriting assistant. Analyze the following borrower income data and provide:
-1) A one-sentence summary of the income profile.
-2) An income trend assessment (stable, increasing, decreasing, volatile) based on W-2 year-over-year comparison and YTD vs prior years.
-3) Two to three concise highlights about the income strength or weakness.
-4) Two to three actionable suggestions for the loan officer (e.g., "Request additional pay stub to verify overtime sustainability," "Large commission portion requires two-year average confirmation," etc.).
-5) Any risk flags (e.g., declining W-2 wages, oversized commission/bonus, large gap between W-2 and YTD).
+function borrowerBlock(b: any, idx: number) {
+  const role = idx === 0 ? "Primary" : `Co-Borrower ${idx}`;
+  return `Borrower ${idx + 1} (${role}) — ${b.borrower_name ?? "Unnamed"}:
+- Type: ${b.pd?.borrower_type ?? b.calc?.borrower_type ?? "unknown"}
+- W-2 Year 1: ${b.pd?.w2_year_1 ?? "—"} — $${b.pd?.w2_year_1_wages ?? 0}
+- W-2 Year 2: ${b.pd?.w2_year_2 ?? "—"} — $${b.pd?.w2_year_2_wages ?? 0}
+- YTD total: $${b.pd?.ytd_total ?? 0} (as of ${b.pd?.ytd_as_of_date ?? "—"})
+- Pay stub ending: ${b.pd?.pay_stub_ending_date ?? "—"}
+- Base: ${b.pd?.pay_stub_gross_base ?? 0}, Overtime: ${b.pd?.pay_stub_overtime ?? 0}, Bonus: ${b.pd?.pay_stub_bonus ?? 0}, Commission: ${b.pd?.pay_stub_commission ?? 0}
+- Monthly: $${b.calc?.monthly_income ?? 0}, Annual: $${b.calc?.annual_income ?? 0}, Years avg: $${b.calc?.years_average ?? 0}`;
+}
 
-Data:
-- Borrower type: ${pd?.borrower_type ?? "unknown"}
-- W-2 Year 1: ${pd?.w2_year_1 ?? "—"} — $${pd?.w2_year_1_wages ?? 0}
-- W-2 Year 2: ${pd?.w2_year_2 ?? "—"} — $${pd?.w2_year_2_wages ?? 0}
-- YTD total: $${pd?.ytd_total ?? 0} (as of ${pd?.ytd_as_of_date ?? "—"})
-- Pay stub ending: ${pd?.pay_stub_ending_date ?? "—"}
-- Base: ${pd?.pay_stub_gross_base ?? 0}
-- Overtime: ${pd?.pay_stub_overtime ?? 0}
-- Bonus: ${pd?.pay_stub_bonus ?? 0}
-- Commission: ${pd?.pay_stub_commission ?? 0}
-- Calculated monthly income: $${calc?.monthly_income ?? 0}
-- Calculated annual income: $${calc?.annual_income ?? 0}
-- Years average: $${calc?.years_average ?? 0}`;
+function buildMultiPrompt(borrowers: any[], totalMonthly: number, totalAnnual: number) {
+  return `You are a mortgage underwriting assistant. Analyze income for this loan application with ${borrowers.length === 1 ? "one borrower" : "multiple borrowers"}.
+
+${borrowers.map((b, i) => borrowerBlock(b, i)).join("\n\n")}
+
+Combined monthly qualifying income: $${totalMonthly}
+Combined annual qualifying income: $${totalAnnual}
+
+Provide JSON ONLY with this shape:
+{
+  "summary": "one sentence on combined income profile",
+  "trend": "stable|increasing|decreasing|volatile",
+  "highlights": ["..."],
+  "suggestions": ["..."],
+  "risk_flags": ["deal-level risk", "..."],
+  "borrowers": [
+    {
+      "label": "Primary",
+      "name": "...",
+      "trend": "stable|increasing|decreasing|volatile",
+      "summary": "one sentence per borrower",
+      "highlights": ["..."],
+      "risk_flags": ["..."]
+    }
+  ],
+  "combined": {
+    "monthly": ${totalMonthly},
+    "annual": ${totalAnnual},
+    "assessment": "one-line combined assessment"
+  }
+}
+Lowercase all trend values.`;
 }
 
 function tryParseJson(text: string): any | null {
@@ -64,12 +89,30 @@ function normalize(data: any) {
   const trend = ["stable", "increasing", "decreasing", "volatile", "unknown"].includes(trendRaw)
     ? trendRaw : "unknown";
   const arr = (x: any) => Array.isArray(x) ? x.filter((s) => typeof s === "string" && s.trim()) : [];
+  const borrowers = Array.isArray(data?.borrowers) ? data.borrowers.map((b: any) => ({
+    label: String(b?.label ?? "Borrower"),
+    name: String(b?.name ?? ""),
+    trend: (() => {
+      const t = String(b?.trend ?? "unknown").toLowerCase();
+      return ["stable", "increasing", "decreasing", "volatile", "unknown"].includes(t) ? t : "unknown";
+    })(),
+    summary: String(b?.summary ?? "").trim(),
+    highlights: arr(b?.highlights),
+    risk_flags: arr(b?.risk_flags),
+  })) : [];
+  const combined = data?.combined && typeof data.combined === "object" ? {
+    monthly: Number(data.combined.monthly ?? 0),
+    annual: Number(data.combined.annual ?? 0),
+    assessment: String(data.combined.assessment ?? "").trim(),
+  } : null;
   return {
     trend,
     summary: String(data?.summary ?? "").trim() || FALLBACK.summary,
     highlights: arr(data?.highlights),
     suggestions: arr(data?.suggestions),
     risk_flags: arr(data?.risk_flags),
+    borrowers,
+    combined,
   };
 }
 
@@ -98,16 +141,54 @@ Deno.serve(async (req) => {
     { global: { headers: { Authorization: authHeader } } },
   );
 
-  const [{ data: pd }, { data: calc }] = await Promise.all([
+  // Fetch all borrowers' rows for this lead, then group by contact_id
+  const [{ data: pdRows }, { data: calcRows }, { data: contacts }] = await Promise.all([
     supabase.from("borrower_payment_details").select("*").eq("lead_id", leadId)
-      .order("updated_at", { ascending: false }).limit(1).maybeSingle(),
+      .order("updated_at", { ascending: false }),
     supabase.from("borrower_income_calculations").select("*").eq("lead_id", leadId)
-      .order("calculation_date", { ascending: false }).limit(1).maybeSingle(),
+      .order("calculation_date", { ascending: false }),
+    supabase.from("lead_contacts").select("contact_id,is_primary,role_on_deal,contacts(id,first_name,last_name)").eq("lead_id", leadId),
   ]);
 
-  if (!pd && !calc) {
+  if ((!pdRows || pdRows.length === 0) && (!calcRows || calcRows.length === 0)) {
     return json({ ...FALLBACK, summary: "No income data yet — add pay stub or W-2 details to enable analysis." });
   }
+
+  // Index latest pd and calc by contact_id key
+  const latest = <T extends { contact_id?: string | null }>(rows: T[]) => {
+    const m = new Map<string, T>();
+    for (const r of (rows ?? [])) {
+      const k = (r as any).contact_id ?? "__primary__";
+      if (!m.has(k)) m.set(k, r);
+    }
+    return m;
+  };
+  const pdMap = latest<any>(pdRows ?? []);
+  const calcMap = latest<any>(calcRows ?? []);
+  const keys = Array.from(new Set([...pdMap.keys(), ...calcMap.keys()]));
+
+  // Resolve display name + label per key
+  const nameFor = (key: string): { name: string; isPrimary: boolean } => {
+    if (key === "__primary__") return { name: "Primary Borrower", isPrimary: true };
+    const lc = (contacts ?? []).find((c: any) => c.contact_id === key);
+    const c = (lc as any)?.contacts;
+    const nm = c ? `${c.first_name ?? ""} ${c.last_name ?? ""}`.trim() : "";
+    return { name: nm || "Borrower", isPrimary: !!(lc as any)?.is_primary };
+  };
+
+  const borrowers = keys.map((k) => {
+    const meta = nameFor(k);
+    return {
+      key: k,
+      borrower_name: (calcMap.get(k)?.borrower_name as string | undefined) || meta.name,
+      is_primary: meta.isPrimary,
+      pd: pdMap.get(k) ?? null,
+      calc: calcMap.get(k) ?? null,
+    };
+  }).sort((a, b) => Number(b.is_primary) - Number(a.is_primary));
+
+  const totalMonthly = borrowers.reduce((s, b) => s + Number(b.calc?.monthly_income ?? 0), 0);
+  const totalAnnual = borrowers.reduce((s, b) => s + Number(b.calc?.annual_income ?? 0), 0);
 
   const apiKey = Deno.env.get("LOVABLE_API_KEY");
   if (!apiKey) {
@@ -116,7 +197,7 @@ Deno.serve(async (req) => {
     return json(fb);
   }
 
-  const prompt = buildPrompt(pd, calc);
+  const prompt = buildMultiPrompt(borrowers, totalMonthly, totalAnnual);
 
   try {
     const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
@@ -129,7 +210,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         model: "google/gemini-3-flash-preview",
         messages: [
-          { role: "system", content: "Reply ONLY with a single JSON object, no prose, matching: {\"trend\":\"stable|increasing|decreasing|volatile\",\"summary\":string,\"highlights\":string[],\"suggestions\":string[],\"risk_flags\":string[]}. Lowercase all status values." },
+          { role: "system", content: "Reply ONLY with a single JSON object matching the schema in the user prompt. Lowercase all trend values." },
           { role: "user", content: prompt },
         ],
         response_format: { type: "json_object" },
@@ -145,6 +226,13 @@ Deno.serve(async (req) => {
     const parsed = tryParseJson(text);
     if (!parsed) return json(FALLBACK);
     const data = normalize(parsed);
+    // Ensure combined numbers reflect our authoritative totals
+    if (data.combined) {
+      data.combined.monthly = totalMonthly;
+      data.combined.annual = totalAnnual;
+    } else {
+      data.combined = { monthly: totalMonthly, annual: totalAnnual, assessment: "" };
+    }
     CACHE.set(leadId, { at: Date.now(), data });
     return json(data);
   } catch (e) {
