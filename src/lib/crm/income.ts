@@ -48,10 +48,12 @@ export async function fetchAllLatestIncome(leadId: string): Promise<IncomeCalc[]
   if (error) throw error;
   const rows = (data ?? []) as IncomeCalc[];
   const borrowers = await fetchDealBorrowers(leadId).catch(() => []);
+  const primaryContactId = borrowers.find((b) => b.isPrimary && b.contactId)?.contactId ?? null;
   const byContact = new Map<string, IncomeCalc>();
   for (const r of rows) {
-    const key = r.contact_id ?? "__primary__";
-    if (!byContact.has(key)) byContact.set(key, r);
+    const key = r.contact_id ?? primaryContactId ?? "__primary__";
+    const existing = byContact.get(key);
+    if (!existing || (!existing.contact_id && r.contact_id)) byContact.set(key, r);
   }
   if (borrowers.length > 0) {
     return borrowers
