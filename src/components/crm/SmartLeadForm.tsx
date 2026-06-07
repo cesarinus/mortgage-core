@@ -348,6 +348,13 @@ export function SmartLeadForm({ leadId, initial, sources = [], onSaved, onCancel
               onChange={e => set("property_value", e.target.value === "" ? null : Number(e.target.value))}
             />
           </Field>
+          <Field label="Property address (required to move to Pipeline)" className="col-span-2">
+            <Input
+              placeholder="123 Main St, City, ST 00000"
+              value={data.property_address ?? ""}
+              onChange={e => set("property_address", e.target.value)}
+            />
+          </Field>
           <Field
             label={`Down payment: $${(data.down_payment ?? 0).toLocaleString()}${
               dpMode === "percent" && Number(data.property_value ?? 0) > 0
