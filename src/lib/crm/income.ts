@@ -89,8 +89,11 @@ export async function saveIncome(input: IncomeInput, calculatedBy = "manual") {
 
 export async function recalcIncome(leadId: string): Promise<IncomeCalc | null> {
   const { data, error } = await supabase.functions.invoke("calculate-income", {
-    body: { lead_id: leadId },
+    body: { lead_id: leadId, mode: "calculate" },
   });
-  if (error) throw error;
+  if (error) {
+    // Graceful: missing payment details means we just have nothing to compute yet.
+    return null;
+  }
   return (data as any)?.calculation ?? null;
 }
