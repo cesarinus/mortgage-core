@@ -18,11 +18,15 @@ import {
 
 interface Props {
   leadId?: string;
+  contactId?: string | null;
+  borrowerName?: string | null;
   editable?: boolean;
   /** Hides the borrower-type selector (use when embedded inside an existing classification UI). */
   hideClassification?: boolean;
   /** Hides the wrapping Card chrome (use when embedded inside another card/section). */
   compact?: boolean;
+  /** Notify parent (e.g. combined summary) to refresh after Save/Calculate. */
+  onChanged?: () => void;
 }
 
 const fmt = (n: number | null | undefined) =>
@@ -37,8 +41,9 @@ function computeYearFraction(dateStr: string | null | undefined): number | null 
   return d.getMonth() + d.getDate() / dim;
 }
 
-const empty = (leadId: string): PaymentDetails => ({
+const empty = (leadId: string, contactId?: string | null): PaymentDetails => ({
   lead_id: leadId,
+  contact_id: contactId ?? null,
   borrower_type: "employed",
   pay_period_type: "biweekly",
   pay_stub_ending_date: null,
@@ -56,20 +61,20 @@ const empty = (leadId: string): PaymentDetails => ({
   se_avg_monthly_net: 0,
 });
 
-export function IncomeCard({ leadId, editable = true, hideClassification = false, compact = false }: Props) {
+export function IncomeCard({ leadId, contactId = null, borrowerName, editable = true, hideClassification = false, compact = false, onChanged }: Props) {
   const [latest, setLatest] = useState<IncomeCalc | null>(null);
-  const [form, setForm] = useState<PaymentDetails>(empty(leadId ?? ""));
+  const [form, setForm] = useState<PaymentDetails>(empty(leadId ?? "", contactId));
   const [busy, setBusy] = useState<null | "save" | "calc">(null);
 
   const load = useCallback(async () => {
     if (!leadId) return;
     const [pd, calc] = await Promise.all([
-      fetchPaymentDetails(leadId).catch(() => null),
-      fetchLatestIncome(leadId).catch(() => null),
+      fetchPaymentDetails(leadId, contactId).catch(() => null),
+      fetchLatestIncome(leadId, contactId).catch(() => null),
     ]);
-    setForm(pd ? { ...empty(leadId), ...pd } : empty(leadId));
+    setForm(pd ? { ...empty(leadId, contactId), ...pd, contact_id: contactId ?? pd.contact_id ?? null } : empty(leadId, contactId));
     setLatest(calc);
-  }, [leadId]);
+  }, [leadId, contactId]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -87,8 +92,9 @@ export function IncomeCard({ leadId, editable = true, hideClassification = false
     setBusy("save");
     const t = toast.loading("saving inputs…");
     try {
-      await savePaymentDetails({ ...form, lead_id: leadId });
+      await savePaymentDetails({ ...form, lead_id: leadId, contact_id: contactId ?? null });
       toast.success("income inputs saved", { id: t });
+      onChanged?.();
     } catch (e: any) {
       toast.error(e?.message ?? "save failed", { id: t });
     } finally { setBusy(null); }
@@ -99,10 +105,11 @@ export function IncomeCard({ leadId, editable = true, hideClassification = false
     setBusy("calc");
     const t = toast.loading("calculating income…");
     try {
-      await savePaymentDetails({ ...form, lead_id: leadId });
-      const res = await calculateIncomeFromInputs(leadId);
+      await savePaymentDetails({ ...form, lead_id: leadId, contact_id: contactId ?? null });
+      const res = await calculateIncomeFromInputs(leadId, contactId ?? null, borrowerName ?? null);
       setLatest(res.calculation ?? null);
       toast.success("income calculated", { id: t });
+      onChanged?.();
     } catch (e: any) {
       toast.error(e?.message ?? "calculation failed", { id: t });
     } finally { setBusy(null); }
