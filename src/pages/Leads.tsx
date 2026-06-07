@@ -140,6 +140,7 @@ export default function Leads() {
   const [events, setEvents] = useState<LeadEvent[]>([]);
   const [tags, setTags] = useState<LeadTag[]>([]);
   const [opportunityLeadIds, setOpportunityLeadIds] = useState<Set<string>>(new Set());
+  const [selectedLeadContactCount, setSelectedLeadContactCount] = useState<number>(0);
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
@@ -194,6 +195,18 @@ export default function Leads() {
   useEffect(() => {
     if (selectedLead) loadEvents(selectedLead.id);
     else setEvents([]);
+  }, [selectedLead?.id]);
+
+  useEffect(() => {
+    if (!selectedLead) { setSelectedLeadContactCount(0); return; }
+    (async () => {
+      const { data: links } = await supabase
+        .from("lead_contacts")
+        .select("id, contact:contacts(id)")
+        .eq("lead_id", selectedLead.id);
+      const live = (links ?? []).filter((l: any) => !!l.contact).length;
+      setSelectedLeadContactCount(live);
+    })();
   }, [selectedLead?.id]);
 
   // Lead creation handled by <SmartLeadForm /> inside the dialog below.
