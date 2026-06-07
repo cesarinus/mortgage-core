@@ -1,0 +1,102 @@
+import { supabase } from "@/integrations/supabase/client";
+
+export type DealBorrower = {
+  contactId: string | null;
+  name: string;
+  isPrimary: boolean;
+  role?: string | null;
+};
+
+const BORROWER_ROLES = new Set(["primary_borrower", "co_borrower", "guarantor"]);
+
+const fullName = (c: any, fallback = "Borrower") => {
+  const name = `${c?.first_name ?? ""} ${c?.last_name ?? ""}`.trim();
+  return name || fallback;
+};
+
+/**
+ * Resolve deal borrowers from the canonical lead_contacts relationship, with
+ * additive fallbacks for legacy contacts.lead_id, leads.co_borrower_id, and
+ * pipeline primary contact references. Only borrower contacts are included
+ * unless a row is explicitly marked primary.
+ */
+export async function fetchDealBorrowers(leadId: string, fallbackName = "Borrower"): Promise<DealBorrower[]> {
+  const [{ data: linkRows }, { data: lead }, { data: opportunityRows }, { data: directContacts }] = await Promise.all([
+    (supabase as any)
+      .from("lead_contacts")
+      .select("contact_id,is_primary,role_on_deal,role")
+      .eq("lead_id", leadId),
+    (supabase as any)
+      .from("leads")
+      .select("first_name,last_name,co_borrower_id")
+      .eq("id", leadId)
+      .maybeSingle(),
+    (supabase as any)
+      .from("pipeline_opportunities")
+      .select("primary_contact_id")
+      .eq("lead_id", leadId),
+    (supabase as any)
+      .from("contacts")
+      .select("id,first_name,last_name,contact_type,lead_id")
+      .eq("lead_id", leadId)
+      .eq("contact_type", "borrower"),
+  ]);
+
+  const contactIds = new Set<string>();
+  for (const r of linkRows ?? []) if (r.contact_id) contactIds.add(r.contact_id);
+  for (const c of directContacts ?? []) if (c.id) contactIds.add(c.id);
+  if (lead?.co_borrower_id) contactIds.add(lead.co_borrower_id);
+  for (const o of opportunityRows ?? []) if (o.primary_contact_id) contactIds.add(o.primary_contact_id);
+
+  const contactMap = new Map<string, any>();
+  for (const c of directContacts ?? []) contactMap.set(c.id, c);
+  if (contactIds.size > 0) {
+    const { data: contacts } = await (supabase as any)
+      .from("contacts")
+      .select("id,first_name,last_name,contact_type,lead_id")
+      .in("id", Array.from(contactIds));
+    for (const c of contacts ?? []) contactMap.set(c.id, c);
+  }
+
+  const byId = new Map<string, DealBorrower>();
+  const linkByContact = new Map<string, any>();
+  for (const r of linkRows ?? []) if (r.contact_id) linkByContact.set(r.contact_id, r);
+
+  const primaryIds = new Set<string>();
+  for (const r of linkRows ?? []) if (r.is_primary && r.contact_id) primaryIds.add(r.contact_id);
+  for (const o of opportunityRows ?? []) if (o.primary_contact_id) primaryIds.add(o.primary_contact_id);
+
+  const addBorrower = (contactId: string, forcedPrimary = false) => {
+    const c = contactMap.get(contactId);
+    const link = linkByContact.get(contactId);
+    const role = link?.role_on_deal ?? link?.role ?? null;
+    const isBorrowerContact = c?.contact_type === "borrower";
+    const isPrimary = forcedPrimary || !!link?.is_primary || primaryIds.has(contactId);
+    const isBorrowerRole = role ? BORROWER_ROLES.has(String(role)) : false;
+
+    if (!isBorrowerContact && !isPrimary && !isBorrowerRole) return;
+    if (!isBorrowerContact && !isPrimary) return;
+
+    const current = byId.get(contactId);
+    byId.set(contactId, {
+      contactId,
+      name: fullName(c),
+      isPrimary: current?.isPrimary || isPrimary,
+      role: current?.role ?? role,
+    });
+  };
+
+  for (const r of linkRows ?? []) if (r.contact_id) addBorrower(r.contact_id, !!r.is_primary);
+  for (const c of directContacts ?? []) if (c.id) addBorrower(c.id, false);
+  if (lead?.co_borrower_id) addBorrower(lead.co_borrower_id, false);
+  for (const o of opportunityRows ?? []) if (o.primary_contact_id) addBorrower(o.primary_contact_id, true);
+
+  const borrowers = Array.from(byId.values()).sort((a, b) => {
+    if (a.isPrimary !== b.isPrimary) return Number(b.isPrimary) - Number(a.isPrimary);
+    return a.name.localeCompare(b.name);
+  });
+
+  if (borrowers.length > 0) return borrowers;
+
+  return [{ contactId: null, name: fullName(lead, fallbackName), isPrimary: true, role: "primary_borrower" }];
+}
