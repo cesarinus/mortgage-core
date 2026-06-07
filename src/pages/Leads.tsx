@@ -828,14 +828,45 @@ export default function Leads() {
                       </SelectContent>
                     </Select>
                     {normalizeStatus(selectedLead.status) === "qualified" && (
-                      <Button
-                        size="sm"
-                        className="mt-2 w-full bg-emerald-600 hover:bg-emerald-600/90 text-white border-2 border-emerald-700/40 shadow-sm gap-1.5"
-                        onClick={() => handleConvertToPipeline(selectedLead)}
-                      >
-                        <ArrowRightCircle className="h-4 w-4" />
-                        Application Complete — Move to Pipeline
-                      </Button>
+                      (() => {
+                        const hasAddr = !!(selectedLead as any).property_address;
+                        const hasContact = selectedLeadContactCount > 0;
+                        const ready = hasAddr && hasContact;
+                        return (
+                          <div className="mt-2 space-y-2">
+                            <Button
+                              size="sm"
+                              disabled={!ready}
+                              title={ready ? "" : "Add property address and link a contact first"}
+                              className="w-full bg-emerald-600 hover:bg-emerald-600/90 text-white border-2 border-emerald-700/40 shadow-sm gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
+                              onClick={() => handleConvertToPipeline(selectedLead)}
+                            >
+                              <ArrowRightCircle className="h-4 w-4" />
+                              Application Complete — Move to Pipeline
+                            </Button>
+                            {!ready && (
+                              <ul className="text-[11px] space-y-1 rounded-md border border-border bg-muted/30 p-2">
+                                <li className="flex items-center gap-1.5">
+                                  <span className={hasAddr ? "text-emerald-600" : "text-destructive"}>
+                                    {hasAddr ? "✓" : "•"}
+                                  </span>
+                                  <span className={hasAddr ? "text-muted-foreground" : ""}>
+                                    Property address {hasAddr ? "set" : "— click Edit to add it"}
+                                  </span>
+                                </li>
+                                <li className="flex items-center gap-1.5">
+                                  <span className={hasContact ? "text-emerald-600" : "text-destructive"}>
+                                    {hasContact ? "✓" : "•"}
+                                  </span>
+                                  <span className={hasContact ? "text-muted-foreground" : ""}>
+                                    Linked contact {hasContact ? "present" : "— Open full workspace → Relationships"}
+                                  </span>
+                                </li>
+                              </ul>
+                            )}
+                          </div>
+                        );
+                      })()
                     )}
                   </div>
 
