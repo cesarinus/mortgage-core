@@ -364,12 +364,14 @@ export type Database = {
           lead_id: string
           monthly_income: number | null
           ocr_log: Json | null
+          ocr_status: string
           other_income: number | null
           overtime: number | null
           self_employment_income: number | null
           source: string
           supporting_doc_ids: string[] | null
           updated_at: string
+          years_average: number | null
         }
         Insert: {
           annual_income?: number | null
@@ -385,12 +387,14 @@ export type Database = {
           lead_id: string
           monthly_income?: number | null
           ocr_log?: Json | null
+          ocr_status?: string
           other_income?: number | null
           overtime?: number | null
           self_employment_income?: number | null
           source?: string
           supporting_doc_ids?: string[] | null
           updated_at?: string
+          years_average?: number | null
         }
         Update: {
           annual_income?: number | null
@@ -406,16 +410,110 @@ export type Database = {
           lead_id?: string
           monthly_income?: number | null
           ocr_log?: Json | null
+          ocr_status?: string
           other_income?: number | null
           overtime?: number | null
           self_employment_income?: number | null
           source?: string
           supporting_doc_ids?: string[] | null
           updated_at?: string
+          years_average?: number | null
         }
         Relationships: [
           {
             foreignKeyName: "borrower_income_calculations_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      borrower_payment_details: {
+        Row: {
+          borrower_type: string
+          created_at: string
+          id: string
+          lead_id: string
+          pay_period_type: string
+          pay_stub_bonus: number | null
+          pay_stub_commission: number | null
+          pay_stub_ending_date: string | null
+          pay_stub_gross_base: number | null
+          pay_stub_overtime: number | null
+          pay_stub_period_days: number | null
+          pay_stub_period_end: string | null
+          pay_stub_period_start: string | null
+          se_avg_monthly_net: number | null
+          updated_at: string
+          w2_year_1: number | null
+          w2_year_1_wages: number | null
+          w2_year_2: number | null
+          w2_year_2_wages: number | null
+          ytd_as_of_date: string | null
+          ytd_base: number | null
+          ytd_bonus: number | null
+          ytd_commission: number | null
+          ytd_overtime: number | null
+          ytd_total: number | null
+        }
+        Insert: {
+          borrower_type?: string
+          created_at?: string
+          id?: string
+          lead_id: string
+          pay_period_type?: string
+          pay_stub_bonus?: number | null
+          pay_stub_commission?: number | null
+          pay_stub_ending_date?: string | null
+          pay_stub_gross_base?: number | null
+          pay_stub_overtime?: number | null
+          pay_stub_period_days?: number | null
+          pay_stub_period_end?: string | null
+          pay_stub_period_start?: string | null
+          se_avg_monthly_net?: number | null
+          updated_at?: string
+          w2_year_1?: number | null
+          w2_year_1_wages?: number | null
+          w2_year_2?: number | null
+          w2_year_2_wages?: number | null
+          ytd_as_of_date?: string | null
+          ytd_base?: number | null
+          ytd_bonus?: number | null
+          ytd_commission?: number | null
+          ytd_overtime?: number | null
+          ytd_total?: number | null
+        }
+        Update: {
+          borrower_type?: string
+          created_at?: string
+          id?: string
+          lead_id?: string
+          pay_period_type?: string
+          pay_stub_bonus?: number | null
+          pay_stub_commission?: number | null
+          pay_stub_ending_date?: string | null
+          pay_stub_gross_base?: number | null
+          pay_stub_overtime?: number | null
+          pay_stub_period_days?: number | null
+          pay_stub_period_end?: string | null
+          pay_stub_period_start?: string | null
+          se_avg_monthly_net?: number | null
+          updated_at?: string
+          w2_year_1?: number | null
+          w2_year_1_wages?: number | null
+          w2_year_2?: number | null
+          w2_year_2_wages?: number | null
+          ytd_as_of_date?: string | null
+          ytd_base?: number | null
+          ytd_bonus?: number | null
+          ytd_commission?: number | null
+          ytd_overtime?: number | null
+          ytd_total?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "borrower_payment_details_lead_id_fkey"
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
