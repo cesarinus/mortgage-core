@@ -1,75 +1,111 @@
-# Loan Conditions & Income Calculation Module
+# Arive Import — People & Companies
 
-Additive build on top of the migration you provided. Before I implement, a few things in your SQL need adjustment — flagged below — otherwise the tables will be unreachable from the app.
+A reusable admin-only page to import Arive `Borrowers.xlsx` and `BusinessContacts.xlsx` exports into `contacts`, `crm_companies`, and `crm_contact_companies`, with field mapping, preview, dedup-by-email (update existing), and a rejects CSV.
 
-## 1. Migration corrections (must run before UI work)
+## Scope of changes
 
-Your SQL creates the tables but omits required Lovable Cloud setup. I'll run a follow-up migration that:
+### 1. Additive schema (migration)
+Only the fields you explicitly need become real columns. Everything else is preserved in `notes` so nothing is lost.
 
-- Adds `GRANT SELECT, INSERT, UPDATE, DELETE ... TO authenticated` and `GRANT ALL ... TO service_role` on both new tables (PostgREST returns permission errors without this).
-- Enables RLS and adds policies mirroring the existing `leads` ownership model: `is_admin()` full access; owners (via `user_owns_lead(lead_id)`) can read/insert/update/delete their own rows. Borrowers reading via portal: `is_portal_user_for_deal()` for read.
-- Adds the `ocr_log jsonb` column on `borrower_income_calculations` (referenced in section E of your prompt but missing from the CREATE TABLE).
-- Adds `updated_at` trigger using existing `public.update_updated_at_column()`.
-- Keeps the seed `INSERT ... WHERE false` statements as-is (they are no-ops by design — the real seeding happens in the trigger).
-- The trigger function gets `SECURITY DEFINER` + `SET search_path = public` to match project conventions.
+`contacts` — add:
+- `middle_name text`
+- `license_number text`
+- `dob date` (free to omit; included since it's a common Arive field — say the word and I'll drop it)
 
-I will NOT touch your existing trigger logic or column names — purely additive.
+`crm_companies` — add:
+- `address text`
+- `license_number text`
 
-## 2. UI placement
-
-The "Pipeline detail page" in this codebase is `src/pages/crm/RecordWorkspace.tsx` (route `/crm/leads/:id`, also reached from the Pipeline). It already has tabs: Catch-up, Activities, Scenarios, Messages, Tasks, Documents, Emails, Relationships.
-
-- New **Conditions** tab inserted between Tasks and Documents (closest to "between Financials and Documents" — there is no standalone Financials tab; financials live inside the left rail / scenarios area).
-- New **Income** card added to the left rail (`LeftRail.tsx`) under existing financial summary.
-
-## 3. New files
-
-```text
-src/components/crm/tabs/ConditionsTab.tsx        # grouped checklist UI
-src/components/crm/conditions/ConditionRow.tsx   # row + status dropdown
-src/components/crm/conditions/MarkReceivedDrawer.tsx  # received_at, via, notes, upload
-src/components/crm/IncomeCard.tsx                # left-rail income editor
-src/lib/crm/conditions.ts                        # queries + mutations
-src/lib/crm/income.ts                            # upsert + calc helper
-supabase/functions/calculate-income/index.ts     # edge function
+All other unmapped fields (home/work phones, secondary email, fax, marital status, suffix, state code, affiliate_type, company email) → appended to `notes` in a labeled block, e.g.:
+```
+--- Imported from Arive 2026-06-08 ---
+Phone (home): 555-...
+Phone (work): 555-...
+Marital status: Married
 ```
 
-Portal: add `src/pages/portal/PortalIncome.tsx` + route in portal layout, reusing `IncomeCard` in editable mode with a one-time borrower_type prompt.
+No RLS / policy changes — existing `contacts` and `crm_companies` policies already cover the new columns.
 
-## 4. Conditions tab behavior
+### 2. New page: `Settings → Import from Arive` (admin-only)
+Route: `/settings/import-arive`, gated by `useAuth` role === `admin`.
 
-- Loads `loan_conditions` for current `lead_id`, grouped by `category` (Income, Asset, ID, Liability, Other).
-- Each row: title, required badge, status dropdown (`pending` | `received` | `waived`), "Mark complete" button.
-- Mark complete → `MarkReceivedDrawer` (shadcn Sheet): received_at (default today), received_via select, notes textarea, optional file upload to existing `crm-documents` bucket at path `conditions/{lead_id}/{condition_id}/{filename}`.
-- Save writes `status='received'`, `received_at`, `received_via`, `document_url`, `document_name`, `source='manual'`.
-- If saved row's `category='income'`, invoke edge function `calculate-income` with `{ lead_id }`, show sonner loading→success toast, refetch Income card.
+Flow:
+1. **Upload** two files (Borrowers + BusinessContacts). Either one alone is allowed.
+2. **Parse** in-browser with `xlsx` (SheetJS — add as dep).
+3. **Preview & mapping table** — shows detected Arive columns → target table.column for each file, with a sample row. Mapping is fixed (built from the field inspection), not editable in v1.
+4. **Dry-run summary**: counts of will-create vs will-update (by email match) vs rejects (missing required fields, e.g. no first+last name).
+5. **Import** button — runs all inserts/updates client-side via the existing `supabase` client, scoped to `auth.uid()` as `created_by`. No edge function needed; RLS handles authorization.
+6. **Result panel**: counts + a "Download rejects" button (CSV of skipped rows with reason).
 
-## 5. Income card behavior
+### 3. Mapping (locked in v1)
 
-- Fields: `borrower_type` select, numeric inputs for base_income, overtime, bonus, commission, self_employment_income, other_income.
-- On blur: monthly = sum, annual = monthly * 12 (displayed read-only).
-- Save button upserts `borrower_income_calculations` keyed by `lead_id` (latest snapshot; we insert a new row per save so history is preserved — query uses `order by calculation_date desc limit 1`).
-- Shows `source` badge (manual / auto) and breakdown list.
+**Borrowers.xlsx → `contacts`** (role/type = `borrower`):
+| Arive | Target |
+|---|---|
+| First Name | `first_name` |
+| Middle Name | `middle_name` *(new)* |
+| Last Name | `last_name` |
+| Email | `email` |
+| Date of Birth | `dob` *(new)* |
+| Cell Phone → Home → Work (first non-empty) | `phone` |
+| Street + Unit + City, State Zip, County | `address` (concatenated) |
+| Home Phone, Work Phone, Marital Status, Secondary Email, Fax, Suffix | appended to `notes` |
+| — | `contact_type = 'borrower'`, `role = 'borrower'`, `created_by = auth.uid()` |
 
-## 6. Edge function `calculate-income`
+**BusinessContacts.xlsx → `contacts` + `crm_companies` + `crm_contact_companies`:**
 
-- POST `{ lead_id }`, validates with zod, uses inline `corsHeaders`, validates JWT in code.
-- Reads `loan_conditions` where `lead_id=$1 AND category='income' AND status='received'`.
-- Reads latest `borrower_income_calculations` for the lead.
-- Returns `{ calculation, income_conditions }`. No mutation yet — Path A is manual entry; this endpoint exists so Path B (OCR) can later overwrite via the same surface.
+Person side → `contacts`:
+| Arive | Target |
+|---|---|
+| First / Last Name | `first_name`, `last_name` |
+| Email | `email` |
+| License # | `license_number` *(new)* |
+| Address fields | `address` |
+| Contact Type (Real Estate Agent / Title Agent / Insurance / etc.) | `role` (mapped enum) |
+| Suffix, Secondary Email, Fax, State Code | `notes` |
 
-## 7. Path B reservation
+Company side → `crm_companies` (one row per unique company name, case-insensitive):
+| Arive | Target |
+|---|---|
+| Company Name | `name` |
+| Company Phone | `phone` |
+| Company Address | `address` *(new)* |
+| Company License # | `license_number` *(new)* |
+| Contact Type → `company_type` enum | `company_type` |
+| Company Email, Affiliate Type, Fax | `notes` |
 
-- All client writes go through `src/lib/crm/income.ts` which calls the edge function for reads. The UI never reads `borrower_income_calculations` directly (except as a fallback hydrate). This lets us later add OCR processing inside the edge function without touching components.
-- `ocr_log`, `ocr_status`, `source`, `ocr_raw` columns left untouched; no UI surfaces them.
+Link row → `crm_contact_companies` with `contact_role` mapped from Contact Type.
 
-## 8. Style
+### 4. Dedup rules (you chose: email match, update existing)
+- **contacts**: match on `lower(email)` where email present. If found → `UPDATE` (only fill empty fields + append a dated note block; never overwrite a non-empty value). If no email → insert new (no dedup).
+- **crm_companies**: match on `lower(name)`. Same fill-empty-only rule.
+- **crm_contact_companies**: skip if row already exists for that `(contact_id, company_id)`.
 
-- shadcn/ui components (Sheet, Select, Input, Badge, Button, Card).
-- Reuses existing tokens (warm orange accent, dark mode) — no new colors.
-- Status strings lowercase throughout.
-- No changes to existing tabs, deals, leads schema, or RLS.
+### 5. Borrowers without a deal
+Imported as standalone `contacts` with `contact_type='borrower'`, `role='borrower'`, no `lead_id`. They show up in People immediately and can be linked to a lead/deal later from the contact workspace.
 
-## Open question
+## Technical notes
+- New dep: `xlsx` (SheetJS) — parses .xlsx in browser, ~400KB gz, only loaded on the import route via dynamic import so it doesn't bloat the main bundle.
+- All writes go through the regular Supabase client under the admin's session — same path the rest of the CRM uses.
+- No edge function, no service-role exposure.
+- Existing `People.tsx` / `Companies.tsx` are not touched.
 
-Your migration uses `pipeline_opportunities` for the FK and trigger, which matches `src/pages/Pipeline.tsx`. Confirm this is the table you want — there is also a separate `deals` table in the schema. I'll proceed with `pipeline_opportunities` as written.
+## Out of scope (v1)
+- Editable column mapping UI (mapping is fixed; revisit if Arive exports change shape)
+- Linking borrowers to existing/closed deals during import (separate flow — happens manually in the contact workspace afterward)
+- Background/queued imports (sync, runs in the browser; ~400 borrower rows + 147 contacts is fine)
+
+## Files
+
+New:
+- `supabase/migrations/<ts>_arive_import_fields.sql` — adds the 5 new columns
+- `src/pages/settings/ImportArive.tsx` — the page
+- `src/lib/import/arive.ts` — parse + map + dedup + write logic
+- Route added in `src/App.tsx` (protected, admin-only)
+- Nav link added in `SettingsPage.tsx` (or sidebar settings section)
+
+Modified:
+- `package.json` — `xlsx` added
+- `src/integrations/supabase/types.ts` — regenerated after migration
+
+Want me to drop `dob` from the schema additions, or keep it? Otherwise this is ready to build.
