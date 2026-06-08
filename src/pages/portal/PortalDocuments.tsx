@@ -36,7 +36,7 @@ export default function PortalDocuments() {
       const path = `portal/${binding.deal_id}/${Date.now()}-${safeName}`;
       const { error: upErr } = await supabase.storage.from("crm-documents").upload(path, file, { upsert: false });
       if (upErr) throw upErr;
-      const { error: insErr } = await supabase.from("crm_attachments").insert({
+      const { data: inserted, error: insErr } = await supabase.from("crm_attachments").insert({
         deal_id: binding.deal_id,
         lead_id: binding.lead_id,
         contact_id: binding.contact_id,
@@ -46,9 +46,16 @@ export default function PortalDocuments() {
         size_bytes: file.size,
         category_slug: categorySlug,
         uploaded_by: user.id,
-      });
+      }).select("id").single();
       if (insErr) throw insErr;
       toast({ title: "Uploaded", description: file.name });
+      // Fire-and-forget income extraction for supported categories
+      const incomeSlugs = new Set(["pay-stubs", "w2", "1099", "tax-returns", "business-tax-returns"]);
+      if (inserted?.id && incomeSlugs.has(categorySlug)) {
+        supabase.functions
+          .invoke("extract-income-document", { body: { attachment_id: inserted.id } })
+          .catch(() => {});
+      }
       reload();
     } catch (err) {
       toast({ title: "Upload failed", description: err instanceof Error ? err.message : "Try again", variant: "destructive" });

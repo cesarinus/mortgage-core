@@ -406,6 +406,7 @@ export type Database = {
           other_income: number | null
           overtime: number | null
           self_employment_income: number | null
+          shared_with_borrower: boolean
           source: string
           supporting_doc_ids: string[] | null
           updated_at: string
@@ -431,6 +432,7 @@ export type Database = {
           other_income?: number | null
           overtime?: number | null
           self_employment_income?: number | null
+          shared_with_borrower?: boolean
           source?: string
           supporting_doc_ids?: string[] | null
           updated_at?: string
@@ -456,6 +458,7 @@ export type Database = {
           other_income?: number | null
           overtime?: number | null
           self_employment_income?: number | null
+          shared_with_borrower?: boolean
           source?: string
           supporting_doc_ids?: string[] | null
           updated_at?: string
@@ -1675,6 +1678,95 @@ export type Database = {
           statement_type?: Database["public"]["Enums"]["financial_statement_type"]
         }
         Relationships: []
+      }
+      income_document_extractions: {
+        Row: {
+          applied_at: string | null
+          applied_by: string | null
+          attachment_id: string
+          confidence: number | null
+          contact_id: string | null
+          created_at: string
+          deal_id: string | null
+          doc_type: Database["public"]["Enums"]["income_doc_type"]
+          error: string | null
+          extracted: Json
+          id: string
+          lead_id: string | null
+          model: string | null
+          period_ending_date: string | null
+          status: Database["public"]["Enums"]["income_extraction_status"]
+          tax_year: number | null
+          updated_at: string
+        }
+        Insert: {
+          applied_at?: string | null
+          applied_by?: string | null
+          attachment_id: string
+          confidence?: number | null
+          contact_id?: string | null
+          created_at?: string
+          deal_id?: string | null
+          doc_type?: Database["public"]["Enums"]["income_doc_type"]
+          error?: string | null
+          extracted?: Json
+          id?: string
+          lead_id?: string | null
+          model?: string | null
+          period_ending_date?: string | null
+          status?: Database["public"]["Enums"]["income_extraction_status"]
+          tax_year?: number | null
+          updated_at?: string
+        }
+        Update: {
+          applied_at?: string | null
+          applied_by?: string | null
+          attachment_id?: string
+          confidence?: number | null
+          contact_id?: string | null
+          created_at?: string
+          deal_id?: string | null
+          doc_type?: Database["public"]["Enums"]["income_doc_type"]
+          error?: string | null
+          extracted?: Json
+          id?: string
+          lead_id?: string | null
+          model?: string | null
+          period_ending_date?: string | null
+          status?: Database["public"]["Enums"]["income_extraction_status"]
+          tax_year?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "income_document_extractions_attachment_id_fkey"
+            columns: ["attachment_id"]
+            isOneToOne: false
+            referencedRelation: "crm_attachments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "income_document_extractions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "income_document_extractions_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "income_document_extractions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       lead_contacts: {
         Row: {
@@ -3212,6 +3304,14 @@ export type Database = {
         | "balance_sheet"
         | "cash_flow"
         | "combined"
+      income_doc_type:
+        | "pay_stub"
+        | "w2"
+        | "form_1099"
+        | "form_1040"
+        | "business_return"
+        | "unknown"
+      income_extraction_status: "pending" | "applied" | "dismissed" | "failed"
       lead_status:
         | "new_lead"
         | "contacted"
@@ -3410,6 +3510,15 @@ export const Constants = {
         "cash_flow",
         "combined",
       ],
+      income_doc_type: [
+        "pay_stub",
+        "w2",
+        "form_1099",
+        "form_1040",
+        "business_return",
+        "unknown",
+      ],
+      income_extraction_status: ["pending", "applied", "dismissed", "failed"],
       lead_status: [
         "new_lead",
         "contacted",

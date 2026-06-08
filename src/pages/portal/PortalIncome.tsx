@@ -62,6 +62,9 @@ export default function PortalIncome() {
     );
   }
 
+  const shared = Boolean((calc as any)?.shared_with_borrower);
+  const showCalc = calc && shared;
+
   const borrowerType = (details?.borrower_type ?? calc?.borrower_type ?? "employed") as string;
   const isSE = borrowerType === "self_employed" || borrowerType === "self-employed";
   const hasVariable =
@@ -96,10 +99,10 @@ export default function PortalIncome() {
         </Badge>
       </header>
 
-      {!fetched ? null : !calc && !details ? (
+      {!fetched ? null : !showCalc ? (
         <Card>
           <CardContent className="p-6 text-sm text-muted-foreground">
-            income calculation pending — your loan officer will complete this shortly.
+            Your loan officer is reviewing your documents. Income details will appear here once validated.
           </CardContent>
         </Card>
       ) : (

@@ -15,6 +15,9 @@ import {
   fetchPaymentDetails,
   savePaymentDetails,
 } from "@/lib/crm/paymentDetails";
+import { IncomeSuggestions } from "@/components/crm/IncomeSuggestions";
+import { supabase } from "@/integrations/supabase/client";
+import { Switch } from "@/components/ui/switch";
 
 interface Props {
   leadId?: string;
@@ -65,6 +68,8 @@ export function IncomeCard({ leadId, contactId = null, borrowerName, editable = 
   const [latest, setLatest] = useState<IncomeCalc | null>(null);
   const [form, setForm] = useState<PaymentDetails>(empty(leadId ?? "", contactId));
   const [busy, setBusy] = useState<null | "save" | "calc">(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+  const [sharing, setSharing] = useState(false);
 
   const load = useCallback(async () => {
     if (!leadId) return;
@@ -115,12 +120,44 @@ export function IncomeCard({ leadId, contactId = null, borrowerName, editable = 
     } finally { setBusy(null); }
   };
 
+  const applySuggestion = async (next: PaymentDetails) => {
+    if (!leadId) return;
+    setForm(next);
+    await savePaymentDetails({ ...next, lead_id: leadId, contact_id: contactId ?? null });
+  };
+
+  const toggleShare = async (value: boolean) => {
+    if (!latest?.id) return;
+    setSharing(true);
+    try {
+      const { error } = await (supabase as any)
+        .from("borrower_income_calculations")
+        .update({ shared_with_borrower: value })
+        .eq("id", latest.id);
+      if (error) throw error;
+      setLatest({ ...(latest as any), shared_with_borrower: value });
+      toast.success(value ? "shared with borrower" : "hidden from borrower");
+    } catch (e: any) {
+      toast.error(e?.message ?? "update failed");
+    } finally { setSharing(false); }
+  };
+
   if (!leadId) return null;
 
   const disabled = !editable || isSE;
 
   const body = (
     <div className="space-y-4">
+      {editable && leadId && (
+        <IncomeSuggestions
+          leadId={leadId}
+          contactId={contactId}
+          currentForm={form}
+          refreshKey={refreshKey}
+          onApply={async (next) => { await applySuggestion(next); setRefreshKey((k) => k + 1); onChanged?.(); }}
+        />
+      )}
+
       {!hideClassification && (
         <>
           <div className="space-y-1.5">
@@ -223,6 +260,20 @@ export function IncomeCard({ leadId, contactId = null, borrowerName, editable = 
           <Button size="sm" onClick={calc} disabled={busy !== null}>
             <Calculator className="h-3.5 w-3.5 mr-1" /> {busy === "calc" ? "calculating…" : "calculate"}
           </Button>
+        </div>
+      )}
+
+      {editable && latest?.id && (
+        <div className="flex items-center justify-between rounded-md border bg-muted/30 px-2 py-1.5">
+          <div className="text-[11px]">
+            <div className="font-medium">Share with borrower</div>
+            <div className="text-muted-foreground">When on, the borrower portal shows the calculated income.</div>
+          </div>
+          <Switch
+            checked={Boolean((latest as any).shared_with_borrower)}
+            onCheckedChange={toggleShare}
+            disabled={sharing}
+          />
         </div>
       )}
     </div>
