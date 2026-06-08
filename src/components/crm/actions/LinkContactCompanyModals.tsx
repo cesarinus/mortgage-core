@@ -84,12 +84,21 @@ export function LinkContactModal({ open, onClose, leadId, onDone }: BaseProps) {
   const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
+    const contactType = ((fd.get("contact_type") as string) || "borrower").toLowerCase();
+    if (BORROWER_DEAL_ROLES.has(roleOnDeal) && contactType !== "borrower") {
+      toast({
+        title: "Contact is not a borrower",
+        description: "Choose Borrower as the contact type before using a borrower role.",
+        variant: "destructive",
+      });
+      return;
+    }
     const { data, error } = await supabase.from("contacts").insert({
       first_name: fd.get("first_name") as string,
       last_name: fd.get("last_name") as string,
       email: (fd.get("email") as string) || null,
       phone: (fd.get("phone") as string) || null,
-      contact_type: (fd.get("contact_type") as any) || "borrower",
+      contact_type: contactType as any,
       created_by: user!.id,
     }).select("id").maybeSingle();
     if (error || !data) { toast({ title: "Error", description: error?.message, variant: "destructive" }); return; }
