@@ -13,6 +13,7 @@ import { Sparkles, Send, Plus, MessageSquare, X, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { AiFeedback } from "@/components/crm/AiFeedback";
 
 export type AssistantScope = "crm" | "portal";
 export type AssistantRecordKind = "lead" | "contact" | "deal" | "portal" | null;
@@ -278,6 +279,16 @@ export function AssistantPanel({ open, onClose, scope, recordKind = null, record
           return (
             <div key={m.id} className="text-sm prose prose-sm max-w-none dark:prose-invert prose-p:my-2 prose-pre:my-2">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>{text || "…"}</ReactMarkdown>
+              {text && (
+                <div className="not-prose mt-1">
+                  <AiFeedback
+                    feature="assistant_chat"
+                    profile={scope}
+                    context={{ thread_id: threadId, message_id: m.id, record_kind: recordKind, record_id: recordId }}
+                    label=""
+                  />
+                </div>
+              )}
             </div>
           );
         })}
