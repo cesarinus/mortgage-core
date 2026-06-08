@@ -35,7 +35,7 @@ const NON_BORROWER_TYPES = new Set([
 ]);
 const isBorrowerType = (t: any) => {
   const v = String(t ?? "").toLowerCase();
-  if (!v) return true;
+  if (!v) return false;
   if (v === "borrower") return true;
   return !NON_BORROWER_TYPES.has(v);
 };
@@ -250,7 +250,7 @@ Deno.serve(async (req) => {
     // Hard-exclude non-borrower contact types regardless of stale primary flags.
     if (c && !isBorrowerType(c.contact_type)) return;
     const isPrimary = forcedPrimary || !!link?.is_primary || primaryIds.has(key);
-    const isBorrowerContact = c?.contact_type === "borrower" || !c?.contact_type;
+    const isBorrowerContact = c?.contact_type === "borrower";
     const isBorrowerRole = role ? BORROWER_ROLES.has(String(role)) : false;
     if (!isBorrowerContact && !isPrimary && !isBorrowerRole) return;
     if (!isBorrowerContact && !isPrimary) return;

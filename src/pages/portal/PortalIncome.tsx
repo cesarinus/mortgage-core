@@ -63,7 +63,7 @@ export default function PortalIncome() {
   }
 
   const borrowerType = (details?.borrower_type ?? calc?.borrower_type ?? "employed") as string;
-  const isSE = borrowerType === "self_employed";
+  const isSE = borrowerType === "self_employed" || borrowerType === "self-employed";
   const hasVariable =
     Number(details?.pay_stub_overtime ?? 0) > 0 ||
     Number(details?.pay_stub_bonus ?? 0) > 0 ||
@@ -92,7 +92,7 @@ export default function PortalIncome() {
           variant="outline"
           className="border-[#F97316]/40 bg-[#F97316]/10 text-[#9a4a10] capitalize"
         >
-          {isSE ? "self-employed" : "employee"}
+          {(details?.borrower_type || calc?.borrower_type || 'employee').replace('_', ' ')}
         </Badge>
       </header>
 
