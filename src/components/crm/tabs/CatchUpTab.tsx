@@ -20,9 +20,11 @@ interface Props {
   onRefreshSentiment?: () => void;
   leadId?: string;
   contactId?: string;
+  /** When true, omit the Income Analysis card (rendered full-width elsewhere). */
+  hideIncomeAnalysis?: boolean;
 }
 
-export function CatchUpTab({ activities, emailLogs, sentiment, mortgage, record, onRefreshSentiment, leadId, contactId }: Props) {
+export function CatchUpTab({ activities, emailLogs, sentiment, mortgage, record, onRefreshSentiment, leadId, contactId, hideIncomeAnalysis }: Props) {
   const inbound = activities.filter((a) => ["form_submit", "chat", "inbound_call"].includes(a.activity_type)).slice(0, 5);
   const outbound = activities.filter((a) => ["email", "call", "task", "meeting"].includes(a.activity_type)).slice(0, 6);
   const [incomeModalOpen, setIncomeModalOpen] = useState(false);
