@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { AlertTriangle, Brain, Info, RefreshCw, Sparkles } from "lucide-react";
+import { AiFeedback } from "@/components/crm/AiFeedback";
 
 export type BorrowerAnalysis = {
   label: string;
@@ -197,6 +198,14 @@ export function IncomeAiAnalysis({ leadId, contactId = null, audience = "admin",
                 </ul>
               </div>
             )}
+
+            <div className="pt-2 border-t border-border/60">
+              <AiFeedback
+                feature="income_analysis"
+                profile={isBorrower ? "borrower" : "admin"}
+                context={{ lead_id: leadId, contact_id: contactId, trend }}
+              />
+            </div>
           </>
         ) : (
           <p className="text-xs text-muted-foreground">No analysis yet.</p>
