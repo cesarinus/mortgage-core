@@ -692,6 +692,7 @@ export type Database = {
       contacts: {
         Row: {
           address: string | null
+          borrower_type: Database["public"]["Enums"]["borrower_employment_type"]
           company_id: string | null
           contact_type: Database["public"]["Enums"]["contact_type"]
           created_at: string
@@ -714,6 +715,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          borrower_type?: Database["public"]["Enums"]["borrower_employment_type"]
           company_id?: string | null
           contact_type?: Database["public"]["Enums"]["contact_type"]
           created_at?: string
@@ -736,6 +738,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          borrower_type?: Database["public"]["Enums"]["borrower_employment_type"]
           company_id?: string | null
           contact_type?: Database["public"]["Enums"]["contact_type"]
           created_at?: string
