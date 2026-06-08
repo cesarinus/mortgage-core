@@ -21,6 +21,8 @@ export const ROLE_ON_DEAL_OPTIONS = [
   { value: "other", label: "Other" },
 ] as const;
 
+const BORROWER_DEAL_ROLES = new Set(["primary_borrower", "co_borrower"]);
+
 interface BaseProps {
   open: boolean;
   onClose: () => void;
@@ -42,6 +44,17 @@ export function LinkContactModal({ open, onClose, leadId, onDone }: BaseProps) {
 
   const link = async (contactId: string, role?: string) => {
     if (!leadId) return;
+    const dealRole = roleOnDeal || role || null;
+    const selected = all.find((c) => c.id === contactId);
+    const contactType = String(selected?.contact_type ?? "").toLowerCase();
+    if (BORROWER_DEAL_ROLES.has(String(dealRole)) && contactType && contactType !== "borrower") {
+      toast({
+        title: "Contact is not a borrower",
+        description: "Change this person’s contact type to Borrower before using a borrower role.",
+        variant: "destructive",
+      });
+      return;
+    }
     // If marking primary, demote others first to satisfy the unique-primary index.
     if (isPrimary) {
       await supabase.from("lead_contacts").update({ is_primary: false })
@@ -51,7 +64,7 @@ export function LinkContactModal({ open, onClose, leadId, onDone }: BaseProps) {
       lead_id: leadId,
       contact_id: contactId,
       role: role || null,
-      role_on_deal: (roleOnDeal || null) as any,
+      role_on_deal: dealRole as any,
       is_primary: isPrimary,
       created_by: user!.id,
     };
@@ -71,12 +84,21 @@ export function LinkContactModal({ open, onClose, leadId, onDone }: BaseProps) {
   const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
+    const contactType = ((fd.get("contact_type") as string) || "borrower").toLowerCase();
+    if (BORROWER_DEAL_ROLES.has(roleOnDeal) && contactType !== "borrower") {
+      toast({
+        title: "Contact is not a borrower",
+        description: "Choose Borrower as the contact type before using a borrower role.",
+        variant: "destructive",
+      });
+      return;
+    }
     const { data, error } = await supabase.from("contacts").insert({
       first_name: fd.get("first_name") as string,
       last_name: fd.get("last_name") as string,
       email: (fd.get("email") as string) || null,
       phone: (fd.get("phone") as string) || null,
-      contact_type: (fd.get("contact_type") as any) || "borrower",
+      contact_type: contactType as any,
       created_by: user!.id,
     }).select("id").maybeSingle();
     if (error || !data) { toast({ title: "Error", description: error?.message, variant: "destructive" }); return; }

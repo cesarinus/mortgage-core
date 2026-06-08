@@ -74,15 +74,10 @@ export async function fetchDealBorrowers(leadId: string, fallbackName = "Borrowe
   for (const r of linkRows ?? []) if (r.contact_id) linkByContact.set(r.contact_id, r);
 
   const leadEmailLc = String((lead as any)?.email ?? "").trim().toLowerCase();
-  const leadFirstLc = String((lead as any)?.first_name ?? "").trim().toLowerCase();
-  const leadLastLc = String((lead as any)?.last_name ?? "").trim().toLowerCase();
   const isLeadDuplicate = (c: any) => {
     if (!c) return false;
     const ce = String(c.email ?? "").trim().toLowerCase();
     if (leadEmailLc && ce && ce === leadEmailLc) return true;
-    const cf = String(c.first_name ?? "").trim().toLowerCase();
-    const cl = String(c.last_name ?? "").trim().toLowerCase();
-    if (leadFirstLc && leadLastLc && cf === leadFirstLc && (cl === leadLastLc || cl.startsWith(leadLastLc))) return true;
     return false;
   };
 

@@ -77,6 +77,8 @@ export function CatchUpTab({ activities, emailLogs, sentiment, mortgage, record,
     const key = selectedBorrower === "__primary__" ? null : selectedBorrower;
     return allIncome.find((c) => (c.contact_id ?? null) === key) ?? null;
   }, [allIncome, selectedBorrower]);
+  const incomeForBorrower = (borrower: DealBorrower) =>
+    allIncome.find((c) => (c.contact_id ?? null) === (borrower.contactId ?? null)) ?? null;
 
   // Combined totals
   const totalMonthly = allIncome.reduce((s, c) => s + Number(c.monthly_income ?? 0), 0);
@@ -263,9 +265,9 @@ export function CatchUpTab({ activities, emailLogs, sentiment, mortgage, record,
             </div>
           )}
 
-          {leadId && allIncome.length > 1 && (
+          {leadId && borrowers.length > 1 && (
             <div className="mt-3 rounded-md border p-3">
-              <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2">Combined Qualifying Income</div>
+              <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2">Borrower Income Summary</div>
               <table className="w-full text-xs">
                 <thead>
                   <tr className="text-left text-muted-foreground">
@@ -276,14 +278,17 @@ export function CatchUpTab({ activities, emailLogs, sentiment, mortgage, record,
                   </tr>
                 </thead>
                 <tbody className="divide-y">
-                  {allIncome.map((c) => (
-                    <tr key={c.id}>
-                      <td className="py-1.5">{nameForCalc(c)}</td>
-                      <td className="py-1.5 text-right tabular-nums">{fmtIncome(c.monthly_income)}</td>
-                      <td className="py-1.5 text-right tabular-nums">{fmtIncome(c.annual_income)}</td>
-                      <td className="py-1.5 text-right tabular-nums">{fmtIncome((c as any).years_average)}</td>
+                  {borrowers.map((b) => {
+                    const c = incomeForBorrower(b);
+                    return (
+                    <tr key={b.contactId ?? "__primary__"}>
+                      <td className="py-1.5">{c ? nameForCalc(c) : b.name}</td>
+                      <td className="py-1.5 text-right tabular-nums">{fmtIncome(c?.monthly_income)}</td>
+                      <td className="py-1.5 text-right tabular-nums">{fmtIncome(c?.annual_income)}</td>
+                      <td className="py-1.5 text-right tabular-nums">{fmtIncome((c as any)?.years_average)}</td>
                     </tr>
-                  ))}
+                    );
+                  })}
                   <tr className="border-t-2 font-semibold">
                     <td className="py-1.5">Total</td>
                     <td className="py-1.5 text-right tabular-nums">{fmtIncome(totalMonthly)}</td>
