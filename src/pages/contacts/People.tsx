@@ -20,6 +20,8 @@ import { toast as sonnerToast } from "sonner";
 import type { Tables, Enums } from "@/integrations/supabase/types";
 import { RecordLookup } from "@/components/crm/RecordLookup";
 import { fetchAllCompanies } from "@/lib/crm/queries";
+import { TablePagination } from "@/components/ui/table-pagination";
+import { SmartEmailComposer } from "@/components/email/SmartEmailComposer";
 
 type Contact = Tables<"contacts">;
 
@@ -49,6 +51,9 @@ export default function People() {
   const [deleteTarget, setDeleteTarget] = useState<Contact | null>(null);
   const [deleteBlock, setDeleteBlock] = useState<{ leads: number } | null>(null);
   const [deleteChecking, setDeleteChecking] = useState(false);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const [emailTarget, setEmailTarget] = useState<{ to: string; name: string } | null>(null);
 
   const load = async () => {
     const { data } = await supabase.from("contacts").select("*").order("created_at", { ascending: false });
@@ -108,6 +113,8 @@ export default function People() {
     const matchR = roleFilter === "all" || c.role === roleFilter;
     return matchQ && matchR;
   });
+  useEffect(() => { setPage(1); }, [search, roleFilter, pageSize]);
+  const paged = filtered.slice((page - 1) * pageSize, page * pageSize);
 
   const openNew = () => { setEditing(null); setOpen(true); };
   const openEdit = (c: Contact) => { setEditing(c); setOpen(true); };
@@ -162,7 +169,7 @@ export default function People() {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <Table>
+          <Table className="[&_td]:py-1.5 [&_th]:py-2 text-sm">
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
@@ -176,15 +183,28 @@ export default function People() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.length === 0 ? (
+              {paged.length === 0 ? (
                 <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">No people found</TableCell></TableRow>
-              ) : filtered.map((c: any) => {
+              ) : paged.map((c: any) => {
                 const co = c.company_id ? companyById.get(c.company_id) : null;
                 const role = c.role ?? "other";
                 return (
                   <TableRow key={c.id} className="cursor-pointer" onClick={() => openEdit(c)}>
                     <TableCell className="font-medium">{c.first_name} {c.last_name}</TableCell>
-                    <TableCell>{c.email ?? "—"}</TableCell>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      {c.email ? (
+                        <a
+                          href={`mailto:${c.email}`}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setEmailTarget({ to: c.email, name: `${c.first_name} ${c.last_name}`.trim() });
+                          }}
+                          className="text-primary hover:underline"
+                        >
+                          {c.email}
+                        </a>
+                      ) : "—"}
+                    </TableCell>
                     <TableCell>{c.phone ?? "—"}</TableCell>
                     <TableCell>{co?.name ?? <span className="text-muted-foreground">—</span>}</TableCell>
                     <TableCell>
@@ -233,6 +253,13 @@ export default function People() {
               })}
             </TableBody>
           </Table>
+          <TablePagination
+            page={page}
+            pageSize={pageSize}
+            total={filtered.length}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+          />
         </CardContent>
       </Card>
 
