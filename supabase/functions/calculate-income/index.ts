@@ -50,25 +50,20 @@ Deno.serve(async (req) => {
   const mode = body?.mode === "calculate" ? "calculate" : "read";
   if (!leadId) return json({ error: "lead_id required" }, 400);
 
-  // If no contact_id provided, fall back to the primary borrower on the deal.
+  // If no contact_id is provided, calculate the lead-row borrower only.
+  // Do not fall back to lead_contacts.is_primary: historical data can mark
+  // partners/referrers as primary there, while the deal workspace's left-rail
+  // person is the canonical primary borrower and uses contact_id = null.
   if (!contactId) {
-    const { data: primary } = await supabase
-      .from("lead_contacts")
-      .select("contact_id,is_primary")
-      .eq("lead_id", leadId)
-      .eq("is_primary", true)
-      .maybeSingle();
-    if (primary?.contact_id) {
-      contactId = primary.contact_id as string;
-      if (!borrowerName) {
-        const { data: c } = await supabase
-          .from("contacts")
-          .select("first_name,last_name")
-          .eq("id", contactId)
-          .maybeSingle();
-        const nm = c ? `${c.first_name ?? ""} ${c.last_name ?? ""}`.trim() : "";
-        borrowerName = nm || null;
-      }
+    contactId = null;
+    if (!borrowerName) {
+      const { data: lead } = await supabase
+        .from("leads")
+        .select("first_name,last_name")
+        .eq("id", leadId)
+        .maybeSingle();
+      const nm = lead ? `${lead.first_name ?? ""} ${lead.last_name ?? ""}`.trim() : "";
+      borrowerName = nm || null;
     }
   }
 
