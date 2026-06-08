@@ -11,12 +11,13 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Search, Building2, MoreHorizontal, Eye, Pencil, Trash2, Copy } from "lucide-react";
+import { Plus, Search, Building2, MoreHorizontal, Eye, Pencil, Trash2, Copy, Users, Globe, Inbox, Clock } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast as sonnerToast } from "sonner";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { SmartEmailComposer } from "@/components/email/SmartEmailComposer";
+import { FilterSidebar } from "@/components/crm/FilterSidebar";
 
 const typeColors: Record<string, string> = {
   lender: "bg-primary/15 text-primary",
@@ -32,6 +33,8 @@ export default function Companies() {
   const [linkedPeople, setLinkedPeople] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [smartView, setSmartView] = useState<string>("all");
+  const [domainFilter, setDomainFilter] = useState<string>("all");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<any | null>(null);
   const [detail, setDetail] = useState<any | null>(null);
@@ -78,13 +81,30 @@ export default function Companies() {
     else { toast({ title: editing ? "Company updated" : "Company created" }); setOpen(false); setEditing(null); load(); }
   };
 
+  const recentCutoff = useMemo(() => Date.now() - 7 * 24 * 3600 * 1000, []);
+  const smartViewCounts = useMemo(() => ({
+    all: companies.length,
+    withPeople: companies.filter((c) => (counts[c.id] ?? 0) > 0).length,
+    empty: companies.filter((c) => (counts[c.id] ?? 0) === 0).length,
+    recent: companies.filter((c) => c.created_at && new Date(c.created_at).getTime() >= recentCutoff).length,
+  }), [companies, counts, recentCutoff]);
+
   const filtered = useMemo(() => companies.filter((c) => {
     const q = search.toLowerCase();
     const matchQ = `${c.name} ${c.domain ?? ""}`.toLowerCase().includes(q);
     const matchT = typeFilter === "all" || c.company_type === typeFilter;
-    return matchQ && matchT;
-  }), [companies, search, typeFilter]);
-  useEffect(() => { setPage(1); }, [search, typeFilter, pageSize]);
+    const peopleCount = counts[c.id] ?? 0;
+    const matchSV =
+      smartView === "all" ? true :
+      smartView === "withPeople" ? peopleCount > 0 :
+      smartView === "empty" ? peopleCount === 0 :
+      smartView === "recent" ? !!(c.created_at && new Date(c.created_at).getTime() >= recentCutoff) : true;
+    const matchD = domainFilter === "all"
+      || (domainFilter === "with" && !!c.domain)
+      || (domainFilter === "without" && !c.domain);
+    return matchQ && matchT && matchSV && matchD;
+  }), [companies, search, typeFilter, smartView, domainFilter, counts, recentCutoff]);
+  useEffect(() => { setPage(1); }, [search, typeFilter, smartView, domainFilter, pageSize]);
   const paged = useMemo(() => filtered.slice((page - 1) * pageSize, page * pageSize), [filtered, page, pageSize]);
 
   const confirmDelete = async () => {
@@ -97,7 +117,35 @@ export default function Companies() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="flex -m-6 h-[calc(100vh-3.5rem)] overflow-hidden">
+      <FilterSidebar
+        smartView={smartView}
+        onSmartViewChange={setSmartView}
+        smartViews={[
+          { key: "all", label: "All Companies", icon: Building2, count: smartViewCounts.all },
+          { key: "withPeople", label: "With People", icon: Users, count: smartViewCounts.withPeople },
+          { key: "empty", label: "Empty", icon: Inbox, count: smartViewCounts.empty },
+          { key: "recent", label: "Recently Added", icon: Clock, count: smartViewCounts.recent },
+        ]}
+        tiers={[
+          {
+            title: "Type",
+            value: typeFilter,
+            onChange: setTypeFilter,
+            options: Object.keys(typeColors).map((t) => ({ key: t, label: t.replace(/_/g, " ") })),
+          },
+          {
+            title: "Domain",
+            value: domainFilter,
+            onChange: setDomainFilter,
+            options: [
+              { key: "with", label: "Has Domain" },
+              { key: "without", label: "No Domain" },
+            ],
+          },
+        ]}
+      />
+      <div className="flex-1 overflow-y-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Companies</h1>
@@ -199,6 +247,7 @@ export default function Companies() {
           />
         </CardContent>
       </Card>
+      </div>
 
       <AlertDialog open={!!deleteTarget} onOpenChange={(o) => { if (!o) setDeleteTarget(null); }}>
         <AlertDialogContent>
