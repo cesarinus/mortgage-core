@@ -441,6 +441,16 @@ export default function RecordWorkspace({ kind }: Props) {
         </aside>
       </div>
 
+      {activeTab === "catch-up" && (
+        <div className="mt-4">
+          <IncomeAnalysisCard
+            leadId={kind === "lead" ? id : (record as any)?.lead_id ?? undefined}
+            contactId={kind === "contact" ? id : undefined}
+            record={record}
+          />
+        </div>
+      )}
+
       {/* Modals */}
       <NoteModal open={modal === "note"} onClose={() => setModal(null)} leadId={kind === "lead" ? id : undefined} contactId={kind === "contact" ? id : undefined} onDone={loadAll} />
       <TaskModal open={modal === "task"} onClose={() => setModal(null)} leadId={kind === "lead" ? id : undefined} contactId={kind === "contact" ? id : undefined} onDone={loadAll} />
