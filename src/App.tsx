@@ -15,6 +15,7 @@ import People from "@/pages/contacts/People";
 import Companies from "@/pages/contacts/Companies";
 import Pipeline from "@/pages/Pipeline";
 import SettingsPage from "@/pages/SettingsPage";
+import ImportArive from "@/pages/settings/ImportArive";
 import BlogIndex from "@/pages/BlogIndex";
 import BlogPost from "@/pages/BlogPost";
 import BlogAdmin from "@/pages/BlogAdmin";
@@ -74,6 +75,7 @@ const App = () => (
                 <Route path="/pipeline" element={<Pipeline />} />
                 <Route path="/pipeline/kanban" element={<Pipeline />} />
                 <Route path="/settings" element={<SettingsPage />} />
+                <Route path="/settings/import-arive" element={<ImportArive />} />
                 <Route path="/blog-admin" element={<BlogAdmin />} />
                 <Route path="/rate-decision" element={<RateDecision />} />
                 <Route path="/admin/social-media" element={<AdminSocialMedia />} />
