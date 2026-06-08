@@ -15,6 +15,8 @@ import { Plus, Search, Building2, MoreHorizontal, Eye, Pencil, Trash2, Copy } fr
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { toast as sonnerToast } from "sonner";
+import { TablePagination } from "@/components/ui/table-pagination";
+import { SmartEmailComposer } from "@/components/email/SmartEmailComposer";
 
 const typeColors: Record<string, string> = {
   lender: "bg-primary/15 text-primary",
@@ -34,6 +36,9 @@ export default function Companies() {
   const [editing, setEditing] = useState<any | null>(null);
   const [detail, setDetail] = useState<any | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const [emailTarget, setEmailTarget] = useState<{ to: string; name: string } | null>(null);
   const { user } = useAuth();
   const { toast } = useToast();
 
@@ -79,6 +84,8 @@ export default function Companies() {
     const matchT = typeFilter === "all" || c.company_type === typeFilter;
     return matchQ && matchT;
   }), [companies, search, typeFilter]);
+  useEffect(() => { setPage(1); }, [search, typeFilter, pageSize]);
+  const paged = useMemo(() => filtered.slice((page - 1) * pageSize, page * pageSize), [filtered, page, pageSize]);
 
   const confirmDelete = async () => {
     if (!deleteTarget) return;
@@ -118,7 +125,7 @@ export default function Companies() {
           </div>
         </CardHeader>
         <CardContent className="p-0">
-          <Table>
+          <Table className="[&_td]:py-1.5 [&_th]:py-2 text-sm">
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
@@ -130,9 +137,9 @@ export default function Companies() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.length === 0 ? (
+              {paged.length === 0 ? (
                 <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No companies found</TableCell></TableRow>
-              ) : filtered.map((c) => {
+              ) : paged.map((c) => {
                 const t = c.company_type ?? "other";
                 return (
                   <TableRow key={c.id} className="cursor-pointer" onClick={() => openDetail(c)}>
@@ -183,6 +190,13 @@ export default function Companies() {
               })}
             </TableBody>
           </Table>
+          <TablePagination
+            page={page}
+            pageSize={pageSize}
+            total={filtered.length}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+          />
         </CardContent>
       </Card>
 
@@ -257,7 +271,20 @@ export default function Companies() {
                       <li key={p.id} className="flex items-center justify-between text-sm border rounded-md px-3 py-2">
                         <div>
                           <div className="font-medium">{p.first_name} {p.last_name}</div>
-                          <div className="text-xs text-muted-foreground">{p.job_title ?? p.email ?? "—"}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {p.email ? (
+                              <a
+                                href={`mailto:${p.email}`}
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  setEmailTarget({ to: p.email, name: `${p.first_name} ${p.last_name}`.trim() });
+                                }}
+                                className="text-primary hover:underline"
+                              >
+                                {p.job_title ?? p.email}
+                              </a>
+                            ) : (p.job_title ?? "—")}
+                          </div>
                         </div>
                         {p.role && <Badge variant="outline" className="capitalize">{String(p.role).replace(/_/g, " ")}</Badge>}
                       </li>
@@ -269,6 +296,13 @@ export default function Companies() {
           )}
         </SheetContent>
       </Sheet>
+
+      <SmartEmailComposer
+        open={!!emailTarget}
+        onOpenChange={(o) => { if (!o) setEmailTarget(null); }}
+        to={emailTarget?.to ?? ""}
+        recipientName={emailTarget?.name}
+      />
     </div>
   );
 }
