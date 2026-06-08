@@ -1,49 +1,44 @@
 ## Goal
-Fix the Income Analysis card so multi-borrower data (selector, summary table, AI tabs) stays inside the card, and expand the section to fit the page width. Apply the same treatment globally (Deal workspace and Leads detail panel).
 
-## Scope — additive UI only
-No backend, no data logic, no schema changes. Reuses existing data (`borrowers`, `allIncome`, `IncomeAiAnalysis`).
+Make the **Income Analysis** card span the full page width (edge-to-edge across the workspace), instead of being constrained to the narrow center column. This applies to both the Lead workspace and the Pipeline deal workspace, since they share the same `RecordWorkspace` shell.
 
-## Changes
+## Current layout
 
-### 1. `src/components/crm/tabs/CatchUpTab.tsx` (Deal workspace)
-Restructure the Income Analysis `<Card>` to follow the approved v2 layout:
-- Header: title + description on left, "Borrower Income Classification" button on right, wraps on narrow widths (`flex-wrap`).
-- Borrowers row: keep existing chip buttons, no overflow.
-- Two-column grid on `lg:` (stacks on mobile):
-  - Left: selected-borrower summary panel (Monthly / Annual / Years Avg) in a muted rounded panel.
-  - Right: "Borrower Income Summary" table in a bordered rounded panel with Total row.
-- AI Analysis section wrapped in a full-width container; pass a new `wide` prop so the inner card uses horizontally-scrollable tabs (`overflow-x-auto`, `whitespace-nowrap`, `flex-none` triggers) instead of the current `TabsList` that overflows.
-- Remove the redundant single-borrower summary panel when only the primary exists (already covered by the new left column).
-- The outer Card already spans full width of the tab content, so no width hack needed — just ensure inner blocks use `min-w-0` to prevent flex children from forcing overflow.
+`src/pages/crm/RecordWorkspace.tsx` renders a 12-column grid:
 
-### 2. `src/components/crm/IncomeAiAnalysis.tsx`
-Add optional `wide?: boolean` prop. When true:
-- Replace `Tabs/TabsList` with a horizontally scrollable pill bar (`flex overflow-x-auto gap-1 p-1 bg-muted/40 rounded-xl`, each tab `flex-none whitespace-nowrap`).
-- Keep all existing data, AiFeedback, highlights, suggestions, risk flags.
-- Default behavior unchanged for portal/borrower audience.
+```text
+[ LeftRail col-3 ][ Main col-6 (tabs incl. CatchUpTab → Income Analysis) ][ RightRail col-3 ]
+```
 
-### 3. `src/pages/Leads.tsx` (Leads side panel)
-Today the Lead Sheet (`SheetContent w-full sm:max-w-md`) shows quick info + tags + timeline but does not include income analysis. Add a new "Income Analysis" section near the bottom (above the Activity Timeline) that mounts the same building blocks used on the Deal page:
-- Widen the sheet to `sm:max-w-2xl` so the expanded layout fits.
-- Render a compact version of the new layout: borrower chips, summary table, and `<IncomeAiAnalysis leadId={selectedLead.id} wide />`.
-- Reuse `fetchDealBorrowers` + `fetchAllLatestIncome` (already used in CatchUpTab) — wrap in a small local effect keyed to `selectedLead?.id`.
+The Income Analysis card lives inside the center `col-span-6` main column, so it appears narrow with empty space on the left/right (visible in the screenshot).
 
-### 4. Styling
-- All colors via existing tokens (`bg-card`, `bg-muted/40`, `border-border`, `text-[#F97316]` already in code) — no new CSS variables.
-- Use `min-w-0` and `overflow-hidden` on flex/grid children that contain horizontal lists to prevent the overflow reported in the screenshot.
+## Proposed change (example before deploying)
 
-## Out of scope
-- Income calculation logic, edge functions, borrower resolution.
-- Portal income view (already separate, no overflow issue).
-- People / Companies pages.
+Render the Income Analysis card **outside** the 3/6/3 grid as a full-width row, while keeping every other card (Inbound/Outbound, Lead health, Challenges/Positives, Mortgage snapshot) exactly where it is.
 
-## Files touched
-- `src/components/crm/tabs/CatchUpTab.tsx` — restructure Income Analysis card.
-- `src/components/crm/IncomeAiAnalysis.tsx` — add `wide` prop with scrollable tabs.
-- `src/pages/Leads.tsx` — widen lead sheet + embed Income Analysis block.
+Resulting structure on the Catch Up tab:
 
-## Verification
-- Open the deal with 3 borrowers (current route) and confirm no horizontal overflow at 1440 and 1024 widths.
-- Open a lead in the Leads page side panel and confirm the same module renders cleanly.
-- Confirm primary chip stays orange, co-borrower chips stay neutral, totals row still computes from `allIncome`.
+```text
+[ LeftRail col-3 ][ Main col-6: Inbound, Outbound, Health, Challenges, Mortgage snapshot ][ RightRail col-3 ]
+[ ────────────── Income Analysis card — full width (col-span-12) ────────────── ]
+[ Borrower Income Classification button + Borrowers pills row                    ]
+[ Two-column grid: Selected borrower summary | Borrower Income Summary table     ]
+[ AI Analysis (wide pill tabs, full width)                                        ]
+```
+
+### Technical details
+
+1. **`src/components/crm/tabs/CatchUpTab.tsx`** — split the Income Analysis `<Card>` into its own exported subcomponent `IncomeAnalysisCard` (same content, same data/state). Remove it from the default `CatchUpTab` render. No logic change.
+2. **`src/pages/crm/RecordWorkspace.tsx`** — when the active tab is "catch-up" (lead or deal kind), render `<IncomeAnalysisCard>` directly under the `grid grid-cols-12` block as a full-width `col-span-12` row inside the same `max-w-[1600px]` container. Pass the same props (`leadId`, `contactId`, `record`, `mortgage`).
+3. No changes to:
+   - `IncomeAiAnalysis.tsx` (already supports `wide`)
+   - `LeadIncomeSection.tsx` (Leads side sheet)
+   - Income calculation logic, edge functions, borrower resolution
+   - LeftRail / RightRail
+   - Any other tabs
+
+### Out of scope
+- Pipeline list page (only the deal/lead **workspace** is affected)
+- People/Companies, portal, blog
+
+Shall I implement this?

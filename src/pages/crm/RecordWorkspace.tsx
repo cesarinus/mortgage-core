@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { LeftRail } from "@/components/crm/LeftRail";
 import { RightRail } from "@/components/crm/RightRail";
 import { CatchUpTab } from "@/components/crm/tabs/CatchUpTab";
+import { IncomeAnalysisCard } from "@/components/crm/IncomeAnalysisCard";
 import { UnifiedTimelineTab } from "@/components/crm/tabs/UnifiedTimelineTab";
 import { LoanScenariosTab } from "@/components/crm/tabs/LoanScenariosTab";
 import { MessagesTab } from "@/components/crm/tabs/MessagesTab";
@@ -51,6 +52,7 @@ export default function RecordWorkspace({ kind }: Props) {
   const { user } = useAuth();
   const [record, setRecord] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<string>("catch-up");
   const [activities, setActivities] = useState<any[]>([]);
   const [leadEvents, setLeadEvents] = useState<any[]>([]);
   const [dealEvents, setDealEvents] = useState<any[]>([]);
@@ -315,7 +317,7 @@ export default function RecordWorkspace({ kind }: Props) {
               </Button>
             </div>
           )}
-          <Tabs defaultValue="catch-up">
+          <Tabs defaultValue="catch-up" value={activeTab} onValueChange={setActiveTab}>
             <TabsList className={`w-full grid ${kind === "lead" ? "grid-cols-8" : "grid-cols-7"}`}>
               <TabsTrigger value="catch-up">Catch-up</TabsTrigger>
               <TabsTrigger value="activities">Activities</TabsTrigger>
@@ -357,6 +359,7 @@ export default function RecordWorkspace({ kind }: Props) {
                 onRefreshSentiment={kind === "lead" ? refreshSentiment : undefined}
                 leadId={kind === "lead" ? id : (record as any)?.lead_id ?? undefined}
                 contactId={kind === "contact" ? id : undefined}
+                hideIncomeAnalysis
               />
             </TabsContent>
             <TabsContent value="activities" className="mt-4">
@@ -437,6 +440,16 @@ export default function RecordWorkspace({ kind }: Props) {
           />
         </aside>
       </div>
+
+      {activeTab === "catch-up" && (
+        <div className="mt-4">
+          <IncomeAnalysisCard
+            leadId={kind === "lead" ? id : (record as any)?.lead_id ?? undefined}
+            contactId={kind === "contact" ? id : undefined}
+            record={record}
+          />
+        </div>
+      )}
 
       {/* Modals */}
       <NoteModal open={modal === "note"} onClose={() => setModal(null)} leadId={kind === "lead" ? id : undefined} contactId={kind === "contact" ? id : undefined} onDone={loadAll} />
