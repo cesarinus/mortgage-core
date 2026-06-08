@@ -206,6 +206,7 @@ export function CatchUpTab({ activities, emailLogs, sentiment, mortgage, record,
         </CardContent>
       </Card>
 
+      {!hideIncomeAnalysis && (
       <Card className="overflow-hidden">
         <CardHeader className="pb-3">
           <div className="flex flex-wrap items-start justify-between gap-3">
@@ -336,6 +337,7 @@ export function CatchUpTab({ activities, emailLogs, sentiment, mortgage, record,
           )}
         </CardContent>
       </Card>
+      )}
 
       <Sheet open={incomeModalOpen} onOpenChange={setIncomeModalOpen}>
         <SheetContent side="right" className="w-full sm:max-w-3xl overflow-y-auto">
