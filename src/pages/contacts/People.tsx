@@ -82,6 +82,7 @@ export default function People() {
       phone: (fd.get("phone") as string) || null,
       address: (fd.get("address") as string) || null,
       contact_type: (fd.get("contact_type") as Enums<"contact_type">) || "borrower",
+      borrower_type: (fd.get("borrower_type") as string) || "employee",
       job_title: (fd.get("job_title") as string) || null,
       company_id: companyId,
       notes: (fd.get("notes") as string) || null,
@@ -220,6 +221,9 @@ export default function People() {
                         {String(role).replace(/_/g, " ")}
                       </Badge>
                     </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {bType === "self_employed" ? "Self-Employed" : "Employee"}
+                    </TableCell>
                     <TableCell>{c.lead_score ?? "—"}</TableCell>
                     <TableCell className="capitalize">{c.temperature ?? "—"}</TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>
@@ -344,6 +348,17 @@ export default function People() {
                     <SelectItem value="other">Other</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-1">
+                <Label>Borrower income classification</Label>
+                <Select name="borrower_type" defaultValue={(editing as any)?.borrower_type ?? "employee"}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="employee">Employee</SelectItem>
+                    <SelectItem value="self_employed">Self-Employed</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] text-muted-foreground">Drives the income analysis card, the borrower income classification form, and the borrower portal.</p>
               </div>
             </section>
 
