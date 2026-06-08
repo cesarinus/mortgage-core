@@ -204,107 +204,130 @@ export function CatchUpTab({ activities, emailLogs, sentiment, mortgage, record,
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="overflow-hidden">
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between gap-2">
-            <CardTitle className="text-base flex items-center gap-2">
-              <BarChart3 className="h-4 w-4" /> Income Analysis
-            </CardTitle>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0">
+              <CardTitle className="text-base flex items-center gap-2">
+                <BarChart3 className="h-4 w-4" /> Income Analysis
+              </CardTitle>
+              <p className="text-sm text-muted-foreground mt-1">
+                {leadId
+                  ? "Classify the borrower as Employee or Self-Employed and build P&L, Balance Sheet, and Cash Flow statements."
+                  : "Open a lead workspace to use Income Analysis."}
+              </p>
+            </div>
             {leadId && (
-              <Button size="sm" variant="outline" onClick={() => setIncomeModalOpen(true)} className="gap-2">
+              <Button size="sm" variant="outline" onClick={() => setIncomeModalOpen(true)} className="gap-2 shrink-0">
                 <Calculator className="h-4 w-4" /> Borrower Income Classification
               </Button>
             )}
           </div>
         </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            {leadId
-              ? "Classify the borrower as Employee or Self-Employed and build P&L, Balance Sheet, and Cash Flow statements."
-              : "Open a lead workspace to use Income Analysis."}
-          </p>
-
+        <CardContent className="space-y-5">
           {leadId && borrowers.length > 0 && (
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <span className="text-xs text-muted-foreground mr-1">Borrowers:</span>
-              {borrowers.map((b) => {
-                const val = b.contactId ?? "__primary__";
-                const active = selectedBorrower === val;
-                const roleLabel = b.isPrimary
-                  ? "Primary"
-                  : (b.role && b.role !== "co_borrower" ? b.role.replace(/_/g, " ") : "Co-Borrower");
-                const base = "text-xs h-7 px-2.5 rounded-full border transition-colors cursor-pointer";
-                const cls = b.isPrimary
-                  ? (active
-                      ? "bg-[#F97316] text-white border-[#F97316] hover:bg-[#F97316]/90"
-                      : "border-[#F97316]/40 text-[#F97316] bg-[#F97316]/10 hover:bg-[#F97316]/20")
-                  : (active
-                      ? "bg-secondary text-secondary-foreground border-foreground/30"
-                      : "border-border bg-muted/40 text-muted-foreground hover:bg-muted");
-                return (
-                  <button
-                    key={val}
-                    type="button"
-                    onClick={() => setSelectedBorrower(val)}
-                    className={`${base} ${cls} capitalize`}
-                    aria-pressed={active}
-                  >
-                    {b.name} <span className="opacity-80">({roleLabel})</span>
-                  </button>
-                );
-              })}
+            <div>
+              <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2">Borrowers</div>
+              <div className="flex flex-wrap items-center gap-2">
+                {borrowers.map((b) => {
+                  const val = b.contactId ?? "__primary__";
+                  const active = selectedBorrower === val;
+                  const roleLabel = b.isPrimary
+                    ? "Primary"
+                    : (b.role && b.role !== "co_borrower" ? b.role.replace(/_/g, " ") : "Co-Borrower");
+                  const base = "text-xs h-7 px-3 rounded-full border transition-colors cursor-pointer";
+                  const cls = b.isPrimary
+                    ? (active
+                        ? "bg-[#F97316] text-white border-[#F97316] hover:bg-[#F97316]/90"
+                        : "border-[#F97316]/40 text-[#F97316] bg-[#F97316]/10 hover:bg-[#F97316]/20")
+                    : (active
+                        ? "bg-secondary text-secondary-foreground border-foreground/30"
+                        : "border-border bg-muted/40 text-muted-foreground hover:bg-muted");
+                  return (
+                    <button
+                      key={val}
+                      type="button"
+                      onClick={() => setSelectedBorrower(val)}
+                      className={`${base} ${cls} capitalize`}
+                      aria-pressed={active}
+                    >
+                      {b.name} <span className="opacity-80">({roleLabel})</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
 
           {leadId && (
-            <div className="mt-3 rounded-md bg-muted/40 p-3 text-sm divide-y">
-              <div className="pb-1.5 text-[11px] uppercase tracking-wide text-muted-foreground">{selectedName}</div>
-              <SummaryRow label="Monthly income" value={fmtIncome(income?.monthly_income)} />
-              <SummaryRow label="Annual income" value={fmtIncome(income?.annual_income)} />
-              <SummaryRow label="Years average" value={fmtIncome((income as any)?.years_average)} />
-            </div>
-          )}
+            <div className={`grid gap-4 min-w-0 ${borrowers.length > 1 ? "lg:grid-cols-2" : "grid-cols-1"}`}>
+              <div className="rounded-xl bg-muted/40 border border-border p-4 min-w-0">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-3 truncate">
+                  {selectedName}
+                </div>
+                <div className="divide-y divide-border/60">
+                  <div className="flex items-center justify-between py-2 text-sm">
+                    <span className="text-muted-foreground">Monthly income</span>
+                    <span className="font-medium tabular-nums">{fmtIncome(income?.monthly_income)}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2 text-sm">
+                    <span className="text-muted-foreground">Annual income</span>
+                    <span className="font-medium tabular-nums">{fmtIncome(income?.annual_income)}</span>
+                  </div>
+                  <div className="flex items-center justify-between py-2 text-sm">
+                    <span className="text-muted-foreground">Years average</span>
+                    <span className="font-medium tabular-nums">{fmtIncome((income as any)?.years_average)}</span>
+                  </div>
+                </div>
+              </div>
 
-          {leadId && borrowers.length > 1 && (
-            <div className="mt-3 rounded-md border p-3">
-              <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-2">Borrower Income Summary</div>
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="text-left text-muted-foreground">
-                    <th className="py-1 font-medium">Borrower</th>
-                    <th className="py-1 font-medium text-right">Monthly</th>
-                    <th className="py-1 font-medium text-right">Annual</th>
-                    <th className="py-1 font-medium text-right">Years Avg</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y">
-                  {borrowers.map((b) => {
-                    const c = incomeForBorrower(b);
-                    return (
-                    <tr key={b.contactId ?? "__primary__"}>
-                      <td className="py-1.5">{c ? nameForCalc(c) : b.name}</td>
-                      <td className="py-1.5 text-right tabular-nums">{fmtIncome(c?.monthly_income)}</td>
-                      <td className="py-1.5 text-right tabular-nums">{fmtIncome(c?.annual_income)}</td>
-                      <td className="py-1.5 text-right tabular-nums">{fmtIncome((c as any)?.years_average)}</td>
-                    </tr>
-                    );
-                  })}
-                  <tr className="border-t-2 font-semibold">
-                    <td className="py-1.5">Total</td>
-                    <td className="py-1.5 text-right tabular-nums">{fmtIncome(totalMonthly)}</td>
-                    <td className="py-1.5 text-right tabular-nums">{fmtIncome(totalAnnual)}</td>
-                    <td className="py-1.5 text-right text-muted-foreground">—</td>
-                  </tr>
-                </tbody>
-              </table>
+              {borrowers.length > 1 && (
+                <div className="rounded-xl border border-border overflow-hidden min-w-0">
+                  <div className="px-4 py-2.5 bg-muted/40 border-b border-border">
+                    <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Borrower Income Summary</div>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="text-left text-muted-foreground">
+                          <th className="px-4 py-2 font-medium">Borrower</th>
+                          <th className="px-4 py-2 font-medium text-right">Monthly</th>
+                          <th className="px-4 py-2 font-medium text-right">Annual</th>
+                          <th className="px-4 py-2 font-medium text-right">Years Avg</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border/60">
+                        {borrowers.map((b) => {
+                          const c = incomeForBorrower(b);
+                          return (
+                            <tr key={b.contactId ?? "__primary__"}>
+                              <td className="px-4 py-2 truncate">{c ? nameForCalc(c) : b.name}</td>
+                              <td className="px-4 py-2 text-right tabular-nums">{fmtIncome(c?.monthly_income)}</td>
+                              <td className="px-4 py-2 text-right tabular-nums">{fmtIncome(c?.annual_income)}</td>
+                              <td className="px-4 py-2 text-right tabular-nums">{fmtIncome((c as any)?.years_average)}</td>
+                            </tr>
+                          );
+                        })}
+                        <tr className="border-t-2 font-semibold bg-muted/30">
+                          <td className="px-4 py-2">Total</td>
+                          <td className="px-4 py-2 text-right tabular-nums">{fmtIncome(totalMonthly)}</td>
+                          <td className="px-4 py-2 text-right tabular-nums">{fmtIncome(totalAnnual)}</td>
+                          <td className="px-4 py-2 text-right text-muted-foreground">—</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
           {leadId && (
-            <div className="mt-3">
+            <div className="min-w-0">
               <IncomeAiAnalysis
                 leadId={leadId}
                 audience="admin"
+                wide
                 refreshKey={allIncome.map((c) => c.id).join("|") || "none"}
               />
             </div>
