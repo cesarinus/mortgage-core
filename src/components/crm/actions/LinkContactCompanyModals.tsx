@@ -44,6 +44,17 @@ export function LinkContactModal({ open, onClose, leadId, onDone }: BaseProps) {
 
   const link = async (contactId: string, role?: string) => {
     if (!leadId) return;
+    const dealRole = roleOnDeal || role || null;
+    const selected = all.find((c) => c.id === contactId);
+    const contactType = String(selected?.contact_type ?? "").toLowerCase();
+    if (BORROWER_DEAL_ROLES.has(String(dealRole)) && contactType && contactType !== "borrower") {
+      toast({
+        title: "Contact is not a borrower",
+        description: "Change this person’s contact type to Borrower before using a borrower role.",
+        variant: "destructive",
+      });
+      return;
+    }
     // If marking primary, demote others first to satisfy the unique-primary index.
     if (isPrimary) {
       await supabase.from("lead_contacts").update({ is_primary: false })
@@ -53,7 +64,7 @@ export function LinkContactModal({ open, onClose, leadId, onDone }: BaseProps) {
       lead_id: leadId,
       contact_id: contactId,
       role: role || null,
-      role_on_deal: (roleOnDeal || null) as any,
+      role_on_deal: dealRole as any,
       is_primary: isPrimary,
       created_by: user!.id,
     };
