@@ -34,6 +34,8 @@ interface Props {
   audience?: "admin" | "borrower";
   /** Bump to force refetch (e.g. after Save/Calculate). */
   refreshKey?: number | string;
+  /** When true, renders multi-borrower tabs as a horizontally-scrollable pill bar to prevent overflow inside narrow containers. */
+  wide?: boolean;
 }
 
 const TREND_STYLE: Record<string, string> = {
@@ -52,7 +54,7 @@ function softenForBorrower(s: string): string {
     .replace(/loan officer/gi, "your loan team");
 }
 
-export function IncomeAiAnalysis({ leadId, contactId = null, audience = "admin", refreshKey }: Props) {
+export function IncomeAiAnalysis({ leadId, contactId = null, audience = "admin", refreshKey, wide = false }: Props) {
   const [data, setData] = useState<IncomeAnalysis | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -118,14 +120,29 @@ export function IncomeAiAnalysis({ leadId, contactId = null, audience = "admin",
             <p className="text-sm font-semibold leading-snug">{data.summary}</p>
 
             {multi && (
-              <Tabs defaultValue={borrowers[0]?.label || "0"}>
-                <TabsList className="h-8">
+              <Tabs defaultValue={borrowers[0]?.label || "0"} className="min-w-0">
+                <TabsList
+                  className={
+                    wide
+                      ? "h-9 w-full justify-start gap-1 overflow-x-auto whitespace-nowrap bg-muted/40 p-1 rounded-xl"
+                      : "h-8"
+                  }
+                >
                   {borrowers.map((b, i) => (
-                    <TabsTrigger key={i} value={b.label || String(i)} className="text-[11px]">
+                    <TabsTrigger
+                      key={i}
+                      value={b.label || String(i)}
+                      className={wide ? "text-[11px] flex-none whitespace-nowrap" : "text-[11px]"}
+                    >
                       {b.label}{b.name ? ` — ${b.name}` : ""}
                     </TabsTrigger>
                   ))}
-                  <TabsTrigger value="__combined" className="text-[11px]">combined</TabsTrigger>
+                  <TabsTrigger
+                    value="__combined"
+                    className={wide ? "text-[11px] flex-none whitespace-nowrap" : "text-[11px]"}
+                  >
+                    combined
+                  </TabsTrigger>
                 </TabsList>
                 {borrowers.map((b, i) => (
                   <TabsContent key={i} value={b.label || String(i)} className="space-y-2 pt-2">
