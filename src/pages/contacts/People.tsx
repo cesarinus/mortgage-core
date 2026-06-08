@@ -82,6 +82,7 @@ export default function People() {
       phone: (fd.get("phone") as string) || null,
       address: (fd.get("address") as string) || null,
       contact_type: (fd.get("contact_type") as Enums<"contact_type">) || "borrower",
+      borrower_type: (fd.get("borrower_type") as string) || "employee",
       job_title: (fd.get("job_title") as string) || null,
       company_id: companyId,
       notes: (fd.get("notes") as string) || null,
