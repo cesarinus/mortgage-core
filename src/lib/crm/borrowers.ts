@@ -118,5 +118,9 @@ export async function fetchDealBorrowers(leadId: string, fallbackName = "Borrowe
 
   if (borrowers.length > 0) return borrowers;
 
-  return [{ contactId: null, name: fullName(lead, fallbackName), isPrimary: true, role: "primary_borrower" }];
+  // No explicit borrower contacts on this deal. Do NOT synthesize a borrower
+  // from the lead's own first/last name — the lead record may be the deal
+  // owner / referrer (e.g. a partner) rather than an actual borrower. Callers
+  // should handle the empty state.
+  return [];
 }
