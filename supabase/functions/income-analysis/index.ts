@@ -35,7 +35,7 @@ const NON_BORROWER_TYPES = new Set([
 ]);
 const isBorrowerType = (t: any) => {
   const v = String(t ?? "").toLowerCase();
-  if (!v) return false;
+  if (!v) return true;
   if (v === "borrower") return true;
   return !NON_BORROWER_TYPES.has(v);
 };
@@ -94,7 +94,6 @@ Lowercase all trend values.`;
 function tryParseJson(text: string): any | null {
   if (!text) return null;
   let t = text.trim();
-  // strip ```json fences
   if (t.startsWith("```")) t = t.replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
   try { return JSON.parse(t); } catch {}
   const m = t.match(/\{[\s\S]*\}/);
@@ -173,7 +172,6 @@ Deno.serve(async (req) => {
   const force: boolean = !!body?.force;
   if (!leadId) return json({ error: "lead_id required" }, 400);
 
-  // Cache
   const cacheKey = `${leadId}::${filterContactId ?? "all"}`;
   const cached = CACHE.get(cacheKey);
   if (!force && cached && Date.now() - cached.at < TTL_MS) {
@@ -186,19 +184,17 @@ Deno.serve(async (req) => {
     { global: { headers: { Authorization: authHeader } } },
   );
 
-  // Fetch all borrowers' rows for this lead, then group by contact_id
-  const [{ data: pdRows }, { data: calcRows }, { data: linkRows }, { data: lead }, { data: opportunities }, { data: directContacts }] = await Promise.all([
+  const [{ data: pdRows }, { data: calcRows }, { data: linkRows }, { data: lead }, { data: directContacts }] = await Promise.all([
     supabase.from("borrower_payment_details").select("*").eq("lead_id", leadId)
       .order("updated_at", { ascending: false }),
     supabase.from("borrower_income_calculations").select("*").eq("lead_id", leadId)
       .order("calculation_date", { ascending: false }),
     supabase.from("lead_contacts").select("contact_id,is_primary,role_on_deal,role").eq("lead_id", leadId),
-    supabase.from("leads").select("first_name,last_name,co_borrower_id").eq("id", leadId).maybeSingle(),
-    supabase.from("pipeline_opportunities").select("primary_contact_id").eq("lead_id", leadId),
-    supabase.from("contacts").select("id,first_name,last_name,contact_type,lead_id").eq("lead_id", leadId).eq("contact_type", "borrower"),
+    supabase.from("leads").select("first_name,last_name,co_borrower_id,email").eq("id", leadId).maybeSingle(),
+    supabase.from("contacts").select("id,first_name,last_name,contact_type,lead_id,email,borrower_type").eq("lead_id", leadId).eq("contact_type", "borrower"),
   ]);
 
-  // Index latest pd and calc by contact_id key
+  // latest pd/calc per contact key ("__primary__" for null contact_id == lead-as-primary).
   const latest = <T extends { contact_id?: string | null }>(rows: T[]) => {
     const m = new Map<string, T>();
     for (const r of (rows ?? [])) {
@@ -209,72 +205,75 @@ Deno.serve(async (req) => {
   };
   const pdMap = latest<any>(pdRows ?? []);
   const calcMap = latest<any>(calcRows ?? []);
+
   const contactIds = new Set<string>();
   for (const r of linkRows ?? []) if ((r as any).contact_id) contactIds.add((r as any).contact_id);
   for (const c of directContacts ?? []) if ((c as any).id) contactIds.add((c as any).id);
   if ((lead as any)?.co_borrower_id) contactIds.add((lead as any).co_borrower_id);
-  for (const o of opportunities ?? []) if ((o as any).primary_contact_id) contactIds.add((o as any).primary_contact_id);
-  for (const key of [...pdMap.keys(), ...calcMap.keys()]) if (key !== "__primary__") contactIds.add(key);
 
   const contactMap = new Map<string, any>();
   for (const c of directContacts ?? []) contactMap.set((c as any).id, c);
   if (contactIds.size > 0) {
     const { data: allContacts } = await supabase
       .from("contacts")
-      .select("id,first_name,last_name,contact_type,lead_id")
+      .select("id,first_name,last_name,contact_type,lead_id,email,borrower_type")
       .in("id", Array.from(contactIds));
     for (const c of allContacts ?? []) contactMap.set((c as any).id, c);
   }
 
   const linkByContact = new Map<string, any>();
   for (const r of linkRows ?? []) if ((r as any).contact_id) linkByContact.set((r as any).contact_id, r);
-  const primaryIds = new Set<string>();
-  for (const r of linkRows ?? []) if ((r as any).is_primary && (r as any).contact_id) primaryIds.add((r as any).contact_id);
-  for (const o of opportunities ?? []) if ((o as any).primary_contact_id) primaryIds.add((o as any).primary_contact_id);
-  const primaryKey = Array.from(primaryIds)[0] ?? null;
-  if (primaryKey) {
-    if (pdMap.has("__primary__") && !pdMap.has(primaryKey)) pdMap.set(primaryKey, pdMap.get("__primary__"));
-    if (calcMap.has("__primary__") && !calcMap.has(primaryKey)) calcMap.set(primaryKey, calcMap.get("__primary__"));
-    pdMap.delete("__primary__");
-    calcMap.delete("__primary__");
-  }
 
+  // Lead-duplicate detection (avoid treating a contact that mirrors the lead as a co-borrower).
+  const leadEmailLc = String((lead as any)?.email ?? "").trim().toLowerCase();
+  const leadFirstLc = String((lead as any)?.first_name ?? "").trim().toLowerCase();
+  const leadLastLc = String((lead as any)?.last_name ?? "").trim().toLowerCase();
+  const isLeadDuplicate = (c: any) => {
+    if (!c) return false;
+    const ce = String(c?.email ?? "").trim().toLowerCase();
+    if (leadEmailLc && ce && ce === leadEmailLc) return true;
+    const cf = String(c?.first_name ?? "").trim().toLowerCase();
+    const cl = String(c?.last_name ?? "").trim().toLowerCase();
+    if (leadFirstLc && leadLastLc && cf === leadFirstLc && (cl === leadLastLc || cl.startsWith(leadLastLc))) return true;
+    return false;
+  };
+
+  // Build co-borrowers from contact rows.
   const borrowerKeys = new Map<string, { key: string; name: string; is_primary: boolean }>();
-  const addBorrower = (key: string, forcedPrimary = false) => {
-    // Never synthesize a borrower from the lead's first/last name. The lead
-    // record may be a referrer/partner — only explicit borrower contacts count.
-    if (key === "__primary__") return;
+  const addCo = (key: string) => {
     const c = contactMap.get(key);
     const link = linkByContact.get(key);
     const role = link?.role_on_deal ?? link?.role ?? null;
-    // Hard-exclude non-borrower contact types regardless of stale primary flags.
     if (c && !isBorrowerType(c.contact_type)) return;
-    const isPrimary = forcedPrimary || !!link?.is_primary || primaryIds.has(key);
-    const isBorrowerContact = c?.contact_type === "borrower";
+    if (isLeadDuplicate(c)) return;
+    const isBorrowerContact = c?.contact_type === "borrower" || !c?.contact_type;
     const isBorrowerRole = role ? BORROWER_ROLES.has(String(role)) : false;
-    if (!isBorrowerContact && !isPrimary && !isBorrowerRole) return;
-    if (!isBorrowerContact && !isPrimary) return;
-    const current = borrowerKeys.get(key);
-    borrowerKeys.set(key, { key, name: fullName(c), is_primary: current?.is_primary || isPrimary });
+    if (!isBorrowerContact && !isBorrowerRole) return;
+    borrowerKeys.set(key, { key, name: fullName(c), is_primary: false });
   };
+  for (const r of linkRows ?? []) if ((r as any).contact_id) addCo((r as any).contact_id);
+  for (const c of directContacts ?? []) if ((c as any).id) addCo((c as any).id);
+  if ((lead as any)?.co_borrower_id) addCo((lead as any).co_borrower_id);
 
-  for (const r of linkRows ?? []) if ((r as any).contact_id) addBorrower((r as any).contact_id, !!(r as any).is_primary);
-  for (const c of directContacts ?? []) if ((c as any).id) addBorrower((c as any).id);
-  if ((lead as any)?.co_borrower_id) addBorrower((lead as any).co_borrower_id);
-  for (const o of opportunities ?? []) if ((o as any).primary_contact_id) addBorrower((o as any).primary_contact_id, true);
-  for (const key of [...pdMap.keys(), ...calcMap.keys()]) addBorrower(key);
+  // The lead itself is ALWAYS the primary borrower. Its payment/calc rows live under contact_id = null.
+  const primaryName = `${(lead as any)?.first_name ?? ""} ${(lead as any)?.last_name ?? ""}`.trim() || "Borrower";
 
-  let borrowers = Array.from(borrowerKeys.values()).map((meta) => ({
-    key: meta.key,
-    borrower_name: (calcMap.get(meta.key)?.borrower_name as string | undefined) || meta.name,
-    is_primary: meta.is_primary,
-    pd: pdMap.get(meta.key) ?? null,
-    calc: calcMap.get(meta.key) ?? null,
-  })).sort((a, b) => Number(b.is_primary) - Number(a.is_primary) || a.borrower_name.localeCompare(b.borrower_name));
-
-  if (borrowers.length > 0 && !borrowers.some((b) => b.is_primary)) {
-    borrowers = borrowers.map((b, i) => (i === 0 ? { ...b, is_primary: true } : b));
-  }
+  let borrowers = [
+    {
+      key: "__primary__",
+      borrower_name: (calcMap.get("__primary__")?.borrower_name as string | undefined) || primaryName,
+      is_primary: true,
+      pd: pdMap.get("__primary__") ?? null,
+      calc: calcMap.get("__primary__") ?? null,
+    },
+    ...Array.from(borrowerKeys.values()).map((meta) => ({
+      key: meta.key,
+      borrower_name: (calcMap.get(meta.key)?.borrower_name as string | undefined) || meta.name,
+      is_primary: false,
+      pd: pdMap.get(meta.key) ?? null,
+      calc: calcMap.get(meta.key) ?? null,
+    })).sort((a, b) => a.borrower_name.localeCompare(b.borrower_name)),
+  ];
 
   if (filterContactId) {
     borrowers = borrowers.filter((b) => b.key === filterContactId);
@@ -332,7 +331,6 @@ Deno.serve(async (req) => {
     if (!parsed) return json(FALLBACK);
     const data = normalize(parsed);
     data.borrowers = authoritativeBorrowerAnalysis(borrowers, data.borrowers);
-    // Ensure combined numbers reflect our authoritative totals
     if (data.combined) {
       data.combined.monthly = totalMonthly;
       data.combined.annual = totalAnnual;
