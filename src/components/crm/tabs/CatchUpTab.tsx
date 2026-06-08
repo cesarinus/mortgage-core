@@ -71,7 +71,7 @@ export function CatchUpTab({ activities, emailLogs, sentiment, mortgage, record,
   const selectedBorrowerObj = borrowers.find((b) => (b.contactId ?? "__primary__") === selectedBorrower);
   const selectedContactId = selectedBorrowerObj?.contactId ?? null;
   // Do NOT fall back to the lead's own name — the lead may be a referrer/partner.
-  const selectedName = selectedBorrowerObj?.name ?? "No borrower selected";
+  const selectedName = selectedBorrowerObj?.name ?? borrowerName;
   const hasBorrowers = borrowers.length > 0;
   const income = useMemo(() => {
     const key = selectedBorrower === "__primary__" ? null : selectedBorrower;

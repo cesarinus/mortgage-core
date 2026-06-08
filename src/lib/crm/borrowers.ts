@@ -5,6 +5,7 @@ export type DealBorrower = {
   name: string;
   isPrimary: boolean;
   role?: string | null;
+  borrowerType?: string;
 };
 
 const BORROWER_ROLES = new Set(["primary_borrower", "co_borrower", "guarantor"]);
@@ -33,7 +34,7 @@ const fullName = (c: any, fallback = "Borrower") => {
  * unless a row is explicitly marked primary.
  */
 export async function fetchDealBorrowers(leadId: string, fallbackName = "Borrower"): Promise<DealBorrower[]> {
-  const [{ data: linkRows }, { data: lead }, { data: opportunityRows }, { data: directContacts }] = await Promise.all([
+  const [{ data: linkRows }, { data: lead }, { data: opportunityRows }, { data: directContacts }, { data: pdRows }] = await Promise.all([
     (supabase as any)
       .from("lead_contacts")
       .select("contact_id,is_primary,role_on_deal,role")
@@ -52,6 +53,7 @@ export async function fetchDealBorrowers(leadId: string, fallbackName = "Borrowe
       .select("id,first_name,last_name,contact_type,lead_id")
       .eq("lead_id", leadId)
       .eq("contact_type", "borrower"),
+    (supabase as any).from("borrower_payment_details").select("contact_id, borrower_type").eq("lead_id", leadId),
   ]);
 
   const contactIds = new Set<string>();
@@ -72,6 +74,8 @@ export async function fetchDealBorrowers(leadId: string, fallbackName = "Borrowe
 
   const byId = new Map<string, DealBorrower>();
   const linkByContact = new Map<string, any>();
+  const pdMap = new Map<string, string>();
+  for (const r of pdRows ?? []) if (r.contact_id) pdMap.set(r.contact_id, r.borrower_type);
   for (const r of linkRows ?? []) if (r.contact_id) linkByContact.set(r.contact_id, r);
 
   const primaryIds = new Set<string>();
@@ -97,6 +101,7 @@ export async function fetchDealBorrowers(leadId: string, fallbackName = "Borrowe
       name: fullName(c),
       isPrimary: current?.isPrimary || isPrimary,
       role: current?.role ?? role,
+      borrowerType: current?.borrowerType ?? pdMap.get(contactId),
     });
   };
 

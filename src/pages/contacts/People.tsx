@@ -56,7 +56,7 @@ export default function People() {
   const [emailTarget, setEmailTarget] = useState<{ to: string; name: string } | null>(null);
 
   const load = async () => {
-    const { data } = await supabase.from("contacts").select("*").order("created_at", { ascending: false });
+    const [{ data: contactsData }, { data: pdData }] = await Promise.all([supabase.from("contacts").select("*").order("created_at", { ascending: false }), supabase.from("borrower_payment_details").select("contact_id, borrower_type")]); const pdMap = new Map(); pdData?.forEach((pd: any) => { if (pd.contact_id) pdMap.set(pd.contact_id, pd.borrower_type); }); const enriched = (contactsData ?? []).map((c: any) => ({ ...c, borrower_type: pdMap.get(c.id) || null })); setContacts(enriched as any); return;
     setContacts((data ?? []) as Contact[]);
   };
   const loadCompanies = async () => setCompanies(await fetchAllCompanies());
@@ -177,6 +177,7 @@ export default function People() {
                 <TableHead>Phone</TableHead>
                 <TableHead>Company</TableHead>
                 <TableHead>Role</TableHead>
+                <TableHead>Borrower Type</TableHead>
                 <TableHead>Score</TableHead>
                 <TableHead>Temp</TableHead>
                 <TableHead></TableHead>
@@ -184,10 +185,11 @@ export default function People() {
             </TableHeader>
             <TableBody>
               {paged.length === 0 ? (
-                <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">No people found</TableCell></TableRow>
+                <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">No people found</TableCell></TableRow>
               ) : paged.map((c: any) => {
                 const co = c.company_id ? companyById.get(c.company_id) : null;
                 const role = c.role ?? "other";
+                const bType = c.borrower_type || "employee";
                 return (
                   <TableRow key={c.id} className="cursor-pointer" onClick={() => openEdit(c)}>
                     <TableCell className="font-medium">{c.first_name} {c.last_name}</TableCell>
