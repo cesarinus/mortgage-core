@@ -52,6 +52,7 @@ export default function RecordWorkspace({ kind }: Props) {
   const { user } = useAuth();
   const [record, setRecord] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<string>("catch-up");
   const [activities, setActivities] = useState<any[]>([]);
   const [leadEvents, setLeadEvents] = useState<any[]>([]);
   const [dealEvents, setDealEvents] = useState<any[]>([]);
