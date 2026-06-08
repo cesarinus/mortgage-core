@@ -948,6 +948,17 @@ export default function Leads() {
 
                   {/* Activity Timeline */}
                   <div>
+                    <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Income Analysis</p>
+                    <LeadIncomeSection
+                      leadId={selectedLead.id}
+                      fallbackName={`${selectedLead.first_name ?? ""} ${selectedLead.last_name ?? ""}`.trim() || "Borrower"}
+                    />
+                  </div>
+
+                  <Separator />
+
+                  {/* Activity Timeline */}
+                  <div>
                     <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Activity Timeline</p>
                     {events.length === 0 ? (
                       <p className="text-sm text-muted-foreground">No activity recorded</p>
