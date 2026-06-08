@@ -780,7 +780,7 @@ export default function Leads() {
 
       {/* Right Detail Panel */}
       <Sheet open={!!selectedLead} onOpenChange={open => { if (!open) setSelectedLead(null); }}>
-        <SheetContent className="w-full sm:max-w-[95vw] lg:max-w-[1400px] p-0 flex flex-col">
+        <SheetContent className="w-full sm:max-w-2xl p-0 flex flex-col">
           {selectedLead && (
             <>
               <SheetHeader className="p-5 pb-3">

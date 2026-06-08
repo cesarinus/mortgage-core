@@ -107,73 +107,69 @@ export function LeadIncomeSection({ leadId, fallbackName = "Borrower" }: Props) 
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:items-stretch min-w-0">
-          <div className="space-y-3 min-w-0 flex flex-col">
-            <div className="rounded-lg bg-muted/40 border border-border p-3 min-w-0">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2 truncate">
-                {selectedName}
-              </div>
-              <div className="divide-y divide-border/60">
-                <div className="flex items-center justify-between py-1.5 text-xs">
-                  <span className="text-muted-foreground">Monthly income</span>
-                  <span className="font-medium tabular-nums">{fmt(income?.monthly_income)}</span>
-                </div>
-                <div className="flex items-center justify-between py-1.5 text-xs">
-                  <span className="text-muted-foreground">Annual income</span>
-                  <span className="font-medium tabular-nums">{fmt(income?.annual_income)}</span>
-                </div>
-                <div className="flex items-center justify-between py-1.5 text-xs">
-                  <span className="text-muted-foreground">Years average</span>
-                  <span className="font-medium tabular-nums">{fmt((income as any)?.years_average)}</span>
-                </div>
-              </div>
+        <div className="rounded-lg bg-muted/40 border border-border p-3 min-w-0">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2 truncate">
+            {selectedName}
+          </div>
+          <div className="divide-y divide-border/60">
+            <div className="flex items-center justify-between py-1.5 text-xs">
+              <span className="text-muted-foreground">Monthly income</span>
+              <span className="font-medium tabular-nums">{fmt(income?.monthly_income)}</span>
             </div>
-
-            {borrowers.length > 1 && (
-              <div className="rounded-lg border border-border overflow-hidden min-w-0 flex-1">
-                <div className="px-3 py-2 bg-muted/40 border-b border-border">
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Borrower Income Summary</div>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-[11px]">
-                    <thead>
-                      <tr className="text-left text-muted-foreground">
-                        <th className="px-3 py-1.5 font-medium">Borrower</th>
-                        <th className="px-3 py-1.5 font-medium text-right">Monthly</th>
-                        <th className="px-3 py-1.5 font-medium text-right">Annual</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border/60">
-                      {borrowers.map((b) => {
-                        const c = incomeForBorrower(b);
-                        return (
-                          <tr key={b.contactId ?? "__primary__"}>
-                            <td className="px-3 py-1.5 truncate">{b.name}</td>
-                            <td className="px-3 py-1.5 text-right tabular-nums">{fmt(c?.monthly_income)}</td>
-                            <td className="px-3 py-1.5 text-right tabular-nums">{fmt(c?.annual_income)}</td>
-                          </tr>
-                        );
-                      })}
-                      <tr className="border-t-2 font-semibold bg-muted/30">
-                        <td className="px-3 py-1.5">Total</td>
-                        <td className="px-3 py-1.5 text-right tabular-nums">{fmt(totalMonthly)}</td>
-                        <td className="px-3 py-1.5 text-right tabular-nums">{fmt(totalAnnual)}</td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
+            <div className="flex items-center justify-between py-1.5 text-xs">
+              <span className="text-muted-foreground">Annual income</span>
+              <span className="font-medium tabular-nums">{fmt(income?.annual_income)}</span>
+            </div>
+            <div className="flex items-center justify-between py-1.5 text-xs">
+              <span className="text-muted-foreground">Years average</span>
+              <span className="font-medium tabular-nums">{fmt((income as any)?.years_average)}</span>
+            </div>
           </div>
+        </div>
 
-          <div className="min-w-0 flex flex-col [&>*]:h-full">
-            <IncomeAiAnalysis
-              leadId={leadId}
-              audience="admin"
-              wide
-              refreshKey={allIncome.map((c) => c.id).join("|") || "none"}
-            />
+        {borrowers.length > 1 && (
+          <div className="rounded-lg border border-border overflow-hidden min-w-0">
+            <div className="px-3 py-2 bg-muted/40 border-b border-border">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Borrower Income Summary</div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-[11px]">
+                <thead>
+                  <tr className="text-left text-muted-foreground">
+                    <th className="px-3 py-1.5 font-medium">Borrower</th>
+                    <th className="px-3 py-1.5 font-medium text-right">Monthly</th>
+                    <th className="px-3 py-1.5 font-medium text-right">Annual</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/60">
+                  {borrowers.map((b) => {
+                    const c = incomeForBorrower(b);
+                    return (
+                      <tr key={b.contactId ?? "__primary__"}>
+                        <td className="px-3 py-1.5 truncate">{b.name}</td>
+                        <td className="px-3 py-1.5 text-right tabular-nums">{fmt(c?.monthly_income)}</td>
+                        <td className="px-3 py-1.5 text-right tabular-nums">{fmt(c?.annual_income)}</td>
+                      </tr>
+                    );
+                  })}
+                  <tr className="border-t-2 font-semibold bg-muted/30">
+                    <td className="px-3 py-1.5">Total</td>
+                    <td className="px-3 py-1.5 text-right tabular-nums">{fmt(totalMonthly)}</td>
+                    <td className="px-3 py-1.5 text-right tabular-nums">{fmt(totalAnnual)}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
           </div>
+        )}
+
+        <div className="min-w-0">
+          <IncomeAiAnalysis
+            leadId={leadId}
+            audience="admin"
+            wide
+            refreshKey={allIncome.map((c) => c.id).join("|") || "none"}
+          />
         </div>
       </div>
     </div>
