@@ -375,6 +375,13 @@ export default function People() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <SmartEmailComposer
+        open={!!emailTarget}
+        onOpenChange={(o) => { if (!o) setEmailTarget(null); }}
+        to={emailTarget?.to ?? ""}
+        recipientName={emailTarget?.name}
+      />
     </div>
   );
 }
