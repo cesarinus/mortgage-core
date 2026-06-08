@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_feedback: {
+        Row: {
+          context: Json | null
+          created_at: string
+          feature: string
+          id: string
+          profile: string
+          rating: string
+          reason: string | null
+          resolved: boolean
+          user_id: string | null
+        }
+        Insert: {
+          context?: Json | null
+          created_at?: string
+          feature: string
+          id?: string
+          profile: string
+          rating: string
+          reason?: string | null
+          resolved?: boolean
+          user_id?: string | null
+        }
+        Update: {
+          context?: Json | null
+          created_at?: string
+          feature?: string
+          id?: string
+          profile?: string
+          rating?: string
+          reason?: string | null
+          resolved?: boolean
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       blog_events: {
         Row: {
           created_at: string
