@@ -21,6 +21,8 @@ export const ROLE_ON_DEAL_OPTIONS = [
   { value: "other", label: "Other" },
 ] as const;
 
+const BORROWER_DEAL_ROLES = new Set(["primary_borrower", "co_borrower"]);
+
 interface BaseProps {
   open: boolean;
   onClose: () => void;
