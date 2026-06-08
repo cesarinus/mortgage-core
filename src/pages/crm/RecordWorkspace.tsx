@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { LeftRail } from "@/components/crm/LeftRail";
 import { RightRail } from "@/components/crm/RightRail";
 import { CatchUpTab } from "@/components/crm/tabs/CatchUpTab";
+import { IncomeAnalysisCard } from "@/components/crm/IncomeAnalysisCard";
 import { UnifiedTimelineTab } from "@/components/crm/tabs/UnifiedTimelineTab";
 import { LoanScenariosTab } from "@/components/crm/tabs/LoanScenariosTab";
 import { MessagesTab } from "@/components/crm/tabs/MessagesTab";
