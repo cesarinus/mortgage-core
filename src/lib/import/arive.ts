@@ -24,15 +24,21 @@ const norm = (s?: any) => (s == null ? "" : String(s).trim());
 const lower = (s?: any) => norm(s).toLowerCase();
 const nonEmpty = (...vals: any[]) => vals.map(norm).find((v) => v) || "";
 
-/** Find a column whose normalized name matches any candidate. */
+/** Find a column whose normalized name matches any candidate.
+ *  Normalization strips ALL non-alphanumerics so headers like
+ *  "First Name *", "Date Of Birth (MM/DD/YYYY)", "Unit/Apt",
+ *  "State Code:License #" still match. */
 function pick(row: RawRow, candidates: string[]): string {
-  const keys = Object.keys(row);
+  const normKey = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
+  const entries = Object.keys(row).map((k) => [k, normKey(k)] as const);
   for (const cand of candidates) {
-    const target = cand.toLowerCase().replace(/[\s_#]+/g, "");
-    const hit = keys.find(
-      (k) => k.toLowerCase().replace(/[\s_#]+/g, "") === target,
-    );
-    if (hit && norm(row[hit])) return norm(row[hit]);
+    const target = normKey(cand);
+    if (!target) continue;
+    let hit =
+      entries.find(([, n]) => n === target) ||
+      entries.find(([, n]) => n.startsWith(target)) ||
+      entries.find(([, n]) => n.includes(target));
+    if (hit && norm(row[hit[0]])) return norm(row[hit[0]]);
   }
   return "";
 }
