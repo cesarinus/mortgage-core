@@ -44,6 +44,7 @@ import {
   recordLeadTransition,
 } from "@/lib/crm/stateMachine";
 import { ArrowRightCircle } from "lucide-react";
+import { LeadIncomeSection } from "@/components/crm/LeadIncomeSection";
 
 type Lead = Tables<"leads">;
 type LeadSource = Tables<"lead_sources">;
@@ -779,7 +780,7 @@ export default function Leads() {
 
       {/* Right Detail Panel */}
       <Sheet open={!!selectedLead} onOpenChange={open => { if (!open) setSelectedLead(null); }}>
-        <SheetContent className="w-full sm:max-w-md p-0 flex flex-col">
+        <SheetContent className="w-full sm:max-w-2xl p-0 flex flex-col">
           {selectedLead && (
             <>
               <SheetHeader className="p-5 pb-3">
