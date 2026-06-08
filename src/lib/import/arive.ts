@@ -147,7 +147,7 @@ function mapBorrowerRow(row: RawRow) {
   };
 }
 
-function parseDate(s: string): string | null {
+function parseDate(s: any): string | null {
   if (!s) return null;
   // Excel may give a Date or a string. xlsx with defval keeps as raw value.
   if (s instanceof Date) return s.toISOString().slice(0, 10);
