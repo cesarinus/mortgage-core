@@ -256,18 +256,10 @@ export function CatchUpTab({ activities, emailLogs, sentiment, mortgage, record,
 
           {leadId && (
             <div className="mt-3 rounded-md bg-muted/40 p-3 text-sm divide-y">
-              {hasBorrowers ? (
-                <>
-                  <div className="pb-1.5 text-[11px] uppercase tracking-wide text-muted-foreground">{selectedName}</div>
-                  <SummaryRow label="Monthly income" value={fmtIncome(income?.monthly_income)} />
-                  <SummaryRow label="Annual income" value={fmtIncome(income?.annual_income)} />
-                  <SummaryRow label="Years average" value={fmtIncome((income as any)?.years_average)} />
-                </>
-              ) : (
-                <div className="py-2 text-xs text-muted-foreground">
-                  No borrowers linked to this deal yet. Add a contact with type "Borrower" to enable income analysis.
-                </div>
-              )}
+              <div className="pb-1.5 text-[11px] uppercase tracking-wide text-muted-foreground">{selectedName}</div>
+              <SummaryRow label="Monthly income" value={fmtIncome(income?.monthly_income)} />
+              <SummaryRow label="Annual income" value={fmtIncome(income?.annual_income)} />
+              <SummaryRow label="Years average" value={fmtIncome((income as any)?.years_average)} />
             </div>
           )}
 
@@ -326,7 +318,7 @@ export function CatchUpTab({ activities, emailLogs, sentiment, mortgage, record,
             </SheetDescription>
           </SheetHeader>
           <div className="mt-4">
-            {leadId && hasBorrowers && (
+            {leadId && (
               <>
                 {borrowers.length > 1 && (
                   <div className="mb-4 flex flex-wrap items-center gap-2">
@@ -366,12 +358,6 @@ export function CatchUpTab({ activities, emailLogs, sentiment, mortgage, record,
                   borrowerName={selectedName}
                 />
               </>
-            )}
-            {leadId && !hasBorrowers && (
-              <div className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
-                No borrowers are linked to this deal. Add a contact with type
-                <span className="font-medium"> "Borrower"</span> from the Contacts panel to enable income classification.
-              </div>
             )}
           </div>
         </SheetContent>
