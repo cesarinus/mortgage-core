@@ -70,7 +70,9 @@ export function CatchUpTab({ activities, emailLogs, sentiment, mortgage, record,
 
   const selectedBorrowerObj = borrowers.find((b) => (b.contactId ?? "__primary__") === selectedBorrower);
   const selectedContactId = selectedBorrowerObj?.contactId ?? null;
-  const selectedName = selectedBorrowerObj?.name ?? borrowerName;
+  // Do NOT fall back to the lead's own name — the lead may be a referrer/partner.
+  const selectedName = selectedBorrowerObj?.name ?? "No borrower selected";
+  const hasBorrowers = borrowers.length > 0;
   const income = useMemo(() => {
     const key = selectedBorrower === "__primary__" ? null : selectedBorrower;
     return allIncome.find((c) => (c.contact_id ?? null) === key) ?? null;
@@ -254,10 +256,18 @@ export function CatchUpTab({ activities, emailLogs, sentiment, mortgage, record,
 
           {leadId && (
             <div className="mt-3 rounded-md bg-muted/40 p-3 text-sm divide-y">
-              <div className="pb-1.5 text-[11px] uppercase tracking-wide text-muted-foreground">{selectedName}</div>
-              <SummaryRow label="Monthly income" value={fmtIncome(income?.monthly_income)} />
-              <SummaryRow label="Annual income" value={fmtIncome(income?.annual_income)} />
-              <SummaryRow label="Years average" value={fmtIncome((income as any)?.years_average)} />
+              {hasBorrowers ? (
+                <>
+                  <div className="pb-1.5 text-[11px] uppercase tracking-wide text-muted-foreground">{selectedName}</div>
+                  <SummaryRow label="Monthly income" value={fmtIncome(income?.monthly_income)} />
+                  <SummaryRow label="Annual income" value={fmtIncome(income?.annual_income)} />
+                  <SummaryRow label="Years average" value={fmtIncome((income as any)?.years_average)} />
+                </>
+              ) : (
+                <div className="py-2 text-xs text-muted-foreground">
+                  No borrowers linked to this deal yet. Add a contact with type "Borrower" to enable income analysis.
+                </div>
+              )}
             </div>
           )}
 
@@ -316,7 +326,7 @@ export function CatchUpTab({ activities, emailLogs, sentiment, mortgage, record,
             </SheetDescription>
           </SheetHeader>
           <div className="mt-4">
-            {leadId && (
+            {leadId && hasBorrowers && (
               <>
                 {borrowers.length > 1 && (
                   <div className="mb-4 flex flex-wrap items-center gap-2">
@@ -356,6 +366,12 @@ export function CatchUpTab({ activities, emailLogs, sentiment, mortgage, record,
                   borrowerName={selectedName}
                 />
               </>
+            )}
+            {leadId && !hasBorrowers && (
+              <div className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
+                No borrowers are linked to this deal. Add a contact with type
+                <span className="font-medium"> "Borrower"</span> from the Contacts panel to enable income classification.
+              </div>
             )}
           </div>
         </SheetContent>

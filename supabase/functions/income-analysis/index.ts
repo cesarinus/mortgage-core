@@ -241,10 +241,9 @@ Deno.serve(async (req) => {
 
   const borrowerKeys = new Map<string, { key: string; name: string; is_primary: boolean }>();
   const addBorrower = (key: string, forcedPrimary = false) => {
-    if (key === "__primary__") {
-      borrowerKeys.set(key, { key, name: fullName(lead, "Primary Borrower"), is_primary: true });
-      return;
-    }
+    // Never synthesize a borrower from the lead's first/last name. The lead
+    // record may be a referrer/partner — only explicit borrower contacts count.
+    if (key === "__primary__") return;
     const c = contactMap.get(key);
     const link = linkByContact.get(key);
     const role = link?.role_on_deal ?? link?.role ?? null;
