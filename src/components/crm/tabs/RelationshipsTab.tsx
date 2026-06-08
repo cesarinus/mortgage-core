@@ -33,6 +33,7 @@ const COMPANY_TYPE_BADGE: Record<string, string> = {
 };
 
 const fmtLabel = (v?: string | null) => (v ? v.replace(/_/g, " ") : "");
+const BORROWER_DEAL_ROLES = new Set(["primary_borrower", "co_borrower"]);
 
 interface Props {
   kind: "lead" | "contact";
@@ -79,6 +80,15 @@ export function RelationshipsTab({ kind, recordId, linkedContacts, companies, on
   };
 
   const saveRole = async (linkId: string) => {
+    const row = linkedContacts.find((r: any) => r.id === linkId);
+    const contactType = String(row?.contact?.contact_type ?? "").toLowerCase();
+    if (BORROWER_DEAL_ROLES.has(roleDraft) && contactType && contactType !== "borrower") {
+      return toast({
+        title: "Contact is not a borrower",
+        description: "Change this person’s contact type to Borrower before using a borrower role.",
+        variant: "destructive",
+      });
+    }
     const { error } = await supabase.from("lead_contacts")
       .update({ role_on_deal: (roleDraft || null) as any })
       .eq("id", linkId);
@@ -89,6 +99,15 @@ export function RelationshipsTab({ kind, recordId, linkedContacts, companies, on
   };
 
   const setPrimary = async (linkId: string, leadId: string, contactId: string) => {
+    const row = linkedContacts.find((r: any) => r.id === linkId);
+    const contactType = String(row?.contact?.contact_type ?? "").toLowerCase();
+    if (contactType && contactType !== "borrower") {
+      return toast({
+        title: "Contact is not a borrower",
+        description: "Change this person’s contact type to Borrower before marking primary.",
+        variant: "destructive",
+      });
+    }
     // Demote others first to respect unique-primary index
     await supabase.from("lead_contacts").update({ is_primary: false })
       .eq("lead_id", leadId).neq("id", linkId);
