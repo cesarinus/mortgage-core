@@ -8,6 +8,18 @@ export type DealBorrower = {
 };
 
 const BORROWER_ROLES = new Set(["primary_borrower", "co_borrower", "guarantor"]);
+const NON_BORROWER_TYPES = new Set([
+  "partner", "realtor", "attorney", "title", "escrow", "insurance",
+  "appraiser", "inspector", "lender", "loan_officer", "processor",
+  "referral", "vendor", "other",
+]);
+
+const isBorrowerType = (t: any) => {
+  const v = String(t ?? "").toLowerCase();
+  if (!v) return true; // unknown defaults to borrower
+  if (v === "borrower") return true;
+  return !NON_BORROWER_TYPES.has(v);
+};
 
 const fullName = (c: any, fallback = "Borrower") => {
   const name = `${c?.first_name ?? ""} ${c?.last_name ?? ""}`.trim();
@@ -70,12 +82,14 @@ export async function fetchDealBorrowers(leadId: string, fallbackName = "Borrowe
     const c = contactMap.get(contactId);
     const link = linkByContact.get(contactId);
     const role = link?.role_on_deal ?? link?.role ?? null;
-    const isBorrowerContact = c?.contact_type === "borrower";
+    // Hard-exclude explicitly non-borrower contact types (partner, realtor, etc.)
+    // even if a stale lead_contacts row marks them as primary_borrower.
+    if (c && !isBorrowerType(c.contact_type)) return;
+    const isBorrowerContact = c?.contact_type === "borrower" || !c?.contact_type;
     const isPrimary = forcedPrimary || !!link?.is_primary || primaryIds.has(contactId);
     const isBorrowerRole = role ? BORROWER_ROLES.has(String(role)) : false;
 
     if (!isBorrowerContact && !isPrimary && !isBorrowerRole) return;
-    if (!isBorrowerContact && !isPrimary) return;
 
     const current = byId.get(contactId);
     byId.set(contactId, {
@@ -91,10 +105,16 @@ export async function fetchDealBorrowers(leadId: string, fallbackName = "Borrowe
   if (lead?.co_borrower_id) addBorrower(lead.co_borrower_id, false);
   for (const o of opportunityRows ?? []) if (o.primary_contact_id) addBorrower(o.primary_contact_id, true);
 
-  const borrowers = Array.from(byId.values()).sort((a, b) => {
+  let borrowers = Array.from(byId.values()).sort((a, b) => {
     if (a.isPrimary !== b.isPrimary) return Number(b.isPrimary) - Number(a.isPrimary);
     return a.name.localeCompare(b.name);
   });
+
+  // If no borrower is primary (e.g. the previously-flagged primary was a partner
+  // and got excluded), promote the first borrower to primary.
+  if (borrowers.length > 0 && !borrowers.some((b) => b.isPrimary)) {
+    borrowers = borrowers.map((b, i) => (i === 0 ? { ...b, isPrimary: true } : b));
+  }
 
   if (borrowers.length > 0) return borrowers;
 

@@ -28,6 +28,17 @@ const FALLBACK = {
 };
 
 const BORROWER_ROLES = new Set(["primary_borrower", "co_borrower", "guarantor"]);
+const NON_BORROWER_TYPES = new Set([
+  "partner", "realtor", "attorney", "title", "escrow", "insurance",
+  "appraiser", "inspector", "lender", "loan_officer", "processor",
+  "referral", "vendor", "other",
+]);
+const isBorrowerType = (t: any) => {
+  const v = String(t ?? "").toLowerCase();
+  if (!v) return true;
+  if (v === "borrower") return true;
+  return !NON_BORROWER_TYPES.has(v);
+};
 
 function fullName(c: any, fallback = "Borrower") {
   const name = `${c?.first_name ?? ""} ${c?.last_name ?? ""}`.trim();
@@ -237,8 +248,10 @@ Deno.serve(async (req) => {
     const c = contactMap.get(key);
     const link = linkByContact.get(key);
     const role = link?.role_on_deal ?? link?.role ?? null;
+    // Hard-exclude non-borrower contact types regardless of stale primary flags.
+    if (c && !isBorrowerType(c.contact_type)) return;
     const isPrimary = forcedPrimary || !!link?.is_primary || primaryIds.has(key);
-    const isBorrowerContact = c?.contact_type === "borrower";
+    const isBorrowerContact = c?.contact_type === "borrower" || !c?.contact_type;
     const isBorrowerRole = role ? BORROWER_ROLES.has(String(role)) : false;
     if (!isBorrowerContact && !isPrimary && !isBorrowerRole) return;
     if (!isBorrowerContact && !isPrimary) return;
@@ -259,6 +272,10 @@ Deno.serve(async (req) => {
     pd: pdMap.get(meta.key) ?? null,
     calc: calcMap.get(meta.key) ?? null,
   })).sort((a, b) => Number(b.is_primary) - Number(a.is_primary) || a.borrower_name.localeCompare(b.borrower_name));
+
+  if (borrowers.length > 0 && !borrowers.some((b) => b.is_primary)) {
+    borrowers = borrowers.map((b, i) => (i === 0 ? { ...b, is_primary: true } : b));
+  }
 
   if (filterContactId) {
     borrowers = borrowers.filter((b) => b.key === filterContactId);
