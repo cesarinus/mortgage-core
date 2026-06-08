@@ -316,7 +316,7 @@ export default function RecordWorkspace({ kind }: Props) {
               </Button>
             </div>
           )}
-          <Tabs defaultValue="catch-up">
+          <Tabs defaultValue="catch-up" value={activeTab} onValueChange={setActiveTab}>
             <TabsList className={`w-full grid ${kind === "lead" ? "grid-cols-8" : "grid-cols-7"}`}>
               <TabsTrigger value="catch-up">Catch-up</TabsTrigger>
               <TabsTrigger value="activities">Activities</TabsTrigger>
@@ -358,6 +358,7 @@ export default function RecordWorkspace({ kind }: Props) {
                 onRefreshSentiment={kind === "lead" ? refreshSentiment : undefined}
                 leadId={kind === "lead" ? id : (record as any)?.lead_id ?? undefined}
                 contactId={kind === "contact" ? id : undefined}
+                hideIncomeAnalysis
               />
             </TabsContent>
             <TabsContent value="activities" className="mt-4">
