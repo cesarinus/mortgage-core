@@ -221,6 +221,9 @@ export default function People() {
                         {String(role).replace(/_/g, " ")}
                       </Badge>
                     </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {bType === "self_employed" ? "Self-Employed" : "Employee"}
+                    </TableCell>
                     <TableCell>{c.lead_score ?? "—"}</TableCell>
                     <TableCell className="capitalize">{c.temperature ?? "—"}</TableCell>
                     <TableCell onClick={(e) => e.stopPropagation()}>
@@ -345,6 +348,17 @@ export default function People() {
                     <SelectItem value="other">Other</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="space-y-1">
+                <Label>Borrower income classification</Label>
+                <Select name="borrower_type" defaultValue={(editing as any)?.borrower_type ?? "employee"}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="employee">Employee</SelectItem>
+                    <SelectItem value="self_employed">Self-Employed</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-[11px] text-muted-foreground">Drives the income analysis card, the borrower income classification form, and the borrower portal.</p>
               </div>
             </section>
 
