@@ -56,8 +56,14 @@ export default function People() {
   const [emailTarget, setEmailTarget] = useState<{ to: string; name: string } | null>(null);
 
   const load = async () => {
-    const [{ data: contactsData }, { data: pdData }] = await Promise.all([supabase.from("contacts").select("*").order("created_at", { ascending: false }), supabase.from("borrower_payment_details").select("contact_id, borrower_type")]); const pdMap = new Map(); pdData?.forEach((pd: any) => { if (pd.contact_id) pdMap.set(pd.contact_id, pd.borrower_type); }); const enriched = (contactsData ?? []).map((c: any) => ({ ...c, borrower_type: pdMap.get(c.id) || null })); setContacts(enriched as any); return;
-    setContacts((data ?? []) as Contact[]);
+    const [{ data: contactsData }, { data: pdData }] = await Promise.all([
+      supabase.from("contacts").select("*").order("created_at", { ascending: false }),
+      supabase.from("borrower_payment_details").select("contact_id, borrower_type")
+    ]);
+    const pdMap = new Map();
+    pdData?.forEach((pd: any) => { if (pd.contact_id) pdMap.set(pd.contact_id, pd.borrower_type); });
+    const enriched = (contactsData ?? []).map((c: any) => ({ ...c, borrower_type: pdMap.get(c.id) || null }));
+    setContacts(enriched as any);
   };
   const loadCompanies = async () => setCompanies(await fetchAllCompanies());
 
