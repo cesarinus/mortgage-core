@@ -201,7 +201,7 @@ export function IncomeAiAnalysis({ leadId, contactId = null, audience = "admin",
 
             <div className="pt-2 border-t border-border/60">
               <AiFeedback
-                feature="income_analysis"
+                feature={isBorrower ? "portal_income" : "income_analysis"}
                 profile={isBorrower ? "borrower" : "admin"}
                 context={{ lead_id: leadId, contact_id: contactId, trend }}
               />

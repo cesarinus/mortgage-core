@@ -2,6 +2,8 @@ import { useState } from "react";
 import { ThumbsUp, ThumbsDown, Check } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
 
 interface Props {
   feature: string;
@@ -19,8 +21,10 @@ export function AiFeedback({ feature, context, profile = "crm", className, label
   const [submitted, setSubmitted] = useState<null | "up" | "down">(null);
   const [thanks, setThanks] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [showReason, setShowReason] = useState(false);
+  const [reason, setReason] = useState("");
 
-  const send = async (rating: "up" | "down") => {
+  const send = async (rating: "up" | "down", reasonText?: string) => {
     if (busy || submitted) return;
     setBusy(true);
     try {
@@ -30,11 +34,13 @@ export function AiFeedback({ feature, context, profile = "crm", className, label
           profile,
           context: { ...(context ?? {}), route: typeof window !== "undefined" ? window.location.pathname : undefined },
           rating,
+          reason: reasonText?.trim() || undefined,
         },
       });
       setSubmitted(rating);
       setThanks(true);
       setTimeout(() => setThanks(false), 3000);
+      setShowReason(false);
     } catch {
       // silent — keep buttons enabled for retry
       setBusy(false);
@@ -43,9 +49,15 @@ export function AiFeedback({ feature, context, profile = "crm", className, label
     setBusy(false);
   };
 
+  const onDownClick = () => {
+    if (busy || submitted) return;
+    setShowReason(true);
+  };
+
   return (
-    <div className={cn("flex items-center gap-2 text-[11px] text-muted-foreground", className)}>
-      <span>{label}</span>
+    <div className={cn("space-y-2", className)}>
+      <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+        {label && <span>{label}</span>}
       <button
         type="button"
         aria-label="Helpful"
@@ -62,7 +74,7 @@ export function AiFeedback({ feature, context, profile = "crm", className, label
         type="button"
         aria-label="Not helpful"
         disabled={busy || !!submitted}
-        onClick={() => send("down")}
+        onClick={onDownClick}
         className={cn(
           "inline-flex items-center justify-center h-6 w-6 rounded-md border border-border hover:bg-accent transition-colors disabled:opacity-50 disabled:cursor-default",
           submitted === "down" && "bg-muted border-foreground/30",
@@ -74,6 +86,27 @@ export function AiFeedback({ feature, context, profile = "crm", className, label
         <span className="inline-flex items-center gap-1 text-[#16a34a]">
           <Check className="h-3 w-3" /> thanks
         </span>
+      )}
+      </div>
+      {showReason && !submitted && (
+        <div className="space-y-1.5">
+          <Textarea
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder="What was wrong?"
+            rows={2}
+            className="text-xs resize-none"
+            maxLength={500}
+          />
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => send("down", reason)} disabled={busy}>
+              Send feedback
+            </Button>
+            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => { setShowReason(false); setReason(""); }} disabled={busy}>
+              Cancel
+            </Button>
+          </div>
+        </div>
       )}
     </div>
   );

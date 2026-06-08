@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Upload, FileText, CheckCircle2 } from "lucide-react";
+import { AiFeedback } from "@/components/crm/AiFeedback";
 
 export default function PortalDocuments() {
   const { user } = useAuth();
@@ -63,6 +64,13 @@ export default function PortalDocuments() {
       <div>
         <h1 className="text-2xl font-bold">Documents</h1>
         <p className="text-muted-foreground text-sm">Upload the items your loan officer needs to close your loan.</p>
+        <div className="mt-3">
+          <AiFeedback
+            feature="portal_docs"
+            profile="borrower"
+            context={{ borrower_id: binding.contact_id ?? null, deal_id: binding.deal_id ?? null, chat_thread_id: null }}
+          />
+        </div>
       </div>
 
       <div className="space-y-3">

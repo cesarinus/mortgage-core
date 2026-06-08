@@ -7,6 +7,7 @@ import { Check, Circle, MapPin, DollarSign } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Enums } from "@/integrations/supabase/types";
 import { Constants } from "@/integrations/supabase/types";
+import { AiFeedback } from "@/components/crm/AiFeedback";
 
 type Stage = Enums<"deal_stage">;
 
@@ -96,6 +97,13 @@ export default function PortalDashboard() {
               );
             })}
           </ol>
+          <div className="pt-4 mt-4 border-t">
+            <AiFeedback
+              feature="portal_status"
+              profile="borrower"
+              context={{ borrower_id: binding?.contact_id ?? null, deal_id: deal?.id ?? null, stage: deal?.stage ?? null, chat_thread_id: null }}
+            />
+          </div>
         </CardContent>
       </Card>
     </div>
