@@ -696,6 +696,7 @@ export type Database = {
           contact_type: Database["public"]["Enums"]["contact_type"]
           created_at: string
           created_by: string | null
+          dob: string | null
           email: string | null
           first_name: string
           id: string
@@ -703,6 +704,8 @@ export type Database = {
           last_name: string
           lead_id: string | null
           lead_score: number
+          license_number: string | null
+          middle_name: string | null
           notes: string | null
           phone: string | null
           role: Database["public"]["Enums"]["contact_role"] | null
@@ -715,6 +718,7 @@ export type Database = {
           contact_type?: Database["public"]["Enums"]["contact_type"]
           created_at?: string
           created_by?: string | null
+          dob?: string | null
           email?: string | null
           first_name: string
           id?: string
@@ -722,6 +726,8 @@ export type Database = {
           last_name: string
           lead_id?: string | null
           lead_score?: number
+          license_number?: string | null
+          middle_name?: string | null
           notes?: string | null
           phone?: string | null
           role?: Database["public"]["Enums"]["contact_role"] | null
@@ -734,6 +740,7 @@ export type Database = {
           contact_type?: Database["public"]["Enums"]["contact_type"]
           created_at?: string
           created_by?: string | null
+          dob?: string | null
           email?: string | null
           first_name?: string
           id?: string
@@ -741,6 +748,8 @@ export type Database = {
           last_name?: string
           lead_id?: string | null
           lead_score?: number
+          license_number?: string | null
+          middle_name?: string | null
           notes?: string | null
           phone?: string | null
           role?: Database["public"]["Enums"]["contact_role"] | null
@@ -992,6 +1001,7 @@ export type Database = {
       }
       crm_companies: {
         Row: {
+          address: string | null
           company_type: Database["public"]["Enums"]["company_type"]
           created_at: string
           created_by: string | null
@@ -1001,6 +1011,7 @@ export type Database = {
           id: string
           industry: string | null
           is_self_employed: boolean
+          license_number: string | null
           name: string
           notes: string | null
           phone: string | null
@@ -1008,6 +1019,7 @@ export type Database = {
           website: string | null
         }
         Insert: {
+          address?: string | null
           company_type?: Database["public"]["Enums"]["company_type"]
           created_at?: string
           created_by?: string | null
@@ -1017,6 +1029,7 @@ export type Database = {
           id?: string
           industry?: string | null
           is_self_employed?: boolean
+          license_number?: string | null
           name: string
           notes?: string | null
           phone?: string | null
@@ -1024,6 +1037,7 @@ export type Database = {
           website?: string | null
         }
         Update: {
+          address?: string | null
           company_type?: Database["public"]["Enums"]["company_type"]
           created_at?: string
           created_by?: string | null
@@ -1033,6 +1047,7 @@ export type Database = {
           id?: string
           industry?: string | null
           is_self_employed?: boolean
+          license_number?: string | null
           name?: string
           notes?: string | null
           phone?: string | null

@@ -9,6 +9,8 @@ import { useToast } from "@/hooks/use-toast";
 import BookingAvailabilitySettings from "@/components/settings/BookingAvailabilitySettings";
 import { Switch } from "@/components/ui/switch";
 import EmailProviderSettings from "@/components/settings/EmailProviderSettings";
+import { Link } from "react-router-dom";
+import { Upload } from "lucide-react";
 
 export default function SettingsPage() {
   const { user } = useAuth();
@@ -87,6 +89,21 @@ export default function SettingsPage() {
       </Card>
       <BookingAvailabilitySettings />
       <EmailProviderSettings />
+      {user && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Data Import</CardTitle>
+            <CardDescription>Import People and Companies from Arive LOS exports.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild variant="outline">
+              <Link to="/settings/import-arive">
+                <Upload className="h-4 w-4 mr-2" /> Import from Arive
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
