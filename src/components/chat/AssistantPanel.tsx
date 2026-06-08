@@ -282,9 +282,9 @@ export function AssistantPanel({ open, onClose, scope, recordKind = null, record
               {text && (
                 <div className="not-prose mt-1">
                   <AiFeedback
-                    feature="assistant_chat"
+                    feature={scope === "portal" ? "portal_chat" : "assistant_chat"}
                     profile={scope}
-                    context={{ thread_id: threadId, message_id: m.id, record_kind: recordKind, record_id: recordId }}
+                    context={{ chat_thread_id: threadId, message_id: m.id, record_kind: recordKind, borrower_id: scope === "portal" ? recordId : null, record_id: recordId }}
                     label=""
                   />
                 </div>
