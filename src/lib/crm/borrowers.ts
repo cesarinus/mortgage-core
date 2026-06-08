@@ -16,7 +16,7 @@ const NON_BORROWER_TYPES = new Set([
 
 const isBorrowerType = (t: any) => {
   const v = String(t ?? "").toLowerCase();
-  if (!v) return true; // unknown defaults to borrower
+  if (!v) return false;
   if (v === "borrower") return true;
   return !NON_BORROWER_TYPES.has(v);
 };
@@ -85,7 +85,7 @@ export async function fetchDealBorrowers(leadId: string, fallbackName = "Borrowe
     // Hard-exclude explicitly non-borrower contact types (partner, realtor, etc.)
     // even if a stale lead_contacts row marks them as primary_borrower.
     if (c && !isBorrowerType(c.contact_type)) return;
-    const isBorrowerContact = c?.contact_type === "borrower" || !c?.contact_type;
+    const isBorrowerContact = c?.contact_type === "borrower";
     const isPrimary = forcedPrimary || !!link?.is_primary || primaryIds.has(contactId);
     const isBorrowerRole = role ? BORROWER_ROLES.has(String(role)) : false;
 
