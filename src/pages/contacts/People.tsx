@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Search, ExternalLink, MoreHorizontal, Eye, Pencil, Trash2, Copy, ArrowUpRightSquare } from "lucide-react";
+import { Users, UserCheck, Briefcase, Building2, Flame } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -22,6 +23,7 @@ import { RecordLookup } from "@/components/crm/RecordLookup";
 import { fetchAllCompanies } from "@/lib/crm/queries";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { SmartEmailComposer } from "@/components/email/SmartEmailComposer";
+import { FilterSidebar } from "@/components/crm/FilterSidebar";
 
 type Contact = Tables<"contacts">;
 
@@ -40,6 +42,9 @@ export default function People() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [smartView, setSmartView] = useState<string>("all");
+  const [borrowerTypeFilter, setBorrowerTypeFilter] = useState<string>("all");
+  const [companyFilter, setCompanyFilter] = useState<string>("all");
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Contact | null>(null);
   const [companies, setCompanies] = useState<any[]>([]);
@@ -114,13 +119,33 @@ export default function People() {
     toast({ title: "Company created" });
   };
 
+  const partnerTypes = new Set(["real_estate_agent", "title_agent", "insurance_agent", "referral_partner"]);
+
+  const smartViewCounts = useMemo(() => ({
+    all: contacts.length,
+    borrowers: contacts.filter((c: any) => c.contact_type === "borrower").length,
+    partners: contacts.filter((c: any) => partnerTypes.has(c.contact_type)).length,
+    unassigned: contacts.filter((c: any) => !c.company_id).length,
+    hot: contacts.filter((c: any) => (c.lead_score ?? 0) > 70).length,
+  }), [contacts]);
+
   const filtered = contacts.filter((c: any) => {
     const q = search.toLowerCase();
     const matchQ = `${c.first_name} ${c.last_name} ${c.email ?? ""} ${c.role ?? ""}`.toLowerCase().includes(q);
-    const matchR = roleFilter === "all" || c.role === roleFilter;
-    return matchQ && matchR;
+    const matchR = roleFilter === "all" || c.role === roleFilter || c.contact_type === roleFilter;
+    const matchSV =
+      smartView === "all" ? true :
+      smartView === "borrowers" ? c.contact_type === "borrower" :
+      smartView === "partners" ? partnerTypes.has(c.contact_type) :
+      smartView === "unassigned" ? !c.company_id :
+      smartView === "hot" ? (c.lead_score ?? 0) > 70 : true;
+    const matchBT = borrowerTypeFilter === "all" || (c.borrower_type ?? "employee") === borrowerTypeFilter;
+    const matchCo = companyFilter === "all"
+      || (companyFilter === "with" && !!c.company_id)
+      || (companyFilter === "without" && !c.company_id);
+    return matchQ && matchR && matchSV && matchBT && matchCo;
   });
-  useEffect(() => { setPage(1); }, [search, roleFilter, pageSize]);
+  useEffect(() => { setPage(1); }, [search, roleFilter, smartView, borrowerTypeFilter, companyFilter, pageSize]);
   const paged = filtered.slice((page - 1) * pageSize, page * pageSize);
 
   const openNew = () => { setEditing(null); setOpen(true); };
@@ -148,7 +173,39 @@ export default function People() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="flex -m-6 h-[calc(100vh-3.5rem)] overflow-hidden">
+      <FilterSidebar
+        smartView={smartView}
+        onSmartViewChange={setSmartView}
+        smartViews={[
+          { key: "all", label: "All People", icon: Users, count: smartViewCounts.all },
+          { key: "borrowers", label: "Borrowers", icon: UserCheck, count: smartViewCounts.borrowers },
+          { key: "partners", label: "Partners", icon: Briefcase, count: smartViewCounts.partners },
+          { key: "unassigned", label: "No Company", icon: Building2, count: smartViewCounts.unassigned },
+          { key: "hot", label: "Hot", icon: Flame, count: smartViewCounts.hot },
+        ]}
+        tiers={[
+          {
+            title: "Borrower Type",
+            value: borrowerTypeFilter,
+            onChange: setBorrowerTypeFilter,
+            options: [
+              { key: "employee", label: "Employee" },
+              { key: "self_employed", label: "Self-Employed" },
+            ],
+          },
+          {
+            title: "Company",
+            value: companyFilter,
+            onChange: setCompanyFilter,
+            options: [
+              { key: "with", label: "Has Company" },
+              { key: "without", label: "No Company" },
+            ],
+          },
+        ]}
+      />
+      <div className="flex-1 overflow-y-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">People</h1>
@@ -274,6 +331,7 @@ export default function People() {
           />
         </CardContent>
       </Card>
+      </div>
 
       <AlertDialog open={!!deleteTarget} onOpenChange={(o) => { if (!o) { setDeleteTarget(null); setDeleteBlock(null); } }}>
         <AlertDialogContent>
