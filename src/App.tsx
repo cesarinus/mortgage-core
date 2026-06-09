@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from "@/hooks/useAuth";
+import { ThemeProvider } from "@/lib/theme";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import AppLayout from "@/components/AppLayout";
 import LandingPage from "@/pages/LandingPage";
@@ -46,6 +47,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <AuthProvider>
+            <ThemeProvider>
             <Routes>
               <Route path="/" element={<LandingPage />} />
               <Route path="/auth" element={<Auth />} />
@@ -88,6 +90,7 @@ const App = () => (
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>
+            </ThemeProvider>
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
