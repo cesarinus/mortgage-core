@@ -1807,6 +1807,45 @@ export type Database = {
           },
         ]
       }
+      integration_webhooks: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          events: string[]
+          id: string
+          last_fired_at: string | null
+          last_status: string | null
+          provider: string
+          updated_at: string
+          url: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          events?: string[]
+          id?: string
+          last_fired_at?: string | null
+          last_status?: string | null
+          provider?: string
+          updated_at?: string
+          url: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          events?: string[]
+          id?: string
+          last_fired_at?: string | null
+          last_status?: string | null
+          provider?: string
+          updated_at?: string
+          url?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       lead_contacts: {
         Row: {
           company_id: string | null

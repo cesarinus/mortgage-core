@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import BookingAvailabilitySettings from "@/components/settings/BookingAvailabilitySettings";
 import { Switch } from "@/components/ui/switch";
 import EmailProviderSettings from "@/components/settings/EmailProviderSettings";
+import ZapierIntegrationSettings from "@/components/settings/ZapierIntegrationSettings";
 import { Link } from "react-router-dom";
 import { Upload, Moon, Sun, Palette, Monitor } from "lucide-react";
 import { useTheme, type ThemeName } from "@/lib/theme";
@@ -129,6 +130,7 @@ export default function SettingsPage() {
       </Card>
       <BookingAvailabilitySettings />
       <EmailProviderSettings />
+      <ZapierIntegrationSettings />
       {user && (
         <Card>
           <CardHeader>
