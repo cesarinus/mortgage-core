@@ -112,14 +112,13 @@ export default function RecordWorkspace({ kind }: Props) {
         safe(fetchActivities({ leadId, contactId }), [] as any[]),
         leadId ? safe(fetchEmailLogs(leadId), [] as any[]) : Promise.resolve([] as any[]),
         leadId ? safe(fetchAttachments(leadId), [] as any[]) : Promise.resolve([] as any[]),
-        // For a contact page, only show companies linked to THIS contact —
-        // NOT every company on the most recent lead the contact appears on.
-        safe(
-          kind === "contact"
-            ? fetchCompanies(undefined, contactId)
-            : fetchCompanies(leadId, contactId),
-          [] as any[],
-        ),
+        // Contact page: only companies linked to THIS contact.
+        // Lead page: companies are derived AFTER lcs loads (see below) so the
+        // Companies card reflects the employers/agencies of the linked
+        // Contacts (Realtor, Title, Insurance, etc.), not lead-level links.
+        kind === "contact"
+          ? safe(fetchCompanies(undefined, contactId), [] as any[])
+          : Promise.resolve([] as any[]),
         safe(fetchDeals(contactId), [] as any[]),
         leadId ? safe(fetchLeadContacts(leadId), [] as any[]) : Promise.resolve([] as any[]),
         leadId ? safe(fetchTags(leadId), [] as any[]) : Promise.resolve([] as any[]),
@@ -145,6 +144,52 @@ export default function RecordWorkspace({ kind }: Props) {
               ...(cos ?? []),
             ];
           }
+        }
+      }
+      // Lead page: derive companies from the linked contacts.
+      if (kind === "lead") {
+        const contactIds = Array.from(new Set((lcs ?? []).map((r: any) => r.contact_id).filter(Boolean)));
+        const derived: any[] = [];
+        if (contactIds.length > 0) {
+          // 1) Employer on the contact record (contacts.company_id)
+          const employerRows = (lcs ?? [])
+            .filter((r: any) => r.contact?.company_id)
+            .map((r: any) => ({
+              id: `contact-company-${r.contact_id}-${r.contact.company_id}`,
+              contact_id: r.contact_id,
+              company_id: r.contact.company_id,
+              role: r.contact?.job_title ?? r.role ?? null,
+              __source: "contact",
+              __contactName: `${r.contact?.first_name ?? ""} ${r.contact?.last_name ?? ""}`.trim(),
+            }));
+          // 2) Explicit contact↔company links
+          const { data: ccLinks } = await supabase
+            .from("crm_contact_companies")
+            .select("*")
+            .in("contact_id", contactIds);
+          const linkRows = (ccLinks ?? []).map((cc: any) => ({ ...cc, __source: "link" }));
+          derived.push(...employerRows, ...linkRows);
+        }
+        // Dedupe by company_id (prefer explicit link rows over employer-derived)
+        const byCompany = new Map<string, any>();
+        for (const row of derived) {
+          if (!row.company_id) continue;
+          const existing = byCompany.get(row.company_id);
+          if (!existing || (existing.__source === "contact" && row.__source === "link")) {
+            byCompany.set(row.company_id, row);
+          }
+        }
+        const unique = Array.from(byCompany.values());
+        const companyIds = unique.map((r) => r.company_id);
+        if (companyIds.length > 0) {
+          const { data: cmps } = await supabase
+            .from("crm_companies")
+            .select("*")
+            .in("id", companyIds);
+          const byId = new Map((cmps ?? []).map((c: any) => [c.id, c]));
+          mergedCompanies = unique.map((r) => ({ ...r, company: byId.get(r.company_id) ?? null }));
+        } else {
+          mergedCompanies = [];
         }
       }
       setCompanies(mergedCompanies); setDeals(dls); setLinkedContacts(lcs); setTags(tgs);
