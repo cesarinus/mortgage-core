@@ -182,7 +182,7 @@ const BlogAdmin = () => {
 
       <Tabs defaultValue="content" className="w-full">
         <TabsList>
-          <TabsTrigger value="content">Content</TabsTrigger>
+          <TabsTrigger value="content">Blog Content</TabsTrigger>
           <TabsTrigger value="optimization" className="gap-1.5">
             <BarChart3 className="h-3.5 w-3.5" />
             Optimization
