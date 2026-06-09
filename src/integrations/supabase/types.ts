@@ -2111,6 +2111,7 @@ export type Database = {
           property_address: string | null
           property_type: string | null
           property_value: number | null
+          sent_to_los_at: string | null
           source: string | null
           source_id: string | null
           status: Database["public"]["Enums"]["lead_status"]
@@ -2147,6 +2148,7 @@ export type Database = {
           property_address?: string | null
           property_type?: string | null
           property_value?: number | null
+          sent_to_los_at?: string | null
           source?: string | null
           source_id?: string | null
           status?: Database["public"]["Enums"]["lead_status"]
@@ -2183,6 +2185,7 @@ export type Database = {
           property_address?: string | null
           property_type?: string | null
           property_value?: number | null
+          sent_to_los_at?: string | null
           source?: string | null
           source_id?: string | null
           status?: Database["public"]["Enums"]["lead_status"]
@@ -2450,6 +2453,78 @@ export type Database = {
           },
         ]
       }
+      los_loans: {
+        Row: {
+          arive_loan_id: string | null
+          conditions: Json | null
+          created_at: string
+          deal_id: string | null
+          du_findings: string | null
+          estimated_close_date: string | null
+          id: string
+          interest_rate: number | null
+          last_synced_at: string
+          lead_id: string
+          loan_amount: number | null
+          loan_program: string | null
+          loan_status: string | null
+          purchase_price: number | null
+          raw: Json | null
+          updated_at: string
+        }
+        Insert: {
+          arive_loan_id?: string | null
+          conditions?: Json | null
+          created_at?: string
+          deal_id?: string | null
+          du_findings?: string | null
+          estimated_close_date?: string | null
+          id?: string
+          interest_rate?: number | null
+          last_synced_at?: string
+          lead_id: string
+          loan_amount?: number | null
+          loan_program?: string | null
+          loan_status?: string | null
+          purchase_price?: number | null
+          raw?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          arive_loan_id?: string | null
+          conditions?: Json | null
+          created_at?: string
+          deal_id?: string | null
+          du_findings?: string | null
+          estimated_close_date?: string | null
+          id?: string
+          interest_rate?: number | null
+          last_synced_at?: string
+          lead_id?: string
+          loan_amount?: number | null
+          loan_program?: string | null
+          loan_status?: string | null
+          purchase_price?: number | null
+          raw?: Json | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "los_loans_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "los_loans_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       los_sync_queue: {
         Row: {
           created_at: string
@@ -2552,6 +2627,7 @@ export type Database = {
       }
       pipeline_opportunities: {
         Row: {
+          arive_loan_id: string | null
           close_date: string | null
           created_at: string
           created_by: string | null
@@ -2567,6 +2643,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          arive_loan_id?: string | null
           close_date?: string | null
           created_at?: string
           created_by?: string | null
@@ -2582,6 +2659,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          arive_loan_id?: string | null
           close_date?: string | null
           created_at?: string
           created_by?: string | null
