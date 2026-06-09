@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 export type ZapierEvent =
   | "lead.created"
   | "lead.status_changed"
+  | "lead.sent_to_los"
   | "deal.stage_changed"
   | "deal.closed"
   | "document.uploaded"

@@ -14,6 +14,7 @@ import { fireZapier } from "@/lib/integrations/zapier";
 const EVENT_OPTIONS: { id: string; label: string; description: string }[] = [
   { id: "lead.created", label: "Lead created", description: "Fires when a new lead is added to the CRM." },
   { id: "lead.status_changed", label: "Lead status changed", description: "Fires on new → contacted → qualified transitions." },
+  { id: "lead.sent_to_los", label: "Lead sent to LOS", description: "Fires when you click 'Send to LOS' on a lead/deal. Use this in Zapier to create the loan in Arive." },
   { id: "deal.stage_changed", label: "Deal stage changed", description: "Fires when a pipeline opportunity moves stages." },
   { id: "deal.closed", label: "Deal closed", description: "Fires when a deal reaches the closed stage." },
   { id: "document.uploaded", label: "Document uploaded", description: "Fires when a borrower document is uploaded." },
