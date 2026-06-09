@@ -20,7 +20,6 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { SmartLeadForm } from "@/components/crm/SmartLeadForm";
 import { intakeFromLead } from "@/lib/crm/leadIntake";
-import { AssistantLauncher } from "@/components/chat/AssistantLauncher";
 import { AssistantPanel } from "@/components/chat/AssistantPanel";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Sparkles as SparklesIcon } from "lucide-react";
@@ -568,9 +567,7 @@ export default function RecordWorkspace({ kind }: Props) {
           </Button>
         )}
       </>
-    ) : (
-      <AssistantLauncher scope="crm" recordKind={kind} recordId={id} />
-    )}
+    ) : null}
     </>
   );
 }

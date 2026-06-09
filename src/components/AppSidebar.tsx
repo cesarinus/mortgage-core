@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Users, Contact, Kanban, Settings, LogOut, Building2, FileText, TrendingUp, Share2, Mail, MailPlus, Filter,
-  ChevronRight, BookUser,
+  ChevronRight, BookUser, Sparkles,
 } from "lucide-react";
 import { Fragment, useState } from "react";
 import { useLocation } from "react-router-dom";
@@ -15,6 +15,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { cn } from "@/lib/utils";
 
 const navItems: { title: string; url: string; icon: any; adminOnly?: boolean }[] = [
+  { title: "Ask", url: "/ask", icon: Sparkles },
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Leads", url: "/leads", icon: Users },
   { title: "Pipeline", url: "/pipeline", icon: Kanban },

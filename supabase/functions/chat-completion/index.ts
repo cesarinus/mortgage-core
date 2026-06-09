@@ -2,7 +2,8 @@
 // Loads scoped, grounded context from the DB and forwards to Lovable AI Gateway.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { createOpenAICompatible } from "npm:@ai-sdk/openai-compatible";
-import { convertToModelMessages, streamText, type UIMessage } from "npm:ai";
+import { convertToModelMessages, streamText, tool, stepCountIs, type UIMessage } from "npm:ai";
+import { z } from "npm:zod";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,7 +12,7 @@ const corsHeaders = {
 };
 
 type Scope = "crm" | "portal";
-type RecordKind = "lead" | "contact" | "deal" | "portal" | null;
+type RecordKind = "lead" | "contact" | "deal" | "portal" | "hub" | null;
 
 interface Body {
   threadId?: string;
@@ -103,10 +104,14 @@ Deno.serve(async (req) => {
     });
     const model = gateway("google/gemini-3-flash-preview");
 
+    const tools = scope === "crm" ? buildCrmTools(userClient) : undefined;
+
     const result = streamText({
       model,
       system: systemPrompt,
       messages: await convertToModelMessages(messages),
+      tools,
+      stopWhen: stepCountIs(50),
       onFinish: async ({ text }) => {
         try {
           await admin.from("chat_messages").insert({
@@ -245,13 +250,171 @@ function buildSystemPrompt(scope: Scope, ctx: Record<string, unknown>): string {
   }
   return [
     "You are the NexGen Capital CRM assistant for internal staff (loan officers, processors, admins).",
-    "Ground every answer strictly in the JSON context below. Never invent fields, contacts, or activity.",
-    "If data is missing, say so and suggest the next action (e.g., 'No mortgage_profile on file — open Smart Intake').",
-    "You are read-only: suggest actions (add note, create task, send email, update status, upload document) and tell the user which UI button performs them. Do not claim to have executed anything.",
-    "Use concise Markdown. Tables for activity timelines and checklists are encouraged.",
+    "You have read-only tools to query the CRM live. Call them whenever the user asks about leads, deals, tasks, contacts, the pipeline, or what needs attention. NEVER invent records — always call a tool first.",
+    "Available tools: query_leads, query_pipeline, query_tasks, query_contacts, query_deals, summarize_record, get_morning_brief.",
+    "After calling tools, write a concise Markdown summary of the results. Reference records by name and include short context (status, score, days since contact). Do NOT paste raw JSON.",
+    "You CANNOT take any write actions. If asked to send/create/update, explain which UI screen to use and offer to summarize related info instead.",
+    "If the JSON context already contains a focused record, prefer answering from it. Otherwise, call tools.",
+    "Use concise Markdown. Tables are encouraged for lists.",
     "Context JSON:",
     "```json",
     JSON.stringify(ctx, null, 2),
     "```",
   ].join("\n");
+}
+
+// ---- Read-only CRM tools (RLS-scoped via userClient) ----
+function buildCrmTools(client: ReturnType<typeof createClient>) {
+  return {
+    query_leads: tool({
+      description:
+        "Query leads owned by or assigned to the current user. Filters: needs_attention (stuck or >7d no activity), stuck (is_stuck=true), high_score (>=60), uncontacted (>N days since last_activity_at), by_status.",
+      inputSchema: z.object({
+        filter: z.enum(["needs_attention", "stuck", "high_score", "uncontacted", "by_status", "all"]).default("all"),
+        status: z.string().optional(),
+        uncontacted_days: z.number().int().min(1).max(60).default(7),
+        limit: z.number().int().min(1).max(50).default(15),
+      }),
+      execute: async ({ filter, status, uncontacted_days, limit }) => {
+        let q = client
+          .from("leads")
+          .select("id, first_name, last_name, email, status, lead_score, is_stuck, last_activity_at, intent_tag, loan_purpose, created_at")
+          .order("lead_score", { ascending: false })
+          .limit(limit);
+        if (filter === "stuck") q = q.eq("is_stuck", true);
+        if (filter === "high_score") q = q.gte("lead_score", 60);
+        if (filter === "by_status" && status) q = q.eq("status", status as any);
+        if (filter === "uncontacted" || filter === "needs_attention") {
+          const cutoff = new Date(Date.now() - uncontacted_days * 86400000).toISOString();
+          q = q.or(`last_activity_at.lt.${cutoff},last_activity_at.is.null`);
+        }
+        if (filter === "needs_attention") q = q.or("is_stuck.eq.true,lead_score.gte.60");
+        const { data, error } = await q;
+        if (error) return { error: error.message, leads: [] };
+        return { count: data?.length ?? 0, leads: data ?? [] };
+      },
+    }),
+    query_pipeline: tool({
+      description: "Query pipeline opportunities (active deals). Filter by stage if provided.",
+      inputSchema: z.object({
+        stage: z.string().optional(),
+        limit: z.number().int().min(1).max(50).default(20),
+      }),
+      execute: async ({ stage, limit }) => {
+        let q = client
+          .from("pipeline_opportunities")
+          .select("id, lead_id, stage, loan_amount, property_address, target_close_date, created_at")
+          .order("created_at", { ascending: false })
+          .limit(limit);
+        if (stage) q = q.eq("stage", stage);
+        const { data, error } = await q;
+        if (error) return { error: error.message, opportunities: [] };
+        return { count: data?.length ?? 0, opportunities: data ?? [] };
+      },
+    }),
+    query_tasks: tool({
+      description: "Query CRM tasks. status: open (not done), overdue (open + past due), due_today.",
+      inputSchema: z.object({
+        status: z.enum(["open", "overdue", "due_today", "all"]).default("open"),
+        limit: z.number().int().min(1).max(50).default(20),
+      }),
+      execute: async ({ status, limit }) => {
+        let q = client
+          .from("crm_tasks")
+          .select("id, lead_id, contact_id, title, status, priority, due_at, assignee_id")
+          .order("due_at", { ascending: true, nullsFirst: false })
+          .limit(limit);
+        if (status === "open") q = q.neq("status", "done");
+        if (status === "overdue") q = q.neq("status", "done").lt("due_at", new Date().toISOString());
+        if (status === "due_today") {
+          const start = new Date(); start.setHours(0, 0, 0, 0);
+          const end = new Date(); end.setHours(23, 59, 59, 999);
+          q = q.neq("status", "done").gte("due_at", start.toISOString()).lte("due_at", end.toISOString());
+        }
+        const { data, error } = await q;
+        if (error) return { error: error.message, tasks: [] };
+        return { count: data?.length ?? 0, tasks: data ?? [] };
+      },
+    }),
+    query_contacts: tool({
+      description: "Search contacts by name or email.",
+      inputSchema: z.object({
+        search: z.string().min(1),
+        limit: z.number().int().min(1).max(30).default(15),
+      }),
+      execute: async ({ search, limit }) => {
+        const s = `%${search}%`;
+        const { data, error } = await client
+          .from("contacts")
+          .select("id, first_name, last_name, email, contact_type, job_title, temperature, lead_score")
+          .or(`first_name.ilike.${s},last_name.ilike.${s},email.ilike.${s}`)
+          .limit(limit);
+        if (error) return { error: error.message, contacts: [] };
+        return { count: data?.length ?? 0, contacts: data ?? [] };
+      },
+    }),
+    query_deals: tool({
+      description: "Query deals. Filter by stage if provided.",
+      inputSchema: z.object({
+        stage: z.string().optional(),
+        limit: z.number().int().min(1).max(50).default(20),
+      }),
+      execute: async ({ stage, limit }) => {
+        let q = client
+          .from("deals")
+          .select("id, contact_id, stage, loan_amount, loan_type, property_address, created_at")
+          .order("created_at", { ascending: false })
+          .limit(limit);
+        if (stage) q = q.eq("stage", stage as any);
+        const { data, error } = await q;
+        if (error) return { error: error.message, deals: [] };
+        return { count: data?.length ?? 0, deals: data ?? [] };
+      },
+    }),
+    summarize_record: tool({
+      description: "Pull a focused snapshot for one record. kind=lead|contact|deal.",
+      inputSchema: z.object({
+        kind: z.enum(["lead", "contact", "deal"]),
+        id: z.string().uuid(),
+      }),
+      execute: async ({ kind, id }) => {
+        if (kind === "lead") {
+          const [lead, acts, conds, tasks] = await Promise.all([
+            client.from("leads").select("*").eq("id", id).maybeSingle(),
+            client.from("crm_activities").select("activity_type, title, created_at").eq("lead_id", id).order("created_at", { ascending: false }).limit(10),
+            client.from("loan_conditions").select("title, status, category, required").eq("lead_id", id).limit(20),
+            client.from("crm_tasks").select("title, status, due_at").eq("lead_id", id).neq("status", "done").limit(10),
+          ]);
+          return { lead: lead.data, recent_activities: acts.data, conditions: conds.data, open_tasks: tasks.data };
+        }
+        if (kind === "contact") {
+          const { data } = await client.from("contacts").select("*").eq("id", id).maybeSingle();
+          return { contact: data };
+        }
+        const { data } = await client.from("deals").select("*").eq("id", id).maybeSingle();
+        return { deal: data };
+      },
+    }),
+    get_morning_brief: tool({
+      description: "Composite snapshot: stuck leads, hot leads, tasks due today, recent stage changes. Call this for daily-brief style questions.",
+      inputSchema: z.object({}),
+      execute: async () => {
+        const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+        const todayEnd = new Date(); todayEnd.setHours(23, 59, 59, 999);
+        const yesterday = new Date(Date.now() - 86400000).toISOString();
+        const [stuck, hot, dueToday, recentMoves] = await Promise.all([
+          client.from("leads").select("id, first_name, last_name, lead_score, last_activity_at").eq("is_stuck", true).order("lead_score", { ascending: false }).limit(8),
+          client.from("leads").select("id, first_name, last_name, lead_score, status").gte("lead_score", 60).order("lead_score", { ascending: false }).limit(8),
+          client.from("crm_tasks").select("id, title, due_at, lead_id").neq("status", "done").gte("due_at", todayStart.toISOString()).lte("due_at", todayEnd.toISOString()).limit(10),
+          client.from("deal_stage_history").select("deal_id, old_stage, new_stage, created_at").gte("created_at", yesterday).order("created_at", { ascending: false }).limit(10),
+        ]);
+        return {
+          stuck_leads: stuck.data ?? [],
+          hot_leads: hot.data ?? [],
+          tasks_due_today: dueToday.data ?? [],
+          recent_stage_changes: recentMoves.data ?? [],
+        };
+      },
+    }),
+  };
 }
