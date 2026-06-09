@@ -50,6 +50,45 @@ export type Database = {
         }
         Relationships: []
       }
+      assistant_interactions: {
+        Row: {
+          created_at: string
+          id: string
+          latency_ms: number | null
+          question: string
+          result_clicked_id: string | null
+          result_clicked_kind: string | null
+          session_id: string | null
+          tool_calls: Json
+          tool_results_summary: Json
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          latency_ms?: number | null
+          question: string
+          result_clicked_id?: string | null
+          result_clicked_kind?: string | null
+          session_id?: string | null
+          tool_calls?: Json
+          tool_results_summary?: Json
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          latency_ms?: number | null
+          question?: string
+          result_clicked_id?: string | null
+          result_clicked_kind?: string | null
+          session_id?: string | null
+          tool_calls?: Json
+          tool_results_summary?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
       blog_events: {
         Row: {
           created_at: string
