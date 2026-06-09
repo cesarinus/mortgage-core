@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Building2, Briefcase, Paperclip, Plus, Download, FileText, Users, Pencil } from "lucide-react";
+import { Building2, Briefcase, Paperclip, Plus, Download, FileText, Users, Pencil, Minus } from "lucide-react";
 import { format } from "date-fns";
 import { Link } from "react-router-dom";
 import { formatPhone } from "@/lib/format";
@@ -16,9 +16,11 @@ interface Props {
   onAddContact?: () => void;
   onEditCompanies?: () => void;
   onSignedUrl: (path: string) => Promise<string | null>;
+  onRemoveContact?: (lc: any) => void;
+  onRemoveCompany?: (cc: any) => void;
 }
 
-export function RightRail({ companies, deals, attachments, contacts = [], onUpload, onAddCompany, onAddContact, onEditCompanies, onSignedUrl }: Props) {
+export function RightRail({ companies, deals, attachments, contacts = [], onUpload, onAddCompany, onAddContact, onEditCompanies, onSignedUrl, onRemoveContact, onRemoveCompany }: Props) {
   return (
     <div className="space-y-4 sticky top-4 self-start">
       {onAddContact && (
@@ -30,17 +32,26 @@ export function RightRail({ companies, deals, attachments, contacts = [], onUplo
           <CardContent className="pt-0 space-y-2 text-sm">
             {contacts.length === 0 && <p className="text-muted-foreground text-xs">No contacts linked.</p>}
             {contacts.map((lc) => (
-              <div key={lc.id} className="rounded border p-2">
-                <Link to={`/crm/contacts/${lc.contact?.id}`} className="font-medium hover:underline">
-                  {lc.contact?.first_name} {lc.contact?.last_name}
-                </Link>
-                <div className="text-xs text-muted-foreground">
-                  {lc.contact?.email ?? "—"}
+              <div key={lc.id} className="rounded border p-2 group relative">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <Link to={`/crm/contacts/${lc.contact?.id}`} className="font-medium hover:underline">
+                      {lc.contact?.first_name} {lc.contact?.last_name}
+                    </Link>
+                    <div className="text-xs text-muted-foreground truncate">
+                      {lc.contact?.email ?? "—"}
+                    </div>
+                    {lc.contact?.phone && (
+                      <div className="text-xs text-muted-foreground">{formatPhone(lc.contact.phone)}</div>
+                    )}
+                    {lc.role && <Badge variant="outline" className="text-xs mt-1">{lc.role}</Badge>}
+                  </div>
+                  {onRemoveContact && (
+                    <Button size="icon" variant="ghost" className="h-6 w-6 opacity-0 group-hover:opacity-100" title="Remove" onClick={() => onRemoveContact(lc)}>
+                      <Minus className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
                 </div>
-                {lc.contact?.phone && (
-                  <div className="text-xs text-muted-foreground">{formatPhone(lc.contact.phone)}</div>
-                )}
-                {lc.role && <Badge variant="outline" className="text-xs mt-1">{lc.role}</Badge>}
               </div>
             ))}
           </CardContent>
@@ -62,10 +73,19 @@ export function RightRail({ companies, deals, attachments, contacts = [], onUplo
         <CardContent className="pt-0 space-y-2 text-sm">
           {companies.length === 0 && <p className="text-muted-foreground text-xs">No companies linked.</p>}
           {companies.map((cc) => (
-            <div key={cc.id} className="rounded border p-2">
-              <div className="font-medium">{cc.company?.name}</div>
-              {cc.role && <div className="text-xs text-muted-foreground">{cc.role}</div>}
-              {cc.company?.is_self_employed && <Badge variant="outline" className="text-xs mt-1">Self-employed</Badge>}
+            <div key={cc.id} className="rounded border p-2 group relative">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium truncate">{cc.company?.name}</div>
+                  {cc.role && <div className="text-xs text-muted-foreground">{cc.role}</div>}
+                  {cc.company?.is_self_employed && <Badge variant="outline" className="text-xs mt-1">Self-employed</Badge>}
+                </div>
+                {onRemoveCompany && (
+                  <Button size="icon" variant="ghost" className="h-6 w-6 opacity-0 group-hover:opacity-100" title="Remove" onClick={() => onRemoveCompany(cc)}>
+                    <Minus className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+              </div>
             </div>
           ))}
         </CardContent>
