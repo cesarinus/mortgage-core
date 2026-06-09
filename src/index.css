@@ -102,6 +102,71 @@
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
   }
+
+  /* === NG Dark theme (premium command-center) === */
+  .theme-ng-dark {
+    --background: 222 47% 7%;        /* #0F172A */
+    --foreground: 210 40% 98%;       /* #F8FAFC */
+    --card: 220 39% 11%;             /* #111827 */
+    --card-foreground: 210 40% 98%;
+    --popover: 220 39% 11%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 24 100% 50%;          /* #FF7A00 */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 30% 16%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 220 30% 14%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 24 95% 22%;
+    --accent-foreground: 24 100% 75%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 25% 18%;
+    --input: 220 25% 18%;
+    --ring: 24 100% 50%;
+    --sidebar-background: 222 50% 5%;
+    --sidebar-foreground: 215 20% 75%;
+    --sidebar-primary: 24 100% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 35% 12%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 220 30% 15%;
+    --sidebar-ring: 24 100% 50%;
+    --success: 152 65% 48%;
+    --warning: 38 95% 55%;
+  }
+
+  /* === NG Light theme === */
+  .theme-ng-light {
+    --background: 210 20% 97%;       /* #F5F7FA */
+    --foreground: 222 47% 11%;       /* #111827 */
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 24 100% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 20% 94%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 210 20% 94%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 24 100% 95%;
+    --accent-foreground: 24 100% 35%;
+    --border: 215 20% 90%;
+    --input: 215 20% 90%;
+    --ring: 24 100% 50%;
+    --sidebar-background: 222 47% 11%;
+    --sidebar-foreground: 215 20% 75%;
+    --sidebar-primary: 24 100% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 222 35% 18%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 222 30% 18%;
+  }
+
+  /* === Original CRM (matches the existing warm cream/orange palette) === */
+  /* No overrides needed — :root defaults already define this look. */
+  .theme-original { }
 }
 
 @layer base {
@@ -161,6 +226,33 @@
 
   .orange-blob {
     background: radial-gradient(circle, hsl(24 95% 53% / 0.15) 0%, transparent 70%);
+  }
+
+  .glass-panel {
+    background: linear-gradient(180deg, hsl(var(--card) / 0.85), hsl(var(--card) / 0.65));
+    backdrop-filter: blur(14px) saturate(140%);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+    border: 1px solid hsl(var(--border) / 0.6);
+  }
+
+  .glow-orange {
+    box-shadow: 0 0 0 1px hsl(24 100% 50% / 0.2), 0 12px 40px -12px hsl(24 100% 50% / 0.45);
+  }
+
+  .kpi-card {
+    @apply relative overflow-hidden rounded-2xl border bg-card p-5 transition-all duration-300;
+    border-color: hsl(var(--border));
+  }
+  .kpi-card::before {
+    content: "";
+    position: absolute; inset: 0;
+    background: radial-gradient(600px circle at 0% 0%, hsl(24 100% 50% / 0.08), transparent 40%);
+    pointer-events: none;
+  }
+  .kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 20px 50px -20px hsl(24 100% 50% / 0.35);
+    border-color: hsl(24 100% 50% / 0.4);
   }
 }
 
