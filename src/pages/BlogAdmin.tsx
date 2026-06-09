@@ -195,6 +195,7 @@ const BlogAdmin = () => {
 
         <TabsContent value="content" className="mt-6 space-y-8">
 
+
       {/* Generator */}
       <Card>
         <CardHeader>
