@@ -112,7 +112,14 @@ export default function RecordWorkspace({ kind }: Props) {
         safe(fetchActivities({ leadId, contactId }), [] as any[]),
         leadId ? safe(fetchEmailLogs(leadId), [] as any[]) : Promise.resolve([] as any[]),
         leadId ? safe(fetchAttachments(leadId), [] as any[]) : Promise.resolve([] as any[]),
-        safe(fetchCompanies(leadId, contactId), [] as any[]),
+        // For a contact page, only show companies linked to THIS contact —
+        // NOT every company on the most recent lead the contact appears on.
+        safe(
+          kind === "contact"
+            ? fetchCompanies(undefined, contactId)
+            : fetchCompanies(leadId, contactId),
+          [] as any[],
+        ),
         safe(fetchDeals(contactId), [] as any[]),
         leadId ? safe(fetchLeadContacts(leadId), [] as any[]) : Promise.resolve([] as any[]),
         leadId ? safe(fetchTags(leadId), [] as any[]) : Promise.resolve([] as any[]),
@@ -121,7 +128,26 @@ export default function RecordWorkspace({ kind }: Props) {
         safe(fetchDocCategories(), [] as any[]),
       ]);
       setActivities(acts); setEmailLogs(mails); setAttachments(atts);
-      setCompanies(cos); setDeals(dls); setLinkedContacts(lcs); setTags(tgs);
+      // On a contact page, also surface the contact's own company_id (the
+      // employer on the contact record) if there's no explicit link row yet.
+      let mergedCompanies = cos;
+      if (kind === "contact" && (rec as any)?.company_id) {
+        const has = (cos ?? []).some((cc: any) => cc.company_id === (rec as any).company_id);
+        if (!has) {
+          const { data: co } = await supabase
+            .from("crm_companies")
+            .select("*")
+            .eq("id", (rec as any).company_id)
+            .maybeSingle();
+          if (co) {
+            mergedCompanies = [
+              { id: `contact-company-${(rec as any).company_id}`, contact_id: id, company_id: (rec as any).company_id, role: null, company: co, __source: "contact" },
+              ...(cos ?? []),
+            ];
+          }
+        }
+      }
+      setCompanies(mergedCompanies); setDeals(dls); setLinkedContacts(lcs); setTags(tgs);
       setMortgage(mp); setSentiment(st); setCategories(cats);
 
       // For lead kind, deals are linked through the lead's contacts. Resolve and merge.
@@ -201,6 +227,27 @@ export default function RecordWorkspace({ kind }: Props) {
     const { data, error } = await supabase.storage.from("crm-documents").createSignedUrl(path, 60);
     if (error) { toast({ title: "Could not generate link", description: error.message, variant: "destructive" }); return null; }
     return data?.signedUrl ?? null;
+  };
+
+  const handleRemoveContact = async (lc: any) => {
+    if (!lc?.id) return;
+    if (!confirm(`Remove ${lc?.contact?.first_name ?? "this contact"} from this ${kind}?`)) return;
+    const { error } = await supabase.from("lead_contacts").delete().eq("id", lc.id);
+    if (error) toast({ title: "Failed to remove contact", description: error.message, variant: "destructive" });
+    else { toast({ title: "Contact removed" }); loadAll(); }
+  };
+
+  const handleRemoveCompany = async (cc: any) => {
+    if (!cc) return;
+    if (!confirm(`Remove ${cc?.company?.name ?? "this company"} from this ${kind}?`)) return;
+    if (cc.__source === "contact" && kind === "contact" && id) {
+      const { error } = await supabase.from("contacts").update({ company_id: null }).eq("id", id);
+      if (error) { toast({ title: "Failed", description: error.message, variant: "destructive" }); return; }
+    } else {
+      const { error } = await supabase.from("crm_contact_companies").delete().eq("id", cc.id);
+      if (error) { toast({ title: "Failed", description: error.message, variant: "destructive" }); return; }
+    }
+    toast({ title: "Company removed" }); loadAll();
   };
 
   const refreshSentiment = async () => {
@@ -436,6 +483,8 @@ export default function RecordWorkspace({ kind }: Props) {
             onAddContact={kind === "lead" ? () => setModal("linkContact") : undefined}
             onEditCompanies={kind === "lead" ? () => setCompaniesEditOpen(true) : undefined}
             onSignedUrl={onSignedUrl}
+            onRemoveContact={handleRemoveContact}
+            onRemoveCompany={handleRemoveCompany}
           />
         </aside>
       </div>
