@@ -37,10 +37,17 @@ export function LinkContactModal({ open, onClose, leadId, onDone }: BaseProps) {
   const [all, setAll] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState("link");
-  const [roleOnDeal, setRoleOnDeal] = useState<string>("co_borrower");
+  const [roleOnDeal, setRoleOnDeal] = useState<string>("other");
   const [isPrimary, setIsPrimary] = useState<boolean>(false);
 
-  useEffect(() => { if (open) fetchAllContacts().then(setAll); }, [open]);
+  useEffect(() => {
+    if (open) {
+      fetchAllContacts().then(setAll);
+      setRoleOnDeal("other");
+      setIsPrimary(false);
+      setSearch("");
+    }
+  }, [open]);
 
   const link = async (contactId: string, role?: string) => {
     if (!leadId) return;
@@ -50,7 +57,7 @@ export function LinkContactModal({ open, onClose, leadId, onDone }: BaseProps) {
     if (BORROWER_DEAL_ROLES.has(String(dealRole)) && contactType && contactType !== "borrower") {
       toast({
         title: "Contact is not a borrower",
-        description: "Change this person’s contact type to Borrower before using a borrower role.",
+        description: `“${selected?.first_name ?? ""} ${selected?.last_name ?? ""}”.trim() is a ${contactType}. Pick a non-borrower role (e.g. Insurance agent, Realtor) or change their contact type first.`,
         variant: "destructive",
       });
       return;
