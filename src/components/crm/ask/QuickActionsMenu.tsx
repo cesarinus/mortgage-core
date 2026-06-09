@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,10 +9,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import {
-  Plus, LayoutDashboard, Users, Kanban, Contact, Building2, CheckSquare, UserPlus, Search,
+  Plus, LayoutDashboard, Users, Kanban, Contact, Building2, UserPlus, Search,
 } from "lucide-react";
 
-export function QuickActionsMenu({ onNewLead, onFind }: { onNewLead: () => void; onFind: () => void }) {
+export function QuickActionsMenu({ onNewLead }: { onNewLead: () => void }) {
   const navigate = useNavigate();
   return (
     <DropdownMenu>
@@ -31,7 +31,7 @@ export function QuickActionsMenu({ onNewLead, onFind }: { onNewLead: () => void;
         <DropdownMenuSeparator />
         <DropdownMenuLabel>Create</DropdownMenuLabel>
         <DropdownMenuItem onSelect={onNewLead}><UserPlus className="h-4 w-4 mr-2" />New lead</DropdownMenuItem>
-        <DropdownMenuItem onSelect={onFind}><Search className="h-4 w-4 mr-2" />Find a record</DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => navigate("/leads")}><Search className="h-4 w-4 mr-2" />Find a lead</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
