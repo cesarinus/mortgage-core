@@ -1,6 +1,6 @@
 import {
-  Home, Users, Building2, Briefcase, Kanban, Lock, FileText, Megaphone,
-  BarChart3, Settings, LogOut, Bot,
+  LayoutDashboard, Users, Building2, Contact as ContactIcon, Kanban, TrendingUp,
+  FileText, Share2, Mail, MailOpen, Settings, LogOut, ChevronDown, UserRound,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
@@ -9,24 +9,43 @@ import {
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarFooter, SidebarHeader,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { useLocation } from "react-router-dom";
+import { useState } from "react";
 
-const navItems: { title: string; url: string; icon: any; adminOnly?: boolean }[] = [
-  { title: "Home", url: "/dashboard", icon: Home },
-  { title: "AI Assistant", url: "/ask", icon: Bot },
-  { title: "Borrowers", url: "/leads", icon: Users },
-  { title: "Realtors", url: "/contacts/people", icon: Briefcase },
-  { title: "Loans", url: "/contacts/companies", icon: Building2 },
+type NavItem = {
+  title: string;
+  url: string;
+  icon: any;
+  adminOnly?: boolean;
+  children?: { title: string; url: string; icon: any }[];
+};
+
+const navItems: NavItem[] = [
+  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
+  { title: "Leads", url: "/leads", icon: Users },
+  {
+    title: "Contacts",
+    url: "/contacts",
+    icon: ContactIcon,
+    children: [
+      { title: "People", url: "/contacts/people", icon: UserRound },
+      { title: "Companies", url: "/contacts/companies", icon: Building2 },
+    ],
+  },
   { title: "Pipeline", url: "/pipeline", icon: Kanban },
-  { title: "Lock Desk", url: "/rate-decision", icon: Lock },
-  { title: "Documents", url: "/blog-admin", icon: FileText, adminOnly: true },
-  { title: "Marketing", url: "/admin/social-media", icon: Megaphone, adminOnly: true },
-  { title: "Reports", url: "/email/subscribers", icon: BarChart3, adminOnly: true },
+  { title: "Blog Manager", url: "/blog-admin", icon: FileText, adminOnly: true },
+  { title: "Social Media", url: "/admin/social-media", icon: Share2, adminOnly: true },
+  { title: "Subscribers", url: "/email/subscribers", icon: Mail, adminOnly: true },
+  { title: "Email Templates", url: "/email/templates", icon: MailOpen, adminOnly: true },
+  { title: "Lock vs Float", url: "/rate-decision", icon: TrendingUp },
   { title: "Settings", url: "/settings", icon: Settings },
 ];
 
 export function AppSidebar() {
   const { signOut, user, role } = useAuth();
   const visibleItems = navItems.filter((i) => !i.adminOnly || role === "admin");
+  const { pathname } = useLocation();
 
   return (
     <Sidebar className="border-r-0">
@@ -55,6 +74,9 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {visibleItems.map((item) => (
+                item.children ? (
+                  <ContactsGroup key={item.title} item={item} pathname={pathname} />
+                ) : (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink
@@ -68,6 +90,7 @@ export function AppSidebar() {
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
+                )
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
@@ -99,5 +122,41 @@ export function AppSidebar() {
         </div>
       </SidebarFooter>
     </Sidebar>
+  );
+}
+
+function ContactsGroup({ item, pathname }: { item: NavItem; pathname: string }) {
+  const isInGroup = pathname.startsWith(item.url);
+  const [open, setOpen] = useState(isInGroup);
+  return (
+    <Collapsible open={open} onOpenChange={setOpen} className="group/collapsible">
+      <SidebarMenuItem>
+        <CollapsibleTrigger asChild>
+          <SidebarMenuButton className="group relative flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-sidebar-foreground/85 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+            <item.icon className="h-4 w-4 shrink-0" />
+            <span className="flex-1 text-left">{item.title}</span>
+            <ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
+          </SidebarMenuButton>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <SidebarMenu className="ml-6 mt-1 border-l border-sidebar-border/60 pl-2">
+            {item.children!.map((child) => (
+              <SidebarMenuItem key={child.title}>
+                <SidebarMenuButton asChild>
+                  <NavLink
+                    to={child.url}
+                    className="group relative flex items-center gap-3 rounded-lg px-3 py-1.5 text-sm text-sidebar-foreground/75 transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                    activeClassName="bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                  >
+                    <child.icon className="h-3.5 w-3.5 shrink-0" />
+                    <span>{child.title}</span>
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
+          </SidebarMenu>
+        </CollapsibleContent>
+      </SidebarMenuItem>
+    </Collapsible>
   );
 }
