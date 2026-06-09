@@ -1,99 +1,89 @@
-## Goal
+# Ask Hub — Agentic CRM Command Center
 
-When a portal user uploads an income document (pay stub, W-2, 1099, personal 1040, or business return 1120-S/1065/etc), the system reads it with Lovable AI (Gemini vision), stages the extracted values as **suggested** inputs on the Income form inside the Lead and Pipeline workspaces, and the LO reviews and approves them. Portal users do **not** see any income calculation until the LO validates.
+A Lovable-style home screen for the CRM that replaces the current floating sparkle button. It's a chat-first surface that can query the CRM, summarize records, surface what needs attention, and route you anywhere with one click — all read-only in v1.
 
-## Flow
+## What you'll get
 
-```text
-Portal upload (W-2 / 1099 / pay stub / tax return)
-        │
-        ▼
-crm_attachments row created (existing)
-        │
-        ▼  (auto-trigger from client after successful upload)
-Edge function: extract-income-document
-  • Signed URL for the file in crm-documents
-  • Gemini 3 Flash vision → JSON extraction per doc type
-  • Writes row to NEW table: income_document_extractions
-        │
-        ▼
-Lead/Deal workspace → Income Analysis card
-  • New "Suggested values" panel above the form fields
-  • Per-field "Apply" + bulk "Apply all & save"
-  • On Apply → writes to borrower_payment_details, marks extraction "applied"
-  • LO clicks Calculate (existing flow) to produce borrower_income_calculations
-        │
-        ▼
-Portal income view
-  • Hidden until at least one borrower_income_calculations row exists
-    AND LO has flagged it as "shared with borrower" (new column)
-```
+**1. New "Ask" page** (`/crm/ask`)
+- Greeting: "What's on your mind, Cesar?" (uses your profile name)
+- Centered composer with `+` quick-action menu and send arrow
+- Sidebar entry "Ask" with a custom icon + ⌘K / Ctrl-K global shortcut
+- Daily morning brief card at the top: stuck leads overnight, conditions expiring today, pipeline movement, tasks due
+- 4–6 suggested-prompt chips that rotate based on time of day, your role, and recent CRM events
 
-## Document scope (v1)
+**2. `+` quick-action menu**
+Dashboard · Leads · Pipeline · Contacts · Companies · Tasks · New Lead (opens SmartLeadForm) · Find record (opens RecordLookup)
 
-| Document | Fields extracted |
-|---|---|
-| Pay stub | gross base, overtime, bonus, commission, pay-period ending date, pay frequency |
-| W-2 | tax year, Box 1 wages, Box 5 medicare wages, employer name |
-| 1099 (NEC/MISC) | tax year, nonemployee comp / other income, payer |
-| 1040 (personal) | tax year, AGI, wages, Sched C net, Sched E net |
-| Business return (1120-S / 1065 / 1120) | tax year, entity type, ordinary business income, owner's % (if visible) |
+**3. Read-only agent (v1)**
+The chat understands natural-language CRM questions and answers with structured result cards (clickable rows that deep-link into `RecordWorkspace`). Examples it will handle:
+- "Show leads that need attention"
+- "Which leads have incomplete tasks?"
+- "Summarize lead Maria Rodriguez"
+- "What's in my pipeline at Underwriting?"
+- "Who hasn't been contacted in 7 days?"
+- "Top 5 high-score leads this week"
 
-Other documents (bank statements, ID, etc.) are skipped.
+No write actions in v1 — every response is information + links. Write tools (create task, log call, send email) come in a follow-up phase.
 
-## Technical details
+**4. Self-evolving foundation**
+Every question, tool call, result count, and follow-up click is logged to `assistant_interactions`. This data drives:
+- Suggested-prompt ranking (popular + personally useful prompts float up)
+- Morning-brief content (only surface items you actually act on)
+- Future fine-tuning hints
 
-### New table: `income_document_extractions`
-- `attachment_id` (FK → crm_attachments)
-- `lead_id`, `contact_id`, `deal_id`
-- `doc_type` enum: `pay_stub | w2 | form_1099 | form_1040 | business_return | unknown`
-- `tax_year` int, `period_ending_date` date
-- `extracted` jsonb (raw normalized values)
-- `confidence` numeric (0–1, model-reported)
-- `status` enum: `pending | applied | dismissed | failed`
-- `error` text, `model` text, timestamps
-- RLS: LO/admin who owns the lead can read/update; portal user can insert (via edge function only, no direct grant); service_role full access.
-- GRANTs: `SELECT, UPDATE` to authenticated; `ALL` to service_role.
+**5. Replaces the floating sparkle**
+`AssistantLauncher` is removed. The hub is the single assistant surface. Existing `AssistantPanel` and `chat-completion` function stay as the backend foundation but are upgraded.
 
-### New column on `borrower_income_calculations`
-- `shared_with_borrower boolean default false` — gates portal visibility (extension-only, additive).
+---
 
-### New edge function: `extract-income-document`
-- `verify_jwt = true` (called from portal session and CRM).
-- Input: `{ attachment_id }`.
-- Loads attachment row, signed URL from `crm-documents` bucket.
-- Sends file to Lovable AI Gateway `google/gemini-3-flash-preview` with a strict JSON schema per doc type (one call; model first classifies, then extracts).
-- Inserts `income_document_extractions` row with `status = 'pending'`.
-- Returns the extraction. Handles 429/402 by storing `status = 'failed'` + error.
+## Technical section
 
-### Auto-trigger on portal upload
-- `src/pages/portal/PortalDocuments.tsx`: after `crm_attachments` insert succeeds for categories matching income docs (`paystub`, `w2`, `tax_returns`, etc.), call `supabase.functions.invoke("extract-income-document", { body: { attachment_id } })` fire-and-forget. No UI change for the borrower.
-- Also expose a manual "Re-extract" button in the LO's Income card per pending extraction (for retries / files uploaded by LO).
+**Frontend**
+- New route `src/pages/crm/AskHub.tsx` + sidebar item in `AppSidebar.tsx`
+- AI Elements: `conversation`, `message`, `prompt-input`, `shimmer`, `tool` (installed via `ai-elements@latest add`)
+- Composer uses `PromptInput` + `PromptInputFooter` with a `+` `DropdownMenu` for quick actions
+- `useChat` (AI SDK) pointing at `chat-completion` edge function via `DefaultChatTransport`
+- Tool results rendered as compact custom cards (LeadResultCard, TaskResultCard, DealResultCard, SummaryCard) — each row links to `/crm/record/:id`
+- Remove `AssistantLauncher` mount from `AppLayout` (keep file for now in case of rollback)
+- Custom agent logo (generated, not Sparkles) for empty state and avatar
 
-### Income card UI (`src/components/crm/IncomeCard.tsx`)
-- Above the form, render a new `SuggestedFromDocuments` panel that lists `pending` extractions for the current `(leadId, contactId)`:
-  - Per row: doc type pill, file name, key extracted values, **Apply** + **Dismiss**.
-  - Header bulk action: **Apply all suggestions**.
-  - Applying merges values into the form state and persists via existing `savePaymentDetails`, then marks the extraction `applied`.
-- No changes to the calculator math, `calculate-income` function, or borrower classification logic.
+**Backend (edge function upgrade)**
+Upgrade `supabase/functions/chat-completion/index.ts` to a tool-calling agent using AI SDK + Lovable AI Gateway (`google/gemini-3-flash-preview`), `stopWhen: stepCountIs(50)`. Read-only tools (all scoped by `auth.uid()` via existing RLS):
+- `query_leads({ filter: needs_attention | stuck | high_score | uncontacted_days | status, limit })`
+- `query_pipeline({ stage?, owner?, limit })`
+- `query_tasks({ status: open|overdue|due_today, assignee_id?, limit })`
+- `query_contacts({ search, limit })`
+- `query_deals({ stage?, limit })`
+- `summarize_record({ kind: lead|deal|contact, id })` — pulls activities, conditions, latest income, sentiment
+- `get_morning_brief()` — composite call used by the brief card
 
-### Portal gating
-- `src/pages/portal/PortalIncome.tsx` (and any dashboard income widget) shows the existing income view only when `borrower_income_calculations.shared_with_borrower = true` for the bound deal. Otherwise it shows "Your loan officer is reviewing your documents."
-- Add a small "Share with borrower" toggle in the LO's Income card (admin/LO only) that flips this flag on the latest calculation row.
+System prompt grounds the model in NexGen schema, role context, and "read-only — never claim you took an action."
 
-### Out of scope
-- OCR for non-income docs (bank statements, ID, etc.).
-- Self-employed P&L / balance sheet parsing beyond the totals above.
-- Changes to `calculate-income`, classification logic, RightRail/LeftRail, blog, social, or any other module.
+**New table** (extension-only, additive)
+`assistant_interactions`: `id`, `user_id`, `session_id`, `question`, `tool_calls jsonb`, `tool_results_summary jsonb`, `result_clicked_id`, `result_clicked_kind`, `latency_ms`, `created_at`. RLS: user reads/inserts their own rows; admin reads all; service_role full. Standard GRANTs.
 
-## Files touched
+**Morning brief**
+Computed on-demand inside `get_morning_brief()` (no cron needed v1). Cached in component state for 10 min. Pulls from existing tables: `leads.is_stuck`, `loan_conditions` expiring ≤24h, `crm_tasks` due today, `deal_stage_history` last 24h.
 
-- **New** `supabase/functions/extract-income-document/index.ts`
-- **New** `src/components/crm/IncomeSuggestions.tsx`
-- **New** `src/lib/crm/incomeExtractions.ts` (fetch/apply/dismiss helpers)
-- **Edit** `src/components/crm/IncomeCard.tsx` (mount suggestions panel + share toggle)
-- **Edit** `src/pages/portal/PortalDocuments.tsx` (fire-and-forget extract on income uploads)
-- **Edit** `src/pages/portal/PortalIncome.tsx` (gate on `shared_with_borrower`)
-- **Migration** create `income_document_extractions` (+ enums, RLS, grants) and add `shared_with_borrower` to `borrower_income_calculations`.
+**Suggested prompts**
+Static seed list of 12 prompts, ranked client-side by (a) time of day bucket, (b) user's top-3 tool calls from `assistant_interactions` last 14 days, (c) role.
 
-Shall I implement?
+**Files**
+- New: `src/pages/crm/AskHub.tsx`, `src/components/crm/ask/QuickActionsMenu.tsx`, `src/components/crm/ask/MorningBrief.tsx`, `src/components/crm/ask/SuggestedPrompts.tsx`, `src/components/crm/ask/results/*` (LeadResultCard, TaskResultCard, DealResultCard, SummaryCard), `src/lib/crm/askTools.ts` (client-side result typing), `src/assets/ask-logo.png` (generated)
+- Edit: `supabase/functions/chat-completion/index.ts` (add tools + system prompt), `src/components/AppSidebar.tsx` (add "Ask" item + ⌘K), `src/components/AppLayout.tsx` (remove launcher mount), `src/App.tsx` (add route)
+- New migration: `assistant_interactions` table + RLS + GRANTs
+- AI Elements install: `bunx ai-elements@latest add conversation message prompt-input shimmer tool`
+
+**Out of scope for v1** (clearly deferred)
+- Voice input/output
+- Write actions (create task, send email, change stage)
+- Cross-user analytics ("what other LOs ask")
+- Streaming partial tool results
+
+## Risk / change-control notes
+
+- Additive only — no edits to leads/deals/conditions/tasks schemas
+- `chat-completion` function is upgraded in place; old client (`AssistantPanel`) keeps working because tool calls degrade to plain text answers if rendered there
+- Sparkle launcher is unmounted, not deleted, so rollback is one line
+
+Approve and I'll build it.
