@@ -55,9 +55,10 @@ export function LinkContactModal({ open, onClose, leadId, onDone }: BaseProps) {
     const selected = all.find((c) => c.id === contactId);
     const contactType = String(selected?.contact_type ?? "").toLowerCase();
     if (BORROWER_DEAL_ROLES.has(String(dealRole)) && contactType && contactType !== "borrower") {
+      const fullName = `${selected?.first_name ?? ""} ${selected?.last_name ?? ""}`.trim();
       toast({
-        title: "Contact is not a borrower",
-        description: `“${selected?.first_name ?? ""} ${selected?.last_name ?? ""}”.trim() is a ${contactType}. Pick a non-borrower role (e.g. Insurance agent, Realtor) or change their contact type first.`,
+        title: "Pick a non-borrower role",
+        description: `${fullName || "This contact"} is a ${contactType}. Choose a role like Insurance agent, Realtor, Title agent, or Referral partner — or change their contact type to Borrower first.`,
         variant: "destructive",
       });
       return;
