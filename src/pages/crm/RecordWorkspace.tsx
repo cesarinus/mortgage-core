@@ -285,8 +285,11 @@ export default function RecordWorkspace({ kind }: Props) {
   const handleRemoveCompany = async (cc: any) => {
     if (!cc) return;
     if (!confirm(`Remove ${cc?.company?.name ?? "this company"} from this ${kind}?`)) return;
-    if (cc.__source === "contact" && kind === "contact" && id) {
-      const { error } = await supabase.from("contacts").update({ company_id: null }).eq("id", id);
+    if (cc.__source === "contact") {
+      // Clear the employer (contacts.company_id) on the underlying contact.
+      const targetContactId = kind === "contact" ? id : cc.contact_id;
+      if (!targetContactId) { toast({ title: "Failed", description: "Missing contact reference", variant: "destructive" }); return; }
+      const { error } = await supabase.from("contacts").update({ company_id: null }).eq("id", targetContactId);
       if (error) { toast({ title: "Failed", description: error.message, variant: "destructive" }); return; }
     } else {
       const { error } = await supabase.from("crm_contact_companies").delete().eq("id", cc.id);
