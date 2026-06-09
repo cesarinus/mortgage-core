@@ -5,6 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { LeftRail } from "@/components/crm/LeftRail";
 import { RightRail } from "@/components/crm/RightRail";
+import SendToLosButton from "@/components/crm/SendToLosButton";
+import LosSyncCard from "@/components/crm/LosSyncCard";
 import { CatchUpTab } from "@/components/crm/tabs/CatchUpTab";
 import { IncomeAnalysisCard } from "@/components/crm/IncomeAnalysisCard";
 import { UnifiedTimelineTab } from "@/components/crm/tabs/UnifiedTimelineTab";
@@ -401,6 +403,16 @@ export default function RecordWorkspace({ kind }: Props) {
             opportunity={primaryOpp}
             pipelineMode={kind === "lead" && fromPipeline}
           />
+          {kind === "lead" && (
+            <div className="mt-3 space-y-3">
+              <SendToLosButton
+                lead={record}
+                opportunity={primaryOpp}
+                onSent={() => window.location.reload()}
+              />
+              <LosSyncCard leadId={record.id} />
+            </div>
+          )}
         </aside>
 
         <main className="col-span-12 lg:col-span-6">
