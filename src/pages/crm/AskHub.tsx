@@ -47,7 +47,7 @@ export default function AskHub() {
       const baseBody = init?.body ? JSON.parse(init.body as string) : {};
       return fetch(url, {
         ...init,
-        body: JSON.stringify({ ...baseBody, scope: "crm", recordKind: "hub", recordId: null, threadId: null }),
+        body: JSON.stringify({ ...baseBody, scope: "crm", recordKind: null, recordId: null, threadId: null }),
         headers: {
           ...(init?.headers || {}),
           "Content-Type": "application/json",
