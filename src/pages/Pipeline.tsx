@@ -321,6 +321,14 @@ export default function Pipeline() {
       return;
     }
     await recordDealTransition(oppId, from, next);
+    // Fire-and-forget Zapier integration
+    try {
+      const { fireZapier } = await import("@/lib/integrations/zapier");
+      fireZapier("deal.stage_changed", { opportunity_id: oppId, from, to: next });
+      if (next === "closed") {
+        fireZapier("deal.closed", { opportunity_id: oppId, from });
+      }
+    } catch {}
     toast({
       title: "Stage updated",
       description: `${PIPELINE_STAGE_LABELS[from] ?? from} → ${PIPELINE_STAGE_LABELS[next] ?? next}`,

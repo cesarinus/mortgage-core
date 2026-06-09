@@ -255,6 +255,12 @@ export default function Leads() {
       return;
     }
     if (from !== next) await recordLeadTransition(leadId, from, next);
+    if (from !== next) {
+      try {
+        const { fireZapier } = await import("@/lib/integrations/zapier");
+        fireZapier("lead.status_changed", { lead_id: leadId, from, to: next });
+      } catch {}
+    }
     load();
     if (selectedLead?.id === leadId) {
       setSelectedLead((prev) => (prev ? { ...prev, status: next as any } : null));
