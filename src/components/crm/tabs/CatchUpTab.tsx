@@ -10,6 +10,7 @@ import { useEffect, useMemo, useState } from "react";
 import { fetchAllLatestIncome, IncomeCalc } from "@/lib/crm/income";
 import { fetchDealBorrowers, type DealBorrower } from "@/lib/crm/borrowers";
 import { IncomeAiAnalysis } from "@/components/crm/IncomeAiAnalysis";
+import { formatOptionLabel } from "@/lib/format/labels";
 
 interface Props {
   activities: any[];
@@ -189,17 +190,17 @@ export function CatchUpTab({ activities, emailLogs, sentiment, mortgage, record,
               : "---";
             return (
               <>
-                <Stat label="Loan program" value={mortgage?.loan_program ?? record?.loan_purpose} />
-                <Stat label={`Loan type${loanType ? "" : ""}`} value={loanType ? loanType.toUpperCase() : null} />
+                <Stat label="Loan program" value={formatOptionLabel(mortgage?.loan_program ?? record?.loan_purpose) || null} />
+                <Stat label="Loan type" value={loanType ? (["fha","va","usda","arm","heloc"].includes(loanType) ? loanType.toUpperCase() : formatOptionLabel(loanType)) : null} />
                 <Stat label="Purchase price" value={fmtMoney(mortgage?.purchase_price ?? record?.property_value)} />
                 <Stat label="Down payment" value={dpDisplay} />
                 <Stat label="Total loan amount" value={totalDisplay} />
                 <Stat label="Estimated income" value={fmtMoney(mortgage?.est_income ?? record?.annual_income)} />
                 <Stat label="Estimated DTI" value={mortgage?.est_dti ? `${mortgage.est_dti}%` : null} />
                 <Stat label="Monthly payment" value={fmtMoney(mortgage?.est_monthly_payment)} />
-                <Stat label="Property type" value={mortgage?.property_type ?? record?.property_type} />
-                <Stat label="Occupancy" value={mortgage?.occupancy_type} />
-                <Stat label="Pipeline stage" value={mortgage?.pipeline_stage ?? record?.status} />
+                <Stat label="Property type" value={formatOptionLabel(mortgage?.property_type ?? record?.property_type) || null} />
+                <Stat label="Occupancy" value={formatOptionLabel(mortgage?.occupancy_type) || null} />
+                <Stat label="Pipeline stage" value={formatOptionLabel(mortgage?.pipeline_stage ?? record?.status) || null} />
               </>
             );
           })()}
