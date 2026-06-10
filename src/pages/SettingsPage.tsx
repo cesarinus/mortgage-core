@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import EmailProviderSettings from "@/components/settings/EmailProviderSettings";
 import ZapierIntegrationSettings from "@/components/settings/ZapierIntegrationSettings";
 import { Link } from "react-router-dom";
-import { Upload, Moon, Sun, Palette, Monitor, ListChecks } from "lucide-react";
+import { Upload, Moon, Sun, Palette, Monitor, ListChecks, Settings2, FlaskConical, FileSearch } from "lucide-react";
 import { useTheme, type ThemeName } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
@@ -141,10 +141,25 @@ export default function SettingsPage() {
               Inspect every Send-to-LOS / Zapier call from this CRM without leaving the app.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex flex-wrap gap-2">
             <Button asChild variant="outline">
               <Link to="/settings/los-logs">
                 <ListChecks className="h-4 w-4 mr-2" /> View logs
+              </Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link to="/settings/los-mappings">
+                <Settings2 className="h-4 w-4 mr-2" /> Field mappings
+              </Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link to="/settings/los-tester">
+                <FlaskConical className="h-4 w-4 mr-2" /> Payload tester
+              </Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link to="/settings/los-gap-report">
+                <FileSearch className="h-4 w-4 mr-2" /> Schema gap report
               </Link>
             </Button>
           </CardContent>
