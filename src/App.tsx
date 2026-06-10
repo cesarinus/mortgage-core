@@ -18,6 +18,9 @@ import Pipeline from "@/pages/Pipeline";
 import SettingsPage from "@/pages/SettingsPage";
 import ImportArive from "@/pages/settings/ImportArive";
 import LosIntegrationLogs from "@/pages/settings/LosIntegrationLogs";
+import AriveFieldMappings from "@/pages/settings/AriveFieldMappings";
+import LosPayloadTester from "@/pages/settings/LosPayloadTester";
+import SchemaGapReport from "@/pages/settings/SchemaGapReport";
 import BlogIndex from "@/pages/BlogIndex";
 import BlogPost from "@/pages/BlogPost";
 import BlogAdmin from "@/pages/BlogAdmin";
@@ -81,6 +84,9 @@ const App = () => (
                 <Route path="/settings" element={<SettingsPage />} />
                 <Route path="/settings/import-arive" element={<ImportArive />} />
                 <Route path="/settings/los-logs" element={<LosIntegrationLogs />} />
+                <Route path="/settings/los-mappings" element={<AriveFieldMappings />} />
+                <Route path="/settings/los-tester" element={<LosPayloadTester />} />
+                <Route path="/settings/los-gap-report" element={<SchemaGapReport />} />
                 <Route path="/blog-admin" element={<BlogAdmin />} />
                 <Route path="/rate-decision" element={<RateDecision />} />
                 <Route path="/admin/social-media" element={<AdminSocialMedia />} />
