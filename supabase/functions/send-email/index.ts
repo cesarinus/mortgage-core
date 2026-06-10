@@ -24,9 +24,80 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: "Invalid JSON" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 
-  const { to, subject: subjectIn, html: htmlIn, text: textIn, template_alias, vars = {}, lead_id, opportunity_id } = body || {};
+  const { to, subject: subjectIn, html: htmlIn, text: textIn, template_alias, vars = {}, lead_id, opportunity_id, audience } = body || {};
 
-  if (!to || typeof to !== "string") {
+  // Templates that must ONLY ever go to the borrower(s) on the deal.
+  // The lead record is the primary borrower; co-borrowers are linked through
+  // lead_contacts / contacts.lead_id with a borrower role or contact_type.
+  const BORROWER_ONLY_TEMPLATES = new Set([
+    "welcome-email",
+    "document-reminder",
+    "list-of-documents",
+  ]);
+
+  const BORROWER_ROLES = new Set(["primary_borrower", "co_borrower", "borrower"]);
+  const NON_BORROWER_TYPES = new Set([
+    "partner", "realtor", "attorney", "title", "escrow", "insurance",
+    "appraiser", "inspector", "lender", "loan_officer", "processor",
+    "referral", "vendor", "other",
+  ]);
+
+  async function resolveBorrowerEmails(leadIdArg: string): Promise<string[]> {
+    const emails = new Set<string>();
+    const { data: lead } = await supabase
+      .from("leads")
+      .select("email, co_borrower_id")
+      .eq("id", leadIdArg)
+      .maybeSingle();
+    if (lead?.email) emails.add(String(lead.email).trim().toLowerCase());
+
+    const contactIds = new Set<string>();
+    const { data: links } = await supabase
+      .from("lead_contacts")
+      .select("contact_id, role, role_on_deal")
+      .eq("lead_id", leadIdArg);
+    for (const l of links ?? []) {
+      const role = String(l.role_on_deal ?? l.role ?? "").toLowerCase();
+      if (l.contact_id && (role === "" || BORROWER_ROLES.has(role))) {
+        contactIds.add(l.contact_id);
+      }
+    }
+    const { data: direct } = await supabase
+      .from("contacts")
+      .select("id")
+      .eq("lead_id", leadIdArg)
+      .eq("contact_type", "borrower");
+    for (const c of direct ?? []) if (c.id) contactIds.add(c.id);
+    if (lead?.co_borrower_id) contactIds.add(lead.co_borrower_id);
+
+    if (contactIds.size > 0) {
+      const { data: contacts } = await supabase
+        .from("contacts")
+        .select("id, email, contact_type")
+        .in("id", Array.from(contactIds));
+      for (const c of contacts ?? []) {
+        const t = String(c.contact_type ?? "").toLowerCase();
+        if (t && NON_BORROWER_TYPES.has(t)) continue;
+        if (c.email) emails.add(String(c.email).trim().toLowerCase());
+      }
+    }
+    return Array.from(emails).filter(Boolean);
+  }
+
+  // Build recipient list
+  let recipients: string[] = [];
+  const shouldRestrictToBorrowers =
+    audience === "borrowers" ||
+    (template_alias && BORROWER_ONLY_TEMPLATES.has(String(template_alias)));
+
+  if (shouldRestrictToBorrowers && lead_id) {
+    recipients = await resolveBorrowerEmails(String(lead_id));
+    if (recipients.length === 0) {
+      return new Response(JSON.stringify({ error: "No borrower recipients found for this lead" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+  } else if (to && typeof to === "string") {
+    recipients = [to];
+  } else {
     return new Response(JSON.stringify({ error: "Missing 'to'" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 
@@ -65,11 +136,11 @@ Deno.serve(async (req) => {
     .maybeSingle();
 
   if (provErr || !provider) {
-    await supabase.from("email_logs").insert({
-      recipient_email: to, subject, template_id, template_alias: template_alias ?? null,
+    await supabase.from("email_logs").insert(recipients.map((r) => ({
+      recipient_email: r, subject, template_id, template_alias: template_alias ?? null,
       lead_id: lead_id ?? null, opportunity_id: opportunity_id ?? null,
       status: "failed", error_message: "No active email provider configured",
-    });
+    })));
     return new Response(JSON.stringify({ error: "No active email provider configured" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 
@@ -80,27 +151,36 @@ Deno.serve(async (req) => {
     auth: { user: provider.username, pass: provider.password },
   });
 
-  try {
-    const info = await transporter.sendMail({
-      from: `"${provider.from_name}" <${provider.from_email}>`,
-      to,
-      subject,
-      html: html || undefined,
-      text: text || (html ? html.replace(/<[^>]+>/g, "") : undefined),
-    });
-    await supabase.from("email_logs").insert({
-      recipient_email: to, subject, template_id, template_alias: template_alias ?? null,
-      lead_id: lead_id ?? null, opportunity_id: opportunity_id ?? null,
-      status: "sent", provider_message_id: info.messageId,
-    });
-    return new Response(JSON.stringify({ ok: true, message_id: info.messageId }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
-  } catch (e: any) {
-    const msg = e?.message ?? String(e);
-    await supabase.from("email_logs").insert({
-      recipient_email: to, subject, template_id, template_alias: template_alias ?? null,
-      lead_id: lead_id ?? null, opportunity_id: opportunity_id ?? null,
-      status: "failed", error_message: msg,
-    });
-    return new Response(JSON.stringify({ error: "Send failed", detail: msg }), { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  const results: Array<{ to: string; ok: boolean; message_id?: string; error?: string }> = [];
+  for (const rcpt of recipients) {
+    try {
+      const info = await transporter.sendMail({
+        from: `"${provider.from_name}" <${provider.from_email}>`,
+        to: rcpt,
+        subject,
+        html: html || undefined,
+        text: text || (html ? html.replace(/<[^>]+>/g, "") : undefined),
+      });
+      await supabase.from("email_logs").insert({
+        recipient_email: rcpt, subject, template_id, template_alias: template_alias ?? null,
+        lead_id: lead_id ?? null, opportunity_id: opportunity_id ?? null,
+        status: "sent", provider_message_id: info.messageId,
+      });
+      results.push({ to: rcpt, ok: true, message_id: info.messageId });
+    } catch (e: any) {
+      const msg = e?.message ?? String(e);
+      await supabase.from("email_logs").insert({
+        recipient_email: rcpt, subject, template_id, template_alias: template_alias ?? null,
+        lead_id: lead_id ?? null, opportunity_id: opportunity_id ?? null,
+        status: "failed", error_message: msg,
+      });
+      results.push({ to: rcpt, ok: false, error: msg });
+    }
   }
+  const sent = results.filter((r) => r.ok).length;
+  const failed = results.length - sent;
+  return new Response(
+    JSON.stringify({ ok: failed === 0, sent, failed, results }),
+    { status: failed === 0 ? 200 : 207, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+  );
 });
