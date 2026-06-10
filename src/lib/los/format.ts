@@ -39,6 +39,16 @@ export function normalizeDate(input?: string | Date | null): string | null {
   return Number.isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10);
 }
 
+/** ARIVE expects exact-case enum IDs: "Purchase" or "Refinance". */
+export function normalizeLoanPurpose(input?: string | null): string | null {
+  if (!input) return null;
+  const v = String(input).trim().toLowerCase();
+  if (!v) return null;
+  if (v.startsWith("refi")) return "Refinance";
+  if (v.startsWith("purchas")) return "Purchase"; // matches "purchase" and "purchased"
+  return null;
+}
+
 /** Convert "$700-739" / "700-739" / "720" → midpoint integer. */
 export function normalizeCreditScore(input?: string | number | null): number | null {
   if (input == null || input === "") return null;
@@ -79,6 +89,7 @@ export function normalizeLosPayload<T extends Record<string, any>>(p: T): T {
   if ("property_value" in out) out.property_value = normalizeMoney(out.property_value);
   if ("annual_income" in out) out.annual_income = normalizeMoney(out.annual_income);
   if ("estimated_credit_score" in out) out.estimated_credit_score = normalizeCreditScore(out.estimated_credit_score);
+  if ("loan_purpose" in out) out.loan_purpose = normalizeLoanPurpose(out.loan_purpose) ?? out.loan_purpose;
   if (out.property_address) {
     const s = splitAddress(out.property_address);
     out.property_address_line1 = s.line1;
