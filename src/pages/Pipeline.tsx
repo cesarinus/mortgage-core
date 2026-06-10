@@ -413,7 +413,7 @@ export default function Pipeline() {
                 className={`w-full text-left rounded-md px-2.5 py-1.5 text-sm transition-colors ${
                   sourceFilter === s ? "bg-muted font-medium" : "text-muted-foreground hover:bg-muted"
                 }`}
-              }>{s === "realtor" ? "Realtor" : s.charAt(0).toUpperCase() + s.slice(1)}</button>
+              >{s === "realtor" ? "Realtor" : s.charAt(0).toUpperCase() + s.slice(1)}</button>
             ))}
           </div>
         </div>
