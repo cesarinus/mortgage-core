@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { calcLoanAmount } from "@/lib/loan/calcLoanAmount";
 
 export type LoanPurpose = "purchase" | "refinance" | "cash_out_refi" | "heloc";
 export type PropertyTypeOpt = "single_family" | "condo" | "townhome" | "multi_unit" | "mobile";
@@ -166,6 +167,12 @@ export async function saveLeadIntake(
   const dti = computeDti(data);
   const monthly = estimateMonthlyPayment(data);
 
+  const computedLoanAmount = calcLoanAmount({
+    loan_type: data.loan_type || null,
+    purchase_price: data.property_value ?? null,
+    down_payment: data.down_payment ?? null,
+  });
+
   const leadRow: any = {
     first_name: data.first_name,
     last_name: data.last_name,
@@ -176,6 +183,7 @@ export async function saveLeadIntake(
     loan_purpose: data.loan_purpose || null,
     property_type: data.property_type || null,
     property_value: data.property_value ?? null,
+    loan_amount: computedLoanAmount ?? null,
     property_address: (data.property_address ?? "").trim() || null,
     credit_range: data.credit_range || null,
     employment_type: data.self_employed ? "self_employed" : (data.employment_type || null),
