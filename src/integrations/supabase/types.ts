@@ -3931,6 +3931,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      crm_format_option_label: { Args: { _raw: string }; Returns: string }
       current_portal_user_deal: { Args: never; Returns: string }
       get_available_slots: { Args: { p_date: string }; Returns: string[] }
       has_role: {

@@ -12,6 +12,7 @@ import { Link, useLocation } from "react-router-dom";
 import { getAllowedNext, normalizeStatus } from "@/lib/crm/stateMachine";
 import { LEAD_STATUSES, LEAD_STATUS_LABELS, PIPELINE_STAGES, PIPELINE_STAGE_LABELS } from "@/lib/crm/stages";
 import { formatPhone } from "@/lib/format";
+import { formatOptionLabel } from "@/lib/format/labels";
 
 type ActionKey = "note" | "email" | "call" | "task" | "meeting" | "upload";
 
@@ -50,7 +51,7 @@ export function LeftRail({ record, kind, tags = [], onAction, onStatusChange, on
     : (record?.status ?? "new_lead");
   const stageLabel = pipelineMode
     ? (PIPELINE_STAGE_LABELS[currentStageRaw] ?? String(currentStageRaw).replace(/_/g, " "))
-    : String(record?.status ?? "").replace(/_/g, " ");
+    : formatOptionLabel(String(record?.status ?? ""));
   return (
     <Card className="sticky top-4 self-start">
       <CardContent className="p-5 space-y-4">
@@ -141,10 +142,10 @@ export function LeftRail({ record, kind, tags = [], onAction, onStatusChange, on
           )}
           {kind === "lead" && (
             <>
-              <Field label="Loan purpose" value={record?.loan_purpose} />
+              <Field label="Loan purpose" value={formatOptionLabel(record?.loan_purpose) || null} />
               <Field label="Property value" value={record?.property_value ? `$${Number(record.property_value).toLocaleString()}` : null} />
-              <Field label="Credit range" value={record?.credit_range} />
-              <Field label="Source" value={record?.source} />
+              <Field label="Credit range" value={formatOptionLabel(record?.credit_range) || null} />
+              <Field label="Source" value={formatOptionLabel(record?.source) || null} />
               <Field label="Lead score" value={record?.lead_score?.toString()} />
             </>
           )}
