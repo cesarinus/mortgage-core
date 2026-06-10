@@ -412,7 +412,7 @@ export default function CrmFieldBuilder() {
             )}
           </TabsContent>
 
-        <TabsContent value="sections" className="mt-4">
+        <TabsContent value="sections" className="m-0 p-5">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0">
               <div><CardTitle>Sections</CardTitle><CardDescription>Group fields into sections shown on each record.</CardDescription></div>
@@ -438,7 +438,7 @@ export default function CrmFieldBuilder() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="layout" className="mt-4">
+        <TabsContent value="layout" className="m-0 p-5">
           <Card><CardHeader className="flex flex-row items-center justify-between space-y-0"><div><CardTitle className="text-base flex items-center gap-2"><Eye className="h-4 w-4" /> Layout preview</CardTitle><CardDescription>How the record screen renders custom fields.</CardDescription></div><Button asChild size="sm" variant="outline"><Link to="/settings/crm-layout">Open Layout Designer</Link></Button></CardHeader>
             <CardContent className="space-y-4">
               {sections.filter(s => !s.hidden).map(s => (
@@ -459,7 +459,7 @@ export default function CrmFieldBuilder() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="permissions" className="mt-4">
+        <TabsContent value="permissions" className="m-0 p-5">
           <Card>
             <CardHeader><CardTitle>Field permissions</CardTitle><CardDescription>Per-role view and edit access. Admins always have full access.</CardDescription></CardHeader>
             <CardContent className="p-0">
@@ -499,7 +499,7 @@ export default function CrmFieldBuilder() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="conditions" className="mt-4">
+        <TabsContent value="conditions" className="m-0 p-5">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0">
               <div><CardTitle>Conditional Logic</CardTitle><CardDescription>Show, hide, require, or lock a field based on another field's value.</CardDescription></div>
@@ -559,7 +559,12 @@ export default function CrmFieldBuilder() {
             </CardContent>
           </Card>
         </TabsContent>
-      </Tabs>
+
+        <TabsContent value="history" className="m-0 p-10 text-center text-sm text-muted-foreground">
+          Change history will appear here.
+        </TabsContent>
+        </Tabs>
+      </Card>
 
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
         <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
