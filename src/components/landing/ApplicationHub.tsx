@@ -10,6 +10,20 @@ import { toast } from "sonner";
 const STORAGE_KEY = "ng_application_progress";
 const TOTAL_STEPS = 7;
 
+const DEFAULT_REFINANCE_TYPES = [
+  { value: "NoCashOut", label: "Rate and Term" },
+  { value: "LimitedCashOut", label: "Limited Cash Out" },
+  { value: "CashOut", label: "Cash Out" },
+];
+
+const DEFAULT_CASH_OUT_PURPOSES = [
+  { value: "DebtConsolidation", label: "Debt Consolidation" },
+  { value: "Education", label: "Student Loan" },
+  { value: "HomeImprovement", label: "Home Improvement" },
+  { value: "InterestRateReduction", label: "Rate and Term Change" },
+  { value: "Other", label: "Other" },
+];
+
 interface ApplicationData {
   loan_purpose: string;
   refinance_type: string;
@@ -113,13 +127,28 @@ const ApplicationHub = ({ open, onClose, prefillPurpose }: ApplicationHubProps) 
     []
   );
 
-  const updateField = (field: keyof ApplicationData, value: string) => {
+  const updateFields = (updates: Partial<ApplicationData>, nextStep?: number) => {
     setData((prev) => {
-      const updated = { ...prev, [field]: value };
-      saveProgress(updated, step);
+      const updated = { ...prev, ...updates };
+      saveProgress(updated, nextStep ?? step);
       return updated;
     });
-    setErrors((prev) => ({ ...prev, [field]: "" }));
+    if (nextStep !== undefined) setStep(nextStep);
+    setErrors((prev) => {
+      const updatedErrors = { ...prev };
+      Object.keys(updates).forEach((field) => {
+        updatedErrors[field] = "";
+      });
+      return updatedErrors;
+    });
+  };
+
+  const updateField = (field: keyof ApplicationData, value: string) => {
+    updateFields({ [field]: value });
+  };
+
+  const advanceFromStepOne = (updates: Partial<ApplicationData>) => {
+    updateFields(updates, 2);
   };
 
   const canProceed = (): boolean => {
@@ -295,17 +324,20 @@ const ApplicationHub = ({ open, onClose, prefillPurpose }: ApplicationHubProps) 
                 <StepGoal
                   data={data}
                   onSelect={(v) => {
-                    updateField("loan_purpose", v);
                     if (v !== "Refinance") {
-                      updateField("refinance_type", "");
-                      updateField("cash_out_purpose", "");
+                      advanceFromStepOne({ loan_purpose: v, refinance_type: "", cash_out_purpose: "" });
+                      return;
                     }
+                    updateFields({ loan_purpose: v, refinance_type: "", cash_out_purpose: "" });
                   }}
                   onSelectRefinanceType={(v) => {
-                    updateField("refinance_type", v);
-                    if (v !== "CashOut") updateField("cash_out_purpose", "");
+                    if (v !== "CashOut") {
+                      advanceFromStepOne({ refinance_type: v, cash_out_purpose: "" });
+                      return;
+                    }
+                    updateFields({ refinance_type: v, cash_out_purpose: "" });
                   }}
-                  onSelectCashOutPurpose={(v) => updateField("cash_out_purpose", v)}
+                  onSelectCashOutPurpose={(v) => advanceFromStepOne({ cash_out_purpose: v })}
                 />
               )}
               {step === 2 && <StepProperty data={data} onChange={updateField} />}
@@ -361,8 +393,8 @@ function StepGoal({
   onSelectRefinanceType: (v: string) => void;
   onSelectCashOutPurpose: (v: string) => void;
 }) {
-  const [refinanceTypes, setRefinanceTypes] = useState<{ value: string; label: string }[]>([]);
-  const [cashOutPurposes, setCashOutPurposes] = useState<{ value: string; label: string }[]>([]);
+  const [refinanceTypes, setRefinanceTypes] = useState<{ value: string; label: string }[]>(DEFAULT_REFINANCE_TYPES);
+  const [cashOutPurposes, setCashOutPurposes] = useState<{ value: string; label: string }[]>(DEFAULT_CASH_OUT_PURPOSES);
 
   useEffect(() => {
     (async () => {
@@ -380,8 +412,8 @@ function StepGoal({
         if (name === "refinance_type") rt.push(opt);
         else if (name === "cash_out_purpose") co.push(opt);
       });
-      setRefinanceTypes(rt);
-      setCashOutPurposes(co);
+      if (rt.length) setRefinanceTypes(rt);
+      if (co.length) setCashOutPurposes(co);
     })().catch(() => {});
   }, []);
 
