@@ -9,7 +9,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Loader2, Plus, Trash2, GripVertical, Eye, Save } from "lucide-react";
+import {
+  Loader2, Plus, Trash2, GripVertical, Eye, Save, Search, Settings2,
+  MoreVertical, ChevronLeft, ChevronRight, CheckCircle2, Pencil,
+  User, Users, Target, FileText, Clipboard, TrendingUp, Home,
+  Handshake, Building, Contact as ContactIcon, CheckSquare, Folder, Megaphone,
+  Type as TypeIcon, Mail, Phone as PhoneIcon, List, Hash, Percent,
+  Calendar, Link as LinkIcon, MapPin, Paperclip, PenLine, Sparkles, Sigma,
+  ToggleLeft,
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   listModules, listSections, listFields, listFieldOptions, saveField, deleteField,
@@ -20,11 +28,42 @@ import {
   type CrmFieldPermission, type CrmFieldCondition,
 } from "@/lib/crm-fields/api";
 import { Link } from "react-router-dom";
+import { cn } from "@/lib/utils";
 
 const FIELD_TYPES = [
   "text","textarea","number","currency","percent","dropdown","multiselect",
   "checkbox","radio","date","datetime","phone","email","url","address","file","signature","ai","formula",
 ] as const;
+
+const MODULE_ICONS: Record<string, any> = {
+  user: User, users: Users, target: Target, "file-text": FileText,
+  clipboard: Clipboard, "trending-up": TrendingUp, home: Home,
+  handshake: Handshake, building: Building, contact: ContactIcon,
+  "check-square": CheckSquare, folder: Folder, megaphone: Megaphone,
+};
+
+const TYPE_META: Record<string, { icon: any; label: string; tone: string }> = {
+  text:       { icon: TypeIcon,   label: "Text",       tone: "text-blue-600 bg-blue-50" },
+  textarea:   { icon: TypeIcon,   label: "Long Text",  tone: "text-blue-600 bg-blue-50" },
+  email:      { icon: Mail,       label: "Email",      tone: "text-purple-600 bg-purple-50" },
+  phone:      { icon: PhoneIcon,  label: "Phone",      tone: "text-emerald-600 bg-emerald-50" },
+  dropdown:   { icon: List,       label: "Dropdown",   tone: "text-amber-600 bg-amber-50" },
+  multiselect:{ icon: List,       label: "Multi-select", tone: "text-amber-600 bg-amber-50" },
+  radio:      { icon: List,       label: "Radio",      tone: "text-amber-600 bg-amber-50" },
+  number:     { icon: Hash,       label: "Number",     tone: "text-cyan-600 bg-cyan-50" },
+  currency:   { icon: Hash,       label: "Currency",   tone: "text-cyan-600 bg-cyan-50" },
+  percent:    { icon: Percent,    label: "Percentage", tone: "text-pink-600 bg-pink-50" },
+  checkbox:   { icon: ToggleLeft, label: "Checkbox",   tone: "text-slate-600 bg-slate-100" },
+  date:       { icon: Calendar,   label: "Date",       tone: "text-indigo-600 bg-indigo-50" },
+  datetime:   { icon: Calendar,   label: "Date/Time",  tone: "text-indigo-600 bg-indigo-50" },
+  url:        { icon: LinkIcon,   label: "URL",        tone: "text-blue-600 bg-blue-50" },
+  address:    { icon: MapPin,     label: "Address",    tone: "text-rose-600 bg-rose-50" },
+  file:       { icon: Paperclip,  label: "File",       tone: "text-slate-600 bg-slate-100" },
+  signature:  { icon: PenLine,    label: "Signature",  tone: "text-slate-600 bg-slate-100" },
+  ai:         { icon: Sparkles,   label: "AI",         tone: "text-violet-600 bg-violet-50" },
+  formula:    { icon: Sigma,      label: "Formula",    tone: "text-teal-600 bg-teal-50" },
+};
+const typeMeta = (t: string) => TYPE_META[t] ?? { icon: TypeIcon, label: t, tone: "text-slate-600 bg-slate-100" };
 
 export default function CrmFieldBuilder() {
   const { toast } = useToast();
@@ -38,6 +77,11 @@ export default function CrmFieldBuilder() {
   const [editingOptions, setEditingOptions] = useState<{ value: string; label: string }[]>([]);
   const [permissions, setPermissions] = useState<CrmFieldPermission[]>([]);
   const [conditions, setConditions] = useState<CrmFieldCondition[]>([]);
+  const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState<string>("__all__");
+  const [sectionFilter, setSectionFilter] = useState<string>("__all__");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   useEffect(() => {
     (async () => {
