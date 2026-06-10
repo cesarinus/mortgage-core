@@ -1177,6 +1177,160 @@ export type Database = {
         }
         Relationships: []
       }
+      crm_field_options: {
+        Row: {
+          created_at: string
+          field_id: string
+          id: string
+          label: string
+          sort_order: number
+          value: string
+        }
+        Insert: {
+          created_at?: string
+          field_id: string
+          id?: string
+          label: string
+          sort_order?: number
+          value: string
+        }
+        Update: {
+          created_at?: string
+          field_id?: string
+          id?: string
+          label?: string
+          sort_order?: number
+          value?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_field_options_field_id_fkey"
+            columns: ["field_id"]
+            isOneToOne: false
+            referencedRelation: "crm_fields"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_field_values: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          field_id: string
+          id: string
+          record_id: string
+          record_type: string
+          updated_at: string
+          value: Json | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          field_id: string
+          id?: string
+          record_id: string
+          record_type: string
+          updated_at?: string
+          value?: Json | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          field_id?: string
+          id?: string
+          record_id?: string
+          record_type?: string
+          updated_at?: string
+          value?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_field_values_field_id_fkey"
+            columns: ["field_id"]
+            isOneToOne: false
+            referencedRelation: "crm_fields"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_fields: {
+        Row: {
+          active: boolean
+          created_at: string
+          default_value: string | null
+          description: string | null
+          field_type: string
+          hidden: boolean
+          id: string
+          internal_name: string
+          is_system: boolean
+          label: string
+          module_id: string
+          placeholder: string | null
+          read_only: boolean
+          required: boolean
+          section_id: string | null
+          sort_order: number
+          updated_at: string
+          validation: Json
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          default_value?: string | null
+          description?: string | null
+          field_type: string
+          hidden?: boolean
+          id?: string
+          internal_name: string
+          is_system?: boolean
+          label: string
+          module_id: string
+          placeholder?: string | null
+          read_only?: boolean
+          required?: boolean
+          section_id?: string | null
+          sort_order?: number
+          updated_at?: string
+          validation?: Json
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          default_value?: string | null
+          description?: string | null
+          field_type?: string
+          hidden?: boolean
+          id?: string
+          internal_name?: string
+          is_system?: boolean
+          label?: string
+          module_id?: string
+          placeholder?: string | null
+          read_only?: boolean
+          required?: boolean
+          section_id?: string | null
+          sort_order?: number
+          updated_at?: string
+          validation?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_fields_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "crm_modules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_fields_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "crm_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_meetings: {
         Row: {
           contact_id: string | null
@@ -1237,6 +1391,42 @@ export type Database = {
           },
         ]
       }
+      crm_modules: {
+        Row: {
+          active: boolean
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          label: string
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          label: string
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          icon?: string | null
+          id?: string
+          label?: string
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       crm_notes: {
         Row: {
           body_html: string
@@ -1281,6 +1471,53 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_sections: {
+        Row: {
+          created_at: string
+          description: string | null
+          hidden: boolean
+          id: string
+          is_system: boolean
+          label: string
+          module_id: string
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          hidden?: boolean
+          id?: string
+          is_system?: boolean
+          label: string
+          module_id: string
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          hidden?: boolean
+          id?: string
+          is_system?: boolean
+          label?: string
+          module_id?: string
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_sections_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "crm_modules"
             referencedColumns: ["id"]
           },
         ]
