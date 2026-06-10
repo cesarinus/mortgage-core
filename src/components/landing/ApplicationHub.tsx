@@ -348,7 +348,41 @@ const ApplicationHub = ({ open, onClose, prefillPurpose }: ApplicationHubProps) 
 
 // ─── Step Components ──────────────────────────────────────
 
-function StepGoal({ data, onSelect }: { data: ApplicationData; onSelect: (v: string) => void }) {
+function StepGoal({
+  data,
+  onSelect,
+  onSelectRefinanceType,
+  onSelectCashOutPurpose,
+}: {
+  data: ApplicationData;
+  onSelect: (v: string) => void;
+  onSelectRefinanceType: (v: string) => void;
+  onSelectCashOutPurpose: (v: string) => void;
+}) {
+  const [refinanceTypes, setRefinanceTypes] = useState<{ value: string; label: string }[]>([]);
+  const [cashOutPurposes, setCashOutPurposes] = useState<{ value: string; label: string }[]>([]);
+
+  useEffect(() => {
+    (async () => {
+      const { data: rows } = await supabase
+        .from("crm_field_options")
+        .select("value, label, sort_order, crm_fields!inner(internal_name, crm_modules!inner(slug))")
+        .in("crm_fields.internal_name", ["refinance_type", "cash_out_purpose"])
+        .eq("crm_fields.crm_modules.slug", "leads")
+        .order("sort_order", { ascending: true });
+      const rt: { value: string; label: string }[] = [];
+      const co: { value: string; label: string }[] = [];
+      (rows ?? []).forEach((r: any) => {
+        const name = r.crm_fields?.internal_name;
+        const opt = { value: r.value as string, label: r.label as string };
+        if (name === "refinance_type") rt.push(opt);
+        else if (name === "cash_out_purpose") co.push(opt);
+      });
+      setRefinanceTypes(rt);
+      setCashOutPurposes(co);
+    })().catch(() => {});
+  }, []);
+
   return (
     <div className="space-y-4">
       <div>
@@ -358,9 +392,45 @@ function StepGoal({ data, onSelect }: { data: ApplicationData; onSelect: (v: str
       <div className="grid gap-3">
         <OptionCard selected={data.loan_purpose === "Buy a home"} onClick={() => onSelect("Buy a home")} icon={Home} label="Buy a home" />
         <OptionCard selected={data.loan_purpose === "Refinance"} onClick={() => onSelect("Refinance")} icon={Building2} label="Refinance" />
-        <OptionCard selected={data.loan_purpose === "Cash-out refinance"} onClick={() => onSelect("Cash-out refinance")} icon={DollarSign} label="Cash-out refinance" />
-        <OptionCard selected={data.loan_purpose === "Pre-approval"} onClick={() => onSelect("Pre-approval")} icon={Check} label="Get pre-approved" />
       </div>
+
+      {data.loan_purpose === "Refinance" && (
+        <div className="space-y-3 pt-2">
+          <div>
+            <h4 className="text-sm font-semibold text-foreground">Refinance type</h4>
+            <p className="text-xs text-muted-foreground">Choose the option that fits your goal.</p>
+          </div>
+          <div className="grid gap-2">
+            {refinanceTypes.map((o) => (
+              <OptionCard
+                key={o.value}
+                selected={data.refinance_type === o.value}
+                onClick={() => onSelectRefinanceType(o.value)}
+                label={o.label}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {data.loan_purpose === "Refinance" && data.refinance_type === "CashOut" && (
+        <div className="space-y-3 pt-2">
+          <div>
+            <h4 className="text-sm font-semibold text-foreground">Cash out purpose</h4>
+            <p className="text-xs text-muted-foreground">What will you use the funds for?</p>
+          </div>
+          <div className="grid gap-2">
+            {cashOutPurposes.map((o) => (
+              <OptionCard
+                key={o.value}
+                selected={data.cash_out_purpose === o.value}
+                onClick={() => onSelectCashOutPurpose(o.value)}
+                label={o.label}
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
