@@ -12,6 +12,8 @@ const TOTAL_STEPS = 7;
 
 interface ApplicationData {
   loan_purpose: string;
+  refinance_type: string;
+  cash_out_purpose: string;
   property_type: string;
   property_value: string;
   credit_range: string;
@@ -26,6 +28,8 @@ interface ApplicationData {
 
 const defaultData: ApplicationData = {
   loan_purpose: "",
+  refinance_type: "",
+  cash_out_purpose: "",
   property_type: "",
   property_value: "",
   credit_range: "",
@@ -118,7 +122,14 @@ const ApplicationHub = ({ open, onClose, prefillPurpose }: ApplicationHubProps) 
 
   const canProceed = (): boolean => {
     switch (step) {
-      case 1: return !!data.loan_purpose;
+      case 1: {
+        if (!data.loan_purpose) return false;
+        if (data.loan_purpose === "Refinance") {
+          if (!data.refinance_type) return false;
+          if (data.refinance_type === "CashOut" && !data.cash_out_purpose) return false;
+        }
+        return true;
+      }
       case 2: return !!data.property_type;
       case 3: return !!data.credit_range;
       case 4: return !!data.employment_type;
@@ -164,6 +175,11 @@ const ApplicationHub = ({ open, onClose, prefillPurpose }: ApplicationHubProps) 
           email: data.email.trim() || null,
           phone: data.phone.trim() || null,
           loan_purpose: data.loan_purpose,
+          refinance_type: data.loan_purpose === "Refinance" ? (data.refinance_type || null) : null,
+          cash_out_purpose:
+            data.loan_purpose === "Refinance" && data.refinance_type === "CashOut"
+              ? (data.cash_out_purpose || null)
+              : null,
           property_type: data.property_type,
           property_value: data.property_value ? Number(data.property_value) : null,
           credit_range: data.credit_range,
@@ -181,6 +197,8 @@ const ApplicationHub = ({ open, onClose, prefillPurpose }: ApplicationHubProps) 
           })(),
           notes: [
             data.loan_purpose && `Loan Purpose: ${data.loan_purpose}`,
+            data.refinance_type && `Refinance Type: ${data.refinance_type}`,
+            data.cash_out_purpose && `Cash Out Purpose: ${data.cash_out_purpose}`,
             data.property_type && `Property Type: ${data.property_type}`,
             data.property_value && `Property Value: $${data.property_value}`,
             data.credit_range && `Credit Range: ${data.credit_range}`,
