@@ -408,6 +408,7 @@ export default function RecordWorkspace({ kind }: Props) {
               <SendToLosButton
                 lead={record}
                 opportunity={primaryOpp}
+                mortgageProfile={mortgage}
                 onSent={() => window.location.reload()}
               />
               <LosSyncCard leadId={record.id} />
