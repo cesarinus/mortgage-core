@@ -12,6 +12,8 @@ export interface LosFieldMapping {
   sort_order: number;
   active: boolean;
   notes: string | null;
+  crm_field_id?: string | null;
+  module_slug?: string | null;
 }
 
 export async function loadMappings(integration = "arive"): Promise<LosFieldMapping[]> {
