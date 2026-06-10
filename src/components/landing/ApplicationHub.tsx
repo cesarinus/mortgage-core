@@ -10,6 +10,20 @@ import { toast } from "sonner";
 const STORAGE_KEY = "ng_application_progress";
 const TOTAL_STEPS = 7;
 
+const DEFAULT_REFINANCE_TYPES = [
+  { value: "NoCashOut", label: "Rate and Term" },
+  { value: "LimitedCashOut", label: "Limited Cash Out" },
+  { value: "CashOut", label: "Cash Out" },
+];
+
+const DEFAULT_CASH_OUT_PURPOSES = [
+  { value: "DebtConsolidation", label: "Debt Consolidation" },
+  { value: "Education", label: "Student Loan" },
+  { value: "HomeImprovement", label: "Home Improvement" },
+  { value: "InterestRateReduction", label: "Rate and Term Change" },
+  { value: "Other", label: "Other" },
+];
+
 interface ApplicationData {
   loan_purpose: string;
   refinance_type: string;
@@ -379,8 +393,8 @@ function StepGoal({
   onSelectRefinanceType: (v: string) => void;
   onSelectCashOutPurpose: (v: string) => void;
 }) {
-  const [refinanceTypes, setRefinanceTypes] = useState<{ value: string; label: string }[]>([]);
-  const [cashOutPurposes, setCashOutPurposes] = useState<{ value: string; label: string }[]>([]);
+  const [refinanceTypes, setRefinanceTypes] = useState<{ value: string; label: string }[]>(DEFAULT_REFINANCE_TYPES);
+  const [cashOutPurposes, setCashOutPurposes] = useState<{ value: string; label: string }[]>(DEFAULT_CASH_OUT_PURPOSES);
 
   useEffect(() => {
     (async () => {
@@ -398,8 +412,8 @@ function StepGoal({
         if (name === "refinance_type") rt.push(opt);
         else if (name === "cash_out_purpose") co.push(opt);
       });
-      setRefinanceTypes(rt);
-      setCashOutPurposes(co);
+      if (rt.length) setRefinanceTypes(rt);
+      if (co.length) setCashOutPurposes(co);
     })().catch(() => {});
   }, []);
 
