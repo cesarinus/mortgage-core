@@ -2453,6 +2453,56 @@ export type Database = {
           },
         ]
       }
+      los_integration_logs: {
+        Row: {
+          created_at: string
+          direction: string
+          error: string | null
+          event: string
+          id: string
+          lead_id: string | null
+          payload: Json | null
+          response: Json | null
+          retry_count: number
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          direction?: string
+          error?: string | null
+          event: string
+          id?: string
+          lead_id?: string | null
+          payload?: Json | null
+          response?: Json | null
+          retry_count?: number
+          status?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          direction?: string
+          error?: string | null
+          event?: string
+          id?: string
+          lead_id?: string | null
+          payload?: Json | null
+          response?: Json | null
+          retry_count?: number
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "los_integration_logs_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       los_loans: {
         Row: {
           arive_loan_id: string | null

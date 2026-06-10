@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import EmailProviderSettings from "@/components/settings/EmailProviderSettings";
 import ZapierIntegrationSettings from "@/components/settings/ZapierIntegrationSettings";
 import { Link } from "react-router-dom";
-import { Upload, Moon, Sun, Palette, Monitor } from "lucide-react";
+import { Upload, Moon, Sun, Palette, Monitor, ListChecks } from "lucide-react";
 import { useTheme, type ThemeName } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
@@ -131,6 +131,25 @@ export default function SettingsPage() {
       <BookingAvailabilitySettings />
       <EmailProviderSettings />
       <ZapierIntegrationSettings />
+      {user && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ListChecks className="h-4 w-4 text-primary" /> LOS Integration Logs
+            </CardTitle>
+            <CardDescription>
+              Inspect every Send-to-LOS / Zapier call from this CRM without leaving the app.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild variant="outline">
+              <Link to="/settings/los-logs">
+                <ListChecks className="h-4 w-4 mr-2" /> View logs
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
       {user && (
         <Card>
           <CardHeader>

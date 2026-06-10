@@ -12,6 +12,7 @@ import { fireZapier } from "@/lib/integrations/zapier";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { calcLoanAmountFromProfile } from "@/lib/loan/calcLoanAmount";
+import { normalizeLosPayload } from "@/lib/los/format";
 
 interface Props {
   lead: any;
@@ -43,7 +44,7 @@ export default function SendToLosButton({ lead, opportunity, mortgageProfile, on
   const handleSend = async () => {
     setSending(true);
     try {
-      const payload = {
+      const rawPayload = {
         crm_reference_id: lead.id,
         first_name: lead.first_name,
         last_name: lead.last_name,
@@ -62,6 +63,7 @@ export default function SendToLosButton({ lead, opportunity, mortgageProfile, on
         deal_id: opportunity?.id ?? null,
         sent_at: new Date().toISOString(),
       };
+      const payload = normalizeLosPayload(rawPayload);
       await fireZapier("lead.sent_to_los", payload);
 
       await supabase
