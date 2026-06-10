@@ -49,6 +49,8 @@ export function SmartLeadForm({ leadId, initial, sources = [], onSaved, onCancel
 
   const [contactsList, setContactsList] = useState<any[]>([]);
   const [companiesList, setCompaniesList] = useState<any[]>([]);
+  const [refinanceTypeOptions, setRefinanceTypeOptions] = useState<{ value: string; label: string }[]>([]);
+  const [cashOutPurposeOptions, setCashOutPurposeOptions] = useState<{ value: string; label: string }[]>([]);
   const [dpMode, setDpMode] = useState<"amount" | "percent">("amount");
   const [dpPct, setDpPct] = useState<number>(() => {
     const price = Number(initial?.property_value ?? 0);
@@ -60,6 +62,28 @@ export function SmartLeadForm({ leadId, initial, sources = [], onSaved, onCancel
   useEffect(() => {
     fetchAllContacts().then(setContactsList).catch(() => {});
     fetchAllCompanies().then(setCompaniesList).catch(() => {});
+  }, []);
+
+  // Load dropdown options for Refinance Type and Cash Out Purpose from CRM field definitions
+  useEffect(() => {
+    (async () => {
+      const { data: rows } = await supabase
+        .from("crm_field_options")
+        .select("value, label, sort_order, field_id, crm_fields!inner(internal_name, crm_modules!inner(slug))")
+        .in("crm_fields.internal_name", ["refinance_type", "cash_out_purpose"])
+        .eq("crm_fields.crm_modules.slug", "leads")
+        .order("sort_order", { ascending: true });
+      const refType: { value: string; label: string }[] = [];
+      const cashOut: { value: string; label: string }[] = [];
+      (rows ?? []).forEach((r: any) => {
+        const name = r.crm_fields?.internal_name;
+        const opt = { value: r.value as string, label: r.label as string };
+        if (name === "refinance_type") refType.push(opt);
+        else if (name === "cash_out_purpose") cashOut.push(opt);
+      });
+      setRefinanceTypeOptions(refType);
+      setCashOutPurposeOptions(cashOut);
+    })().catch(() => {});
   }, []);
 
   // Real-time duplicate-email check (debounced). Excludes the currently-edited lead.
