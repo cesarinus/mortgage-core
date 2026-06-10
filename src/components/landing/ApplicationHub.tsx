@@ -114,10 +114,12 @@ const ApplicationHub = ({ open, onClose, prefillPurpose }: ApplicationHubProps) 
   );
 
   const updateField = (field: keyof ApplicationData, value: string) => {
-    const updated = { ...data, [field]: value };
-    setData(updated);
+    setData((prev) => {
+      const updated = { ...prev, [field]: value };
+      saveProgress(updated, step);
+      return updated;
+    });
     setErrors((prev) => ({ ...prev, [field]: "" }));
-    saveProgress(updated, step);
   };
 
   const canProceed = (): boolean => {
