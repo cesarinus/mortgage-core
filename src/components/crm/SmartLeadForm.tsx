@@ -307,7 +307,7 @@ export function SmartLeadForm({ leadId, initial, sources = [], onSaved, onCancel
             <Select value={data.property_type || ""} onValueChange={v => set("property_type", v as any)}>
               <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="single_family">Single family</SelectItem>
+                <SelectItem value="single_family">Single Family</SelectItem>
                 <SelectItem value="condo">Condo</SelectItem>
                 <SelectItem value="townhome">Townhome</SelectItem>
                 <SelectItem value="multi_unit">Multi-unit</SelectItem>
