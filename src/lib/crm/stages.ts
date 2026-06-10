@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
  * Conversion from a Qualified lead to an opportunity happens through the
  * "Move to Pipeline" action; it is NOT modeled as a lead-status transition.
  */
-export const LEAD_STATUSES = ["new_lead", "contacted", "qualified", "unqualified"] as const;
+export const LEAD_STATUSES = ["new_lead", "contacted", "Qualified", "unqualified"] as const;
 export type LeadStatus = (typeof LEAD_STATUSES)[number];
 
 export const PIPELINE_STAGES = [
@@ -24,7 +24,7 @@ export type PipelineStage = (typeof PIPELINE_STAGES)[number];
 export const LEAD_STATUS_LABELS: Record<string, string> = {
   new_lead: "New",
   contacted: "Contacted",
-  qualified: "Qualified",
+  Qualified: "Qualified",
   unqualified: "Unqualified",
   // legacy fallbacks (data may still surface these)
   new: "New",
@@ -50,7 +50,7 @@ export const STAGE_LABELS: Record<string, string> = {
 export const LEAD_STATUS_BADGE: Record<string, string> = {
   new_lead: "bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/20",
   contacted: "bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/20",
-  qualified: "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/20",
+  Qualified: "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/20",
   unqualified: "bg-muted text-muted-foreground border-border",
 };
 
