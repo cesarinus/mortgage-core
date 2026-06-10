@@ -451,6 +451,6 @@ function derivePositives(r: any): string[] {
   const out: string[] = [];
   if ((r?.lead_score ?? 0) >= 60) out.push("High lead score");
   if (r?.annual_income && r.annual_income > 100000) out.push("Strong income");
-  if (r?.credit_range && /740|750|excellent|strong/i.test(r.credit_range)) out.push("Strong credit");
+  if (r?.credit_range && /740|750|excellent|Excellent|strong/i.test(r.credit_range)) out.push("Strong credit");
   return out;
 }
