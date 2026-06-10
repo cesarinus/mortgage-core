@@ -12,6 +12,8 @@ const TOTAL_STEPS = 7;
 
 interface ApplicationData {
   loan_purpose: string;
+  refinance_type: string;
+  cash_out_purpose: string;
   property_type: string;
   property_value: string;
   credit_range: string;
@@ -26,6 +28,8 @@ interface ApplicationData {
 
 const defaultData: ApplicationData = {
   loan_purpose: "",
+  refinance_type: "",
+  cash_out_purpose: "",
   property_type: "",
   property_value: "",
   credit_range: "",
@@ -118,7 +122,14 @@ const ApplicationHub = ({ open, onClose, prefillPurpose }: ApplicationHubProps) 
 
   const canProceed = (): boolean => {
     switch (step) {
-      case 1: return !!data.loan_purpose;
+      case 1: {
+        if (!data.loan_purpose) return false;
+        if (data.loan_purpose === "Refinance") {
+          if (!data.refinance_type) return false;
+          if (data.refinance_type === "CashOut" && !data.cash_out_purpose) return false;
+        }
+        return true;
+      }
       case 2: return !!data.property_type;
       case 3: return !!data.credit_range;
       case 4: return !!data.employment_type;
@@ -164,6 +175,11 @@ const ApplicationHub = ({ open, onClose, prefillPurpose }: ApplicationHubProps) 
           email: data.email.trim() || null,
           phone: data.phone.trim() || null,
           loan_purpose: data.loan_purpose,
+          refinance_type: data.loan_purpose === "Refinance" ? (data.refinance_type || null) : null,
+          cash_out_purpose:
+            data.loan_purpose === "Refinance" && data.refinance_type === "CashOut"
+              ? (data.cash_out_purpose || null)
+              : null,
           property_type: data.property_type,
           property_value: data.property_value ? Number(data.property_value) : null,
           credit_range: data.credit_range,
@@ -181,6 +197,8 @@ const ApplicationHub = ({ open, onClose, prefillPurpose }: ApplicationHubProps) 
           })(),
           notes: [
             data.loan_purpose && `Loan Purpose: ${data.loan_purpose}`,
+            data.refinance_type && `Refinance Type: ${data.refinance_type}`,
+            data.cash_out_purpose && `Cash Out Purpose: ${data.cash_out_purpose}`,
             data.property_type && `Property Type: ${data.property_type}`,
             data.property_value && `Property Value: $${data.property_value}`,
             data.credit_range && `Credit Range: ${data.credit_range}`,
@@ -271,7 +289,23 @@ const ApplicationHub = ({ open, onClose, prefillPurpose }: ApplicationHubProps) 
             <SuccessState onClose={handleClose} />
           ) : (
             <>
-              {step === 1 && <StepGoal data={data} onSelect={(v) => updateField("loan_purpose", v)} />}
+              {step === 1 && (
+                <StepGoal
+                  data={data}
+                  onSelect={(v) => {
+                    updateField("loan_purpose", v);
+                    if (v !== "Refinance") {
+                      updateField("refinance_type", "");
+                      updateField("cash_out_purpose", "");
+                    }
+                  }}
+                  onSelectRefinanceType={(v) => {
+                    updateField("refinance_type", v);
+                    if (v !== "CashOut") updateField("cash_out_purpose", "");
+                  }}
+                  onSelectCashOutPurpose={(v) => updateField("cash_out_purpose", v)}
+                />
+              )}
               {step === 2 && <StepProperty data={data} onChange={updateField} />}
               {step === 3 && <StepCredit data={data} onSelect={(v) => updateField("credit_range", v)} />}
               {step === 4 && <StepEmployment data={data} onChange={updateField} />}
@@ -314,7 +348,41 @@ const ApplicationHub = ({ open, onClose, prefillPurpose }: ApplicationHubProps) 
 
 // ─── Step Components ──────────────────────────────────────
 
-function StepGoal({ data, onSelect }: { data: ApplicationData; onSelect: (v: string) => void }) {
+function StepGoal({
+  data,
+  onSelect,
+  onSelectRefinanceType,
+  onSelectCashOutPurpose,
+}: {
+  data: ApplicationData;
+  onSelect: (v: string) => void;
+  onSelectRefinanceType: (v: string) => void;
+  onSelectCashOutPurpose: (v: string) => void;
+}) {
+  const [refinanceTypes, setRefinanceTypes] = useState<{ value: string; label: string }[]>([]);
+  const [cashOutPurposes, setCashOutPurposes] = useState<{ value: string; label: string }[]>([]);
+
+  useEffect(() => {
+    (async () => {
+      const { data: rows } = await supabase
+        .from("crm_field_options")
+        .select("value, label, sort_order, crm_fields!inner(internal_name, crm_modules!inner(slug))")
+        .in("crm_fields.internal_name", ["refinance_type", "cash_out_purpose"])
+        .eq("crm_fields.crm_modules.slug", "leads")
+        .order("sort_order", { ascending: true });
+      const rt: { value: string; label: string }[] = [];
+      const co: { value: string; label: string }[] = [];
+      (rows ?? []).forEach((r: any) => {
+        const name = r.crm_fields?.internal_name;
+        const opt = { value: r.value as string, label: r.label as string };
+        if (name === "refinance_type") rt.push(opt);
+        else if (name === "cash_out_purpose") co.push(opt);
+      });
+      setRefinanceTypes(rt);
+      setCashOutPurposes(co);
+    })().catch(() => {});
+  }, []);
+
   return (
     <div className="space-y-4">
       <div>
@@ -324,9 +392,45 @@ function StepGoal({ data, onSelect }: { data: ApplicationData; onSelect: (v: str
       <div className="grid gap-3">
         <OptionCard selected={data.loan_purpose === "Buy a home"} onClick={() => onSelect("Buy a home")} icon={Home} label="Buy a home" />
         <OptionCard selected={data.loan_purpose === "Refinance"} onClick={() => onSelect("Refinance")} icon={Building2} label="Refinance" />
-        <OptionCard selected={data.loan_purpose === "Cash-out refinance"} onClick={() => onSelect("Cash-out refinance")} icon={DollarSign} label="Cash-out refinance" />
-        <OptionCard selected={data.loan_purpose === "Pre-approval"} onClick={() => onSelect("Pre-approval")} icon={Check} label="Get pre-approved" />
       </div>
+
+      {data.loan_purpose === "Refinance" && (
+        <div className="space-y-3 pt-2">
+          <div>
+            <h4 className="text-sm font-semibold text-foreground">Refinance type</h4>
+            <p className="text-xs text-muted-foreground">Choose the option that fits your goal.</p>
+          </div>
+          <div className="grid gap-2">
+            {refinanceTypes.map((o) => (
+              <OptionCard
+                key={o.value}
+                selected={data.refinance_type === o.value}
+                onClick={() => onSelectRefinanceType(o.value)}
+                label={o.label}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {data.loan_purpose === "Refinance" && data.refinance_type === "CashOut" && (
+        <div className="space-y-3 pt-2">
+          <div>
+            <h4 className="text-sm font-semibold text-foreground">Cash out purpose</h4>
+            <p className="text-xs text-muted-foreground">What will you use the funds for?</p>
+          </div>
+          <div className="grid gap-2">
+            {cashOutPurposes.map((o) => (
+              <OptionCard
+                key={o.value}
+                selected={data.cash_out_purpose === o.value}
+                onClick={() => onSelectCashOutPurpose(o.value)}
+                label={o.label}
+              />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
