@@ -1,83 +1,33 @@
-## The bug
+## Root cause
 
-`SendToLosButton` reads `loan_amount` from only two places:
+The "Send to LOS" code is working correctly. It fires the `lead.sent_to_los` event through `fireZapier()`, which looks up the user's webhook URL in the `integration_webhooks` table and POSTs the payload there.
 
-```ts
-const loanAmount = opportunity?.loan_amount ?? lead?.loan_amount;
+The problem is the **saved URL is wrong**. The database currently has:
+
+```
+https://hooks.zapier.com/hooks/catch/27890503/4336kzy/   ← saved in Settings
+https://hooks.zapier.com/hooks/catch/27890503/432hy7l/   ← the URL you just gave me
 ```
 
-For lead `ac9d7aaf…`:
-- `leads.loan_amount` = empty
-- No `pipeline_opportunities` row exists (lead never moved to pipeline)
-- But `mortgage_profiles` HAS the data:
-  - `purchase_price` = 500,000
-  - `down_payment` = 50,000
-  - `notes.loan_type` = "conventional"
+The CRM has been sending the payload all along — it's just being delivered to a different (probably old/disabled) Zap, which is why your new Catch Hook in Zapier never receives anything. Diagnostics confirm it: `last_fired_at = 2026-06-10 02:20:59`, `last_status = sent`.
 
-The button never looks at `mortgage_profiles`, so it shows "Loan amount missing" and stays disabled. The intake form also never wrote a computed `loan_amount` back to `leads`. That's the root cause.
+Because `fetch` is sent with `mode: "no-cors"`, the response is opaque and we can't tell from the browser whether Zapier actually accepted it — so this kind of silent mis-routing won't show up as an error in the UI.
 
 ## Fix
 
-### 1. Add a shared calculator `src/lib/loan/calcLoanAmount.ts`
+Two small changes, no logic rewrite:
 
-```ts
-type Inputs = {
-  loan_type?: string | null;          // 'conventional' | 'fha' | 'va' | 'usda' | ...
-  purchase_price?: number | null;     // from mortgage_profiles or lead.property_value
-  down_payment?: number | null;       // dollar amount
-};
+1. **Update the saved webhook URL to the correct one.**
+   Run one SQL update on `integration_webhooks` to replace the stale URL with `https://hooks.zapier.com/hooks/catch/27890503/432hy7l/` for your user. You can alternatively just go to Settings → Zapier Integration, paste the new URL, and click Save — same result. I'll do it in SQL so it's done immediately.
 
-export function calcLoanAmount({ loan_type, purchase_price, down_payment }: Inputs): number | null {
-  if (!purchase_price || purchase_price <= 0) return null;
-  const type = (loan_type || 'conventional').toLowerCase();
+2. **Make the Settings page show the truncated URL plainly** so this kind of mismatch is easier to catch in the future.
+   Tiny UI tweak in `ZapierIntegrationSettings.tsx`: under the "Last fired" line, also render the masked URL currently saved (e.g. `…/catch/27890503/432hy7l/`). No behavior change, just visibility.
 
-  if (type === 'fha') {
-    // Min 3.5% down; base = price - max(down_payment, 3.5%)
-    const minDown = purchase_price * 0.035;
-    const dp = Math.max(down_payment ?? minDown, minDown);
-    const base = purchase_price - dp;
-    // UFMIP 1.75% financed on top
-    return Math.round(base * 1.0175);
-  }
+That's it. No changes needed to `SendToLosButton.tsx`, `fireZapier()`, or the edge function — they're all correct. The "no data received" symptom is 100% explained by the wrong saved URL.
 
-  // Conventional / default: price - down_payment
-  const dp = down_payment ?? 0;
-  return Math.max(0, Math.round(purchase_price - dp));
-}
-```
+## After the fix — how to verify
 
-### 2. Update `SendToLosButton.tsx`
+1. Open Settings → Zapier Integration → click **Send test payload**. Your new Zap (`432hy7l`) should immediately show a run in Zapier's history.
+2. Open a Qualified lead → **Send to LOS**. The Zap should receive a `lead.sent_to_los` event with `crm_reference_id`, `first_name`, `last_name`, `email`, `phone`, `loan_purpose`, `loan_amount`, `loan_officer_email`, etc.
 
-- Accept an optional `mortgageProfile` prop (or fetch it inside the component if not passed).
-- Compute fallback order:
-  1. `opportunity?.loan_amount`
-  2. `lead?.loan_amount`
-  3. `calcLoanAmount({ loan_type: profile.notes?.loan_type, purchase_price: profile.purchase_price ?? lead.property_value, down_payment: profile.down_payment })`
-- Use the computed value in the Zapier payload and in the "missing field" check.
-
-### 3. Pass `mortgageProfile` from `RecordWorkspace.tsx`
-
-`RecordWorkspace` already loads the lead — add a sibling query for `mortgage_profiles` by `lead_id` and pass it to `SendToLosButton` and `LosSyncCard`.
-
-### 4. Backfill the field going forward
-
-In `src/lib/crm/leadIntake.ts` (and `SmartLeadForm` if it writes directly), when a lead is created/updated with `property_value` + a down payment + loan type, also write the computed `loan_amount` onto `leads.loan_amount`. This keeps Pipeline, Dashboard, and Send-to-LOS consistent without needing the profile join everywhere.
-
-### 5. One-off data repair
-
-After the code is in place, run a single UPDATE so the existing stuck lead becomes sendable:
-
-```sql
-UPDATE public.leads l
-SET loan_amount = 450000  -- 500000 - 50000, conventional
-WHERE id = 'ac9d7aaf-343f-44af-82aa-2b0f7fdfdffc';
-```
-(Or a generic UPDATE … FROM mortgage_profiles to fix all historical rows in one shot.)
-
-## Open question before I build
-
-Your FHA wording — "Property Value - 3.5% or Down Payment + 1.75%" — I'm interpreting as the standard FHA formula:
-
-> base loan = purchase_price − max(down_payment, 3.5% of price), then add 1.75% UFMIP financed on top.
-
-If you actually want a simpler literal reading (e.g., `purchase_price * 0.965` ignoring user down payment, or `down_payment * 1.0175`), say so and I'll change the formula. Everything else above stands either way.
+If after step 1 the Zap still shows nothing, the issue is on Zapier's side (Zap turned off, hook revoked, or wrong Zap selected) — not the CRM.
