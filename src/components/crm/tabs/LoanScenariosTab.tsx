@@ -17,6 +17,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { calculatePI, getMndRate } from "@/lib/calculatePI";
+import { buildAutoScenarios } from "@/lib/crm/autoScenarios";
+import { Wand2 } from "lucide-react";
 
 interface Props {
   leadId: string;
@@ -90,6 +92,7 @@ export function LoanScenariosTab({ leadId, lead, onActivity }: Props) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editing, setEditing] = useState<Scenario | null>(null);
   const [emailOpen, setEmailOpen] = useState(false);
+  const [autoBusy, setAutoBusy] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -104,6 +107,38 @@ export function LoanScenariosTab({ leadId, lead, onActivity }: Props) {
   };
 
   useEffect(() => { load(); }, [leadId]);
+
+  const autoGenerate = async () => {
+    if (scenarios.length > 0) {
+      if (!confirm("This replaces all existing scenarios with 3 auto-generated options. Continue?")) return;
+    }
+    setAutoBusy(true);
+    try {
+      const { data: mp } = await supabase
+        .from("mortgage_profiles").select("*").eq("lead_id", leadId).maybeSingle();
+      const { scenarios: rows, warnings } = buildAutoScenarios(lead, mp, user?.id);
+      if (!rows.length) {
+        toast({ title: "Cannot auto-generate", description: warnings[0] ?? "Missing data on the lead.", variant: "destructive" });
+        return;
+      }
+      if (scenarios.length > 0) {
+        const { error: delErr } = await supabase.from("loan_scenarios").delete().eq("lead_id", leadId);
+        if (delErr) throw delErr;
+      }
+      const { error: insErr } = await supabase.from("loan_scenarios").insert(rows);
+      if (insErr) throw insErr;
+      toast({
+        title: "3 scenarios generated",
+        description: warnings.length ? warnings.join(" ") : "Edit any card to refine.",
+      });
+      await load();
+      onActivity?.();
+    } catch (e: any) {
+      toast({ title: "Error", description: e?.message ?? String(e), variant: "destructive" });
+    } finally {
+      setAutoBusy(false);
+    }
+  };
 
   const openNew = () => {
     if (scenarios.length >= 3) return;
@@ -349,7 +384,12 @@ export function LoanScenariosTab({ leadId, lead, onActivity }: Props) {
           {scenarios.length === 0 ? (
             <div className="py-10 text-center space-y-3">
               <p className="text-muted-foreground">No scenarios built yet. Add your first scenario to get started.</p>
-              <Button onClick={openNew}><Plus className="h-4 w-4 mr-1" /> Add Scenario</Button>
+              <div className="flex justify-center gap-2 flex-wrap">
+                <Button onClick={autoGenerate} disabled={autoBusy}>
+                  <Wand2 className="h-4 w-4 mr-1" /> {autoBusy ? "Generating…" : "Auto-Generate from Lead Data"}
+                </Button>
+                <Button variant="outline" onClick={openNew}><Plus className="h-4 w-4 mr-1" /> Add Manually</Button>
+              </div>
             </div>
           ) : (
             <>
@@ -450,6 +490,9 @@ export function LoanScenariosTab({ leadId, lead, onActivity }: Props) {
                   title={scenarios.length >= 3 ? "Maximum 3 scenarios" : ""}
                 >
                   <Plus className="h-4 w-4 mr-1" /> Add Scenario
+                </Button>
+                <Button variant="outline" onClick={autoGenerate} disabled={autoBusy}>
+                  <Wand2 className="h-4 w-4 mr-1" /> {autoBusy ? "Regenerating…" : "Regenerate from Lead"}
                 </Button>
                 <Button variant="outline" onClick={downloadPDF}>
                   <Download className="h-4 w-4 mr-1" /> Download PDF
