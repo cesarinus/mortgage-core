@@ -2481,6 +2481,7 @@ export type Database = {
           annual_income: number | null
           assigned_to: string | null
           blog_session_id: string | null
+          cash_out_purpose: string | null
           chat_session_id: string | null
           co_borrower_id: string | null
           company_id: string | null
@@ -2507,6 +2508,7 @@ export type Database = {
           property_address: string | null
           property_type: string | null
           property_value: number | null
+          refinance_type: string | null
           sent_to_los_at: string | null
           source: string | null
           source_id: string | null
@@ -2521,6 +2523,7 @@ export type Database = {
           annual_income?: number | null
           assigned_to?: string | null
           blog_session_id?: string | null
+          cash_out_purpose?: string | null
           chat_session_id?: string | null
           co_borrower_id?: string | null
           company_id?: string | null
@@ -2547,6 +2550,7 @@ export type Database = {
           property_address?: string | null
           property_type?: string | null
           property_value?: number | null
+          refinance_type?: string | null
           sent_to_los_at?: string | null
           source?: string | null
           source_id?: string | null
@@ -2561,6 +2565,7 @@ export type Database = {
           annual_income?: number | null
           assigned_to?: string | null
           blog_session_id?: string | null
+          cash_out_purpose?: string | null
           chat_session_id?: string | null
           co_borrower_id?: string | null
           company_id?: string | null
@@ -2587,6 +2592,7 @@ export type Database = {
           property_address?: string | null
           property_type?: string | null
           property_value?: number | null
+          refinance_type?: string | null
           sent_to_los_at?: string | null
           source?: string | null
           source_id?: string | null
