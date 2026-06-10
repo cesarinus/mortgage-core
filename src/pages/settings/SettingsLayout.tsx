@@ -80,8 +80,8 @@ export default function SettingsLayout() {
   return (
     <div className="flex h-[calc(100vh-3.5rem)] w-full">
       {/* Left nav */}
-      <aside className="w-64 shrink-0 border-r bg-sidebar/40 overflow-y-auto">
-        <div className="p-3 border-b sticky top-0 bg-sidebar/80 backdrop-blur">
+      <aside className="w-64 shrink-0 border-r bg-muted/40 overflow-y-auto">
+        <div className="p-3 border-b sticky top-0 bg-background/80 backdrop-blur">
           <div className="relative">
             <Search className="h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -135,7 +135,7 @@ export default function SettingsLayout() {
       </main>
 
       {/* Right advisor */}
-      <aside className="hidden xl:block w-80 shrink-0 border-l bg-sidebar/30 overflow-y-auto p-4 space-y-4">
+      <aside className="hidden xl:block w-80 shrink-0 border-l bg-muted/30 overflow-y-auto p-4 space-y-4">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2 text-sm">
