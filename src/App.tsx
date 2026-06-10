@@ -26,6 +26,7 @@ import ZapierSection from "@/pages/settings/sections/ZapierSection";
 import AriveSection from "@/pages/settings/sections/AriveSection";
 import ComingSoonSection from "@/pages/settings/sections/ComingSoonSection";
 import CrmFieldBuilder from "@/pages/settings/CrmFieldBuilder";
+import CrmLayoutDesigner from "@/pages/settings/CrmLayoutDesigner";
 import ImportArive from "@/pages/settings/ImportArive";
 import LosIntegrationLogs from "@/pages/settings/LosIntegrationLogs";
 import AriveFieldMappings from "@/pages/settings/AriveFieldMappings";
@@ -103,6 +104,7 @@ const App = () => (
                   <Route path="automations" element={<ComingSoonSection title="Automations" />} />
                   <Route path="predictions" element={<ComingSoonSection title="Predictions" />} />
                   <Route path="crm-fields" element={<CrmFieldBuilder />} />
+                  <Route path="crm-layout" element={<CrmLayoutDesigner />} />
                   <Route path="loan-settings" element={<ComingSoonSection title="Loan Settings" />} />
                   <Route path="pipeline-stages" element={<ComingSoonSection title="Pipeline Stages" />} />
                   <Route path="lead-sources" element={<ComingSoonSection title="Lead Sources" />} />
