@@ -38,7 +38,6 @@ export default function SendToLosButton({ lead, opportunity, mortgageProfile, on
   const propertyAddress = opportunity?.property_address || lead?.property_address;
   const computed = calcLoanAmountFromProfile(mortgageProfile, lead);
   const loanAmount = opportunity?.loan_amount ?? lead?.loan_amount ?? computed;
-  if (!propertyAddress) missing.push({ key: "property_address", label: "Property address" });
   if (!loanAmount) missing.push({ key: "loan_amount", label: "Loan amount" });
 
   const handleSend = async () => {
