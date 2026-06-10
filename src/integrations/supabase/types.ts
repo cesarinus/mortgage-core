@@ -2101,6 +2101,7 @@ export type Database = {
           last_activity_at: string | null
           last_name: string
           lead_score: number | null
+          lien_position: string | null
           loan_amount: number | null
           loan_purpose: string | null
           los_application_id: string | null
@@ -2115,7 +2116,9 @@ export type Database = {
           source: string | null
           source_id: string | null
           status: Database["public"]["Enums"]["lead_status"]
+          subject_property_tbd: boolean
           timeline: string | null
+          transaction_type: string | null
           updated_at: string
           variant_shown: Json | null
         }
@@ -2138,6 +2141,7 @@ export type Database = {
           last_activity_at?: string | null
           last_name: string
           lead_score?: number | null
+          lien_position?: string | null
           loan_amount?: number | null
           loan_purpose?: string | null
           los_application_id?: string | null
@@ -2152,7 +2156,9 @@ export type Database = {
           source?: string | null
           source_id?: string | null
           status?: Database["public"]["Enums"]["lead_status"]
+          subject_property_tbd?: boolean
           timeline?: string | null
+          transaction_type?: string | null
           updated_at?: string
           variant_shown?: Json | null
         }
@@ -2175,6 +2181,7 @@ export type Database = {
           last_activity_at?: string | null
           last_name?: string
           lead_score?: number | null
+          lien_position?: string | null
           loan_amount?: number | null
           loan_purpose?: string | null
           los_application_id?: string | null
@@ -2189,7 +2196,9 @@ export type Database = {
           source?: string | null
           source_id?: string | null
           status?: Database["public"]["Enums"]["lead_status"]
+          subject_property_tbd?: boolean
           timeline?: string | null
+          transaction_type?: string | null
           updated_at?: string
           variant_shown?: Json | null
         }
@@ -2452,6 +2461,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      los_field_mappings: {
+        Row: {
+          active: boolean
+          created_at: string
+          crm_field: string
+          data_type: string
+          default_value: string | null
+          external_field: string
+          id: string
+          integration: string
+          notes: string | null
+          required: boolean
+          sort_order: number
+          transform: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          crm_field: string
+          data_type?: string
+          default_value?: string | null
+          external_field: string
+          id?: string
+          integration?: string
+          notes?: string | null
+          required?: boolean
+          sort_order?: number
+          transform?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          crm_field?: string
+          data_type?: string
+          default_value?: string | null
+          external_field?: string
+          id?: string
+          integration?: string
+          notes?: string | null
+          required?: boolean
+          sort_order?: number
+          transform?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       los_integration_logs: {
         Row: {
