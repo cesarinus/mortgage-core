@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, Save } from "lucide-react";
+import { formatOptionLabel } from "@/lib/format/labels";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -119,7 +120,7 @@ export default function CustomFieldsRenderer({
         return (
           <Select value={v ?? ""} onValueChange={(x) => setValue(f.id, x)} disabled={f.read_only}>
             <SelectTrigger><SelectValue placeholder={f.placeholder ?? "Select…"} /></SelectTrigger>
-            <SelectContent>{opts.map(o => <SelectItem key={o.id} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
+            <SelectContent>{opts.map(o => <SelectItem key={o.id} value={o.value}>{formatOptionLabel(o.label)}</SelectItem>)}</SelectContent>
           </Select>
         );
       default:

@@ -83,7 +83,13 @@ export async function deleteField(id: string) {
 export async function replaceFieldOptions(field_id: string, options: { value: string; label: string }[]) {
   await sb.from("crm_field_options").delete().eq("field_id", field_id);
   if (options.length) {
-    const rows = options.map((o, i) => ({ field_id, value: o.value, label: o.label, sort_order: i * 10 }));
+    const { formatOptionLabel } = await import("@/lib/format/labels");
+    const rows = options.map((o, i) => ({
+      field_id,
+      value: o.value,
+      label: formatOptionLabel(o.label),
+      sort_order: i * 10,
+    }));
     const { error } = await sb.from("crm_field_options").insert(rows);
     if (error) throw error;
   }
