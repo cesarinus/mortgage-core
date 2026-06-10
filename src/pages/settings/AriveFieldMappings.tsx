@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Loader2, Plus, Trash2, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { loadMappings, saveMapping, deleteMapping, type LosFieldMapping } from "@/lib/los/mappings";
+import { listModules, listFields, type CrmModule, type CrmField } from "@/lib/crm-fields/api";
 
 const DATA_TYPES = ["string", "email", "phone", "money", "number", "zip", "date", "boolean"];
 
@@ -16,10 +17,18 @@ export default function AriveFieldMappings() {
   const [rows, setRows] = useState<LosFieldMapping[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [modules, setModules] = useState<CrmModule[]>([]);
+  const [fieldsByModule, setFieldsByModule] = useState<Record<string, CrmField[]>>({});
 
   const load = async () => {
     setLoading(true);
-    try { setRows(await loadMappings("arive")); }
+    try {
+      const [r, m] = await Promise.all([loadMappings("arive"), listModules()]);
+      setRows(r); setModules(m);
+      const map: Record<string, CrmField[]> = {};
+      await Promise.all(m.map(async (mod) => { map[mod.slug] = await listFields(mod.id); }));
+      setFieldsByModule(map);
+    }
     catch (e: any) { toast({ title: "Load failed", description: e.message, variant: "destructive" }); }
     finally { setLoading(false); }
   };
@@ -75,6 +84,7 @@ export default function AriveFieldMappings() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>CRM field</TableHead>
+                    <TableHead>Custom field link</TableHead>
                     <TableHead>External field</TableHead>
                     <TableHead>Type</TableHead>
                     <TableHead>Required</TableHead>
@@ -87,6 +97,26 @@ export default function AriveFieldMappings() {
                   {rows.map((r) => (
                     <TableRow key={r.id}>
                       <TableCell><Input value={r.crm_field} onChange={(e) => update(r.id, { crm_field: e.target.value })} /></TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Select value={r.module_slug ?? "__none__"} onValueChange={(v) => update(r.id, { module_slug: v === "__none__" ? null : v, crm_field_id: null })}>
+                            <SelectTrigger className="w-28"><SelectValue placeholder="Module" /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="__none__">— core —</SelectItem>
+                              {modules.map((m) => <SelectItem key={m.slug} value={m.slug}>{m.label}</SelectItem>)}
+                            </SelectContent>
+                          </Select>
+                          {r.module_slug && (
+                            <Select value={r.crm_field_id ?? "__none__"} onValueChange={(v) => update(r.id, { crm_field_id: v === "__none__" ? null : v })}>
+                              <SelectTrigger className="w-40"><SelectValue placeholder="Custom field" /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="__none__">— none —</SelectItem>
+                                {(fieldsByModule[r.module_slug] ?? []).map((f) => <SelectItem key={f.id} value={f.id}>{f.label}</SelectItem>)}
+                              </SelectContent>
+                            </Select>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell><Input value={r.external_field} onChange={(e) => update(r.id, { external_field: e.target.value })} /></TableCell>
                       <TableCell>
                         <Select value={r.data_type} onValueChange={(v) => update(r.id, { data_type: v })}>

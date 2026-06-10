@@ -1177,6 +1177,47 @@ export type Database = {
         }
         Relationships: []
       }
+      crm_field_conditions: {
+        Row: {
+          action: string
+          active: boolean
+          created_at: string
+          field_id: string
+          id: string
+          rule: Json
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          action?: string
+          active?: boolean
+          created_at?: string
+          field_id: string
+          id?: string
+          rule?: Json
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          action?: string
+          active?: boolean
+          created_at?: string
+          field_id?: string
+          id?: string
+          rule?: Json
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_field_conditions_field_id_fkey"
+            columns: ["field_id"]
+            isOneToOne: false
+            referencedRelation: "crm_fields"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_field_options: {
         Row: {
           created_at: string
@@ -1205,6 +1246,44 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "crm_field_options_field_id_fkey"
+            columns: ["field_id"]
+            isOneToOne: false
+            referencedRelation: "crm_fields"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_field_permissions: {
+        Row: {
+          can_edit: boolean
+          can_view: boolean
+          created_at: string
+          field_id: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string
+        }
+        Insert: {
+          can_edit?: boolean
+          can_view?: boolean
+          created_at?: string
+          field_id: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+        }
+        Update: {
+          can_edit?: boolean
+          can_view?: boolean
+          created_at?: string
+          field_id?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_field_permissions_field_id_fkey"
             columns: ["field_id"]
             isOneToOne: false
             referencedRelation: "crm_fields"
@@ -1327,6 +1406,85 @@ export type Database = {
             columns: ["section_id"]
             isOneToOne: false
             referencedRelation: "crm_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_layout_versions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          layout: Json
+          layout_id: string
+          note: string | null
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          layout: Json
+          layout_id: string
+          note?: string | null
+          version: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          layout?: Json
+          layout_id?: string
+          note?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_layout_versions_layout_id_fkey"
+            columns: ["layout_id"]
+            isOneToOne: false
+            referencedRelation: "crm_layouts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_layouts: {
+        Row: {
+          created_at: string
+          id: string
+          is_default: boolean
+          layout: Json
+          module_id: string
+          name: string
+          role: Database["public"]["Enums"]["app_role"] | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          layout?: Json
+          module_id: string
+          name?: string
+          role?: Database["public"]["Enums"]["app_role"] | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          layout?: Json
+          module_id?: string
+          name?: string
+          role?: Database["public"]["Enums"]["app_role"] | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_layouts_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "crm_modules"
             referencedColumns: ["id"]
           },
         ]
@@ -2704,11 +2862,13 @@ export type Database = {
           active: boolean
           created_at: string
           crm_field: string
+          crm_field_id: string | null
           data_type: string
           default_value: string | null
           external_field: string
           id: string
           integration: string
+          module_slug: string | null
           notes: string | null
           required: boolean
           sort_order: number
@@ -2719,11 +2879,13 @@ export type Database = {
           active?: boolean
           created_at?: string
           crm_field: string
+          crm_field_id?: string | null
           data_type?: string
           default_value?: string | null
           external_field: string
           id?: string
           integration?: string
+          module_slug?: string | null
           notes?: string | null
           required?: boolean
           sort_order?: number
@@ -2734,18 +2896,28 @@ export type Database = {
           active?: boolean
           created_at?: string
           crm_field?: string
+          crm_field_id?: string | null
           data_type?: string
           default_value?: string | null
           external_field?: string
           id?: string
           integration?: string
+          module_slug?: string | null
           notes?: string | null
           required?: boolean
           sort_order?: number
           transform?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "los_field_mappings_crm_field_id_fkey"
+            columns: ["crm_field_id"]
+            isOneToOne: false
+            referencedRelation: "crm_fields"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       los_integration_logs: {
         Row: {

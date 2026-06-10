@@ -29,6 +29,7 @@ const NAV: Group[] = [
   ]},
   { label: "Mortgage", items: [
     { label: "CRM Fields", path: "/settings/crm-fields", icon: FileSliders },
+    { label: "Layout Designer", path: "/settings/crm-layout", icon: Layers },
     { label: "Loan Settings", path: "/settings/loan-settings", icon: Layers, soon: true },
     { label: "Pipeline Stages", path: "/settings/pipeline-stages", icon: Workflow, soon: true },
     { label: "Lead Sources", path: "/settings/lead-sources", icon: Database, soon: true },
