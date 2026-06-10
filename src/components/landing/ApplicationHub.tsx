@@ -289,7 +289,23 @@ const ApplicationHub = ({ open, onClose, prefillPurpose }: ApplicationHubProps) 
             <SuccessState onClose={handleClose} />
           ) : (
             <>
-              {step === 1 && <StepGoal data={data} onSelect={(v) => updateField("loan_purpose", v)} />}
+              {step === 1 && (
+                <StepGoal
+                  data={data}
+                  onSelect={(v) => {
+                    updateField("loan_purpose", v);
+                    if (v !== "Refinance") {
+                      updateField("refinance_type", "");
+                      updateField("cash_out_purpose", "");
+                    }
+                  }}
+                  onSelectRefinanceType={(v) => {
+                    updateField("refinance_type", v);
+                    if (v !== "CashOut") updateField("cash_out_purpose", "");
+                  }}
+                  onSelectCashOutPurpose={(v) => updateField("cash_out_purpose", v)}
+                />
+              )}
               {step === 2 && <StepProperty data={data} onChange={updateField} />}
               {step === 3 && <StepCredit data={data} onSelect={(v) => updateField("credit_range", v)} />}
               {step === 4 && <StepEmployment data={data} onChange={updateField} />}
