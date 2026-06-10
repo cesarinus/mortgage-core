@@ -285,16 +285,56 @@ export function SmartLeadForm({ leadId, initial, sources = [], onSaved, onCancel
       {step === 1 && (
         <div className="grid grid-cols-2 gap-3">
           <Field label="Loan purpose">
-            <Select value={data.loan_purpose || ""} onValueChange={v => set("loan_purpose", v as any)}>
+            <Select
+              value={data.loan_purpose || ""}
+              onValueChange={(v) => {
+                set("loan_purpose", v as any);
+                if (v !== "refinance") {
+                  set("refinance_type", "" as any);
+                  set("cash_out_purpose", "" as any);
+                }
+              }}
+            >
               <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="purchase">Purchase</SelectItem>
+                <SelectItem value="purchase">Buy a home</SelectItem>
                 <SelectItem value="refinance">Refinance</SelectItem>
-                <SelectItem value="cash_out_refi">Cash-out refi</SelectItem>
-                <SelectItem value="heloc">HELOC</SelectItem>
               </SelectContent>
             </Select>
           </Field>
+          {data.loan_purpose === "refinance" && (
+            <Field label="Refinance type">
+              <Select
+                value={data.refinance_type || ""}
+                onValueChange={(v) => {
+                  set("refinance_type", v as any);
+                  if (v !== "CashOut") set("cash_out_purpose", "" as any);
+                }}
+              >
+                <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                <SelectContent>
+                  {refinanceTypeOptions.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+          )}
+          {data.loan_purpose === "refinance" && data.refinance_type === "CashOut" && (
+            <Field label="Cash out purpose" className="col-span-2">
+              <Select
+                value={data.cash_out_purpose || ""}
+                onValueChange={(v) => set("cash_out_purpose", v as any)}
+              >
+                <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                <SelectContent>
+                  {cashOutPurposeOptions.map((o) => (
+                    <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </Field>
+          )}
           <Field label="Loan type">
             <Select
               value={data.loan_type || ""}
