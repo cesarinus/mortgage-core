@@ -113,13 +113,28 @@ const ApplicationHub = ({ open, onClose, prefillPurpose }: ApplicationHubProps) 
     []
   );
 
-  const updateField = (field: keyof ApplicationData, value: string) => {
+  const updateFields = (updates: Partial<ApplicationData>, nextStep?: number) => {
     setData((prev) => {
-      const updated = { ...prev, [field]: value };
-      saveProgress(updated, step);
+      const updated = { ...prev, ...updates };
+      saveProgress(updated, nextStep ?? step);
       return updated;
     });
-    setErrors((prev) => ({ ...prev, [field]: "" }));
+    if (nextStep !== undefined) setStep(nextStep);
+    setErrors((prev) => {
+      const updatedErrors = { ...prev };
+      Object.keys(updates).forEach((field) => {
+        updatedErrors[field] = "";
+      });
+      return updatedErrors;
+    });
+  };
+
+  const updateField = (field: keyof ApplicationData, value: string) => {
+    updateFields({ [field]: value });
+  };
+
+  const advanceFromStepOne = (updates: Partial<ApplicationData>) => {
+    updateFields(updates, 2);
   };
 
   const canProceed = (): boolean => {
@@ -295,17 +310,20 @@ const ApplicationHub = ({ open, onClose, prefillPurpose }: ApplicationHubProps) 
                 <StepGoal
                   data={data}
                   onSelect={(v) => {
-                    updateField("loan_purpose", v);
                     if (v !== "Refinance") {
-                      updateField("refinance_type", "");
-                      updateField("cash_out_purpose", "");
+                      advanceFromStepOne({ loan_purpose: v, refinance_type: "", cash_out_purpose: "" });
+                      return;
                     }
+                    updateFields({ loan_purpose: v, refinance_type: "", cash_out_purpose: "" });
                   }}
                   onSelectRefinanceType={(v) => {
-                    updateField("refinance_type", v);
-                    if (v !== "CashOut") updateField("cash_out_purpose", "");
+                    if (v !== "CashOut") {
+                      advanceFromStepOne({ refinance_type: v, cash_out_purpose: "" });
+                      return;
+                    }
+                    updateFields({ refinance_type: v, cash_out_purpose: "" });
                   }}
-                  onSelectCashOutPurpose={(v) => updateField("cash_out_purpose", v)}
+                  onSelectCashOutPurpose={(v) => advanceFromStepOne({ cash_out_purpose: v })}
                 />
               )}
               {step === 2 && <StepProperty data={data} onChange={updateField} />}
