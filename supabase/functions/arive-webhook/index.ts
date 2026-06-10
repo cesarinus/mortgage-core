@@ -47,6 +47,7 @@ Deno.serve(async (req) => {
       estimated_close_date,
       du_findings,
       conditions,
+      property_address,
     } = body ?? {};
 
     if (!crm_reference_id) {
@@ -70,11 +71,57 @@ Deno.serve(async (req) => {
     }
 
     // Find primary opportunity
-    const { data: opp } = await supabase
+    let { data: opp } = await supabase
       .from("pipeline_opportunities")
-      .select("id, stage")
+      .select("id, stage, property_address")
       .eq("lead_id", lead.id)
       .maybeSingle();
+
+    // Auto-create the pipeline opportunity on first Arive callback.
+    // Conversion to Deal/Opportunity happens here (not on Qualified in the CRM),
+    // and property_address is sourced from Arive.
+    if (!opp) {
+      const initialStage = (loan_status ? STAGE_MAP[String(loan_status).toLowerCase()] : null) || "application_sent";
+      const { data: linked } = await supabase
+        .from("lead_contacts")
+        .select("contact_id, is_primary")
+        .eq("lead_id", lead.id);
+      const primary = (linked ?? []).find((c: any) => c.is_primary)?.contact_id
+        ?? (linked ?? [])[0]?.contact_id
+        ?? null;
+      const { data: created, error: createErr } = await supabase
+        .from("pipeline_opportunities")
+        .insert({
+          lead_id: lead.id,
+          stage: initialStage,
+          loan_amount: loan_amount ?? null,
+          property_address: property_address ?? null,
+          primary_contact_id: primary,
+          arive_loan_id: arive_loan_id ?? null,
+        })
+        .select("id, stage, property_address")
+        .single();
+      if (createErr) {
+        console.error("[arive-webhook] failed to create opportunity", createErr);
+      } else {
+        opp = created as any;
+        await supabase.from("deal_events").insert({
+          deal_id: created!.id,
+          event_type: "stage_transition",
+          from_status: null,
+          to_status: initialStage,
+          actor_id: null,
+        });
+        // Move the lead out of the active Leads list now that it's a Deal.
+        await supabase.from("leads").update({ status: "unqualified" as any }).eq("id", lead.id);
+        await supabase.from("lead_events").insert({
+          lead_id: lead.id,
+          event_type: "moved_to_pipeline",
+          points: 0,
+          metadata: { opportunity_id: created!.id, stage: initialStage, source: "arive-webhook" } as any,
+        });
+      }
+    }
 
     // Upsert los_loans
     const losRow: Record<string, unknown> = {
@@ -111,6 +158,7 @@ Deno.serve(async (req) => {
       const oppUpdate: Record<string, unknown> = {};
       if (loan_amount != null) oppUpdate.loan_amount = loan_amount;
       if (arive_loan_id) oppUpdate.arive_loan_id = arive_loan_id;
+      if (property_address && !(opp as any).property_address) oppUpdate.property_address = property_address;
 
       const newStage = loan_status ? STAGE_MAP[String(loan_status).toLowerCase()] : undefined;
       if (newStage && newStage !== opp.stage) {
