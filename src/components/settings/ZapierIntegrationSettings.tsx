@@ -165,6 +165,11 @@ export default function ZapierIntegrationSettings() {
             Last fired: {new Date(lastFiredAt).toLocaleString()} — {lastStatus ?? "—"}
           </p>
         )}
+        {url && (
+          <p className="text-xs text-muted-foreground break-all">
+            Sending to: <code>…/{url.split("/").filter(Boolean).slice(-2).join("/")}/</code>
+          </p>
+        )}
 
         <div className="flex gap-2">
           <Button onClick={save} disabled={saving || loading}>
