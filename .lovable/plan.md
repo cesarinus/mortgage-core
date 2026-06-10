@@ -1,106 +1,83 @@
-# Zapier ↔ Arive LOS Integration Plan
+## The bug
 
-Two Zaps. CRM is the system of record for early-funnel data; Arive is the system of record once the loan is in pre-approval/processing.
+`SendToLosButton` reads `loan_amount` from only two places:
 
-```text
-  CRM (Lead/Deal)                Zapier                   Arive LOS
-  ──────────────                 ──────                   ─────────
-  [Send to LOS] ─── lead.sent_to_los ──▶ Zap 1 ─▶ Create Loan/Borrower
-                                                          │
-                                                          │ status / data changes
-                                                          ▼
-  Update Deal  ◀── arive-webhook ◀── Zap 2 ◀── Arive Trigger
+```ts
+const loanAmount = opportunity?.loan_amount ?? lead?.loan_amount;
 ```
 
----
+For lead `ac9d7aaf…`:
+- `leads.loan_amount` = empty
+- No `pipeline_opportunities` row exists (lead never moved to pipeline)
+- But `mortgage_profiles` HAS the data:
+  - `purchase_price` = 500,000
+  - `down_payment` = 50,000
+  - `notes.loan_type` = "conventional"
 
-## Zap 1 — CRM → Arive (Send to LOS)
+The button never looks at `mortgage_profiles`, so it shows "Loan amount missing" and stays disabled. The intake form also never wrote a computed `loan_amount` back to `leads`. That's the root cause.
 
-### CRM side (what we build)
-1. **New event:** `lead.sent_to_los` added to `src/lib/integrations/zapier.ts` and to the Settings event picker.
-2. **"Send to LOS" button** on the lead record (LeftRail header in `RecordWorkspace`) and on the deal card in `Pipeline.tsx`.
-   - Button disabled until the lead has: first name, last name, email, phone, loan purpose, property address, loan amount.
-   - On click: confirm dialog → fire `lead.sent_to_los` with the full payload below → mark `leads.sent_to_los_at = now()` so the button flips to "Re-sync to LOS" and shows the timestamp.
-   - Borrower consent is captured inside Arive, so no consent gate on our side.
-3. **Payload** (single flat JSON, no docs):
-   ```json
-   {
-     "crm_reference_id": "<leads.id>",          // matching key for Zap 2
-     "first_name", "last_name", "email", "phone",
-     "ssn", "dob",
-     "loan_purpose", "loan_amount", "estimated_credit_score",
-     "property_address", "property_city", "property_state", "property_zip",
-     "property_type", "occupancy", "purchase_price", "down_payment",
-     "annual_income", "employment_status",
-     "loan_officer_email": "<assigned user email>"
-   }
-   ```
+## Fix
 
-### Zapier side (you build in Zapier UI)
-- **Trigger:** Webhooks by Zapier → Catch Hook (the URL already in Settings).
-- **Filter:** Only continue if `event = lead.sent_to_los`.
-- **Action:** Arive → *Create Loan* (or *Create Borrower + Create Loan*). Map fields 1:1.
-- **(Optional) Action:** Storage by Zapier → store `{crm_reference_id → arive_loan_id}` so Zap 2 can look it up. Easier alternative below: just have Arive pass `crm_reference_id` through.
+### 1. Add a shared calculator `src/lib/loan/calcLoanAmount.ts`
 
----
+```ts
+type Inputs = {
+  loan_type?: string | null;          // 'conventional' | 'fha' | 'va' | 'usda' | ...
+  purchase_price?: number | null;     // from mortgage_profiles or lead.property_value
+  down_payment?: number | null;       // dollar amount
+};
 
-## Zap 2 — Arive → CRM (Status & data sync back)
+export function calcLoanAmount({ loan_type, purchase_price, down_payment }: Inputs): number | null {
+  if (!purchase_price || purchase_price <= 0) return null;
+  const type = (loan_type || 'conventional').toLowerCase();
 
-### Zapier side
-- **Trigger:** Arive → *Loan Updated* / *Loan Status Changed* (whichever Arive exposes; per Arive's docs Zapier polls loan updates).
-- **Action:** Webhooks by Zapier → **POST** to a new CRM edge function:
-  `https://<project>.supabase.co/functions/v1/arive-webhook`
-  with header `x-arive-secret: <shared secret>` and body:
-  ```json
-  {
-    "crm_reference_id": "<echoed back from custom field in Arive>",
-    "arive_loan_id": "...",
-    "loan_status": "pre_approved | in_underwriting | approved | ctc | closed | denied",
-    "purchase_price": 0,
-    "loan_amount": 0,
-    "interest_rate": 0,
-    "loan_program": "...",
-    "estimated_close_date": "...",
-    "du_findings": "approve_eligible | refer | ...",
-    "conditions": ["..."]
+  if (type === 'fha') {
+    // Min 3.5% down; base = price - max(down_payment, 3.5%)
+    const minDown = purchase_price * 0.035;
+    const dp = Math.max(down_payment ?? minDown, minDown);
+    const base = purchase_price - dp;
+    // UFMIP 1.75% financed on top
+    return Math.round(base * 1.0175);
   }
-  ```
-  > In Arive, add a custom loan field "CRM Reference Id" and map our `crm_reference_id` into it on Zap 1, then echo it back on Zap 2. This is the matching key.
 
-### CRM side (what we build)
-1. **New edge function** `supabase/functions/arive-webhook/index.ts` (public, validates `x-arive-secret`):
-   - Look up the lead by `crm_reference_id` (= `leads.id`).
-   - Upsert into a new `los_loans` table (loan_status, arive_loan_id, rate, program, close date, DU findings, conditions JSON, raw payload, updated_at).
-   - Update the linked `pipeline_opportunities` row: `loan_amount`, `purchase_price`, `interest_rate`, and **advance the deal stage** based on Arive status mapping:
-     - `pre_approved` → `application_sent`
-     - `in_underwriting` → `underwriting`
-     - `approved` → `approved`
-     - `ctc` → `clear_to_close`
-     - `closed` → `closed`
-     - `denied` → `lost`
-   - Append a `deal_events` row for the audit trail.
-2. **New secret** `ARIVE_WEBHOOK_SECRET` (you generate any random string, paste it into Zapier's header and into Lovable Cloud secrets).
-3. **UI:** New "LOS Sync" card on the deal/lead workspace showing last sync time, current Arive status, DU findings, and outstanding conditions pulled from `los_loans`.
+  // Conventional / default: price - down_payment
+  const dp = down_payment ?? 0;
+  return Math.max(0, Math.round(purchase_price - dp));
+}
+```
 
----
+### 2. Update `SendToLosButton.tsx`
 
-## Database changes (additive only)
-- `leads.sent_to_los_at timestamptz null`
-- `pipeline_opportunities.arive_loan_id text null`
-- New table `los_loans` (lead_id, deal_id, arive_loan_id unique, loan_status, purchase_price, loan_amount, interest_rate, loan_program, estimated_close_date, du_findings, conditions jsonb, raw jsonb, last_synced_at) — RLS owner-scoped, service_role full access for the edge function.
+- Accept an optional `mortgageProfile` prop (or fetch it inside the component if not passed).
+- Compute fallback order:
+  1. `opportunity?.loan_amount`
+  2. `lead?.loan_amount`
+  3. `calcLoanAmount({ loan_type: profile.notes?.loan_type, purchase_price: profile.purchase_price ?? lead.property_value, down_payment: profile.down_payment })`
+- Use the computed value in the Zapier payload and in the "missing field" check.
 
-## Files changed/created
-- `src/lib/integrations/zapier.ts` — add `lead.sent_to_los` event type.
-- `src/components/settings/ZapierIntegrationSettings.tsx` — add event to checkbox list.
-- `src/components/crm/SendToLosButton.tsx` *(new)* — confirm + fire + stamp timestamp.
-- `src/components/crm/LeftRail.tsx` and `src/pages/Pipeline.tsx` — mount button.
-- `supabase/functions/arive-webhook/index.ts` *(new)* — inbound handler, no JWT, validates shared secret.
-- Migration: columns + `los_loans` table + grants/RLS.
-- New `LosSyncCard` on the record workspace.
+### 3. Pass `mortgageProfile` from `RecordWorkspace.tsx`
 
-## What you'll do in Zapier after I build this
-1. Zap 1: paste the existing webhook URL as trigger, add filter `event = lead.sent_to_los`, add Arive *Create Loan*, map fields, **add custom field "CRM Reference Id" in Arive and map our `crm_reference_id` into it**.
-2. Zap 2: Arive *Loan Updated* trigger → Webhooks POST to the new `arive-webhook` URL I'll give you, with the `x-arive-secret` header.
-3. Test by clicking **Send to LOS** on a test lead, then changing its status in Arive and watching the deal advance in the CRM.
+`RecordWorkspace` already loads the lead — add a sibling query for `mortgage_profiles` by `lead_id` and pass it to `SendToLosButton` and `LosSyncCard`.
 
-Approve and I'll build it.
+### 4. Backfill the field going forward
+
+In `src/lib/crm/leadIntake.ts` (and `SmartLeadForm` if it writes directly), when a lead is created/updated with `property_value` + a down payment + loan type, also write the computed `loan_amount` onto `leads.loan_amount`. This keeps Pipeline, Dashboard, and Send-to-LOS consistent without needing the profile join everywhere.
+
+### 5. One-off data repair
+
+After the code is in place, run a single UPDATE so the existing stuck lead becomes sendable:
+
+```sql
+UPDATE public.leads l
+SET loan_amount = 450000  -- 500000 - 50000, conventional
+WHERE id = 'ac9d7aaf-343f-44af-82aa-2b0f7fdfdffc';
+```
+(Or a generic UPDATE … FROM mortgage_profiles to fix all historical rows in one shot.)
+
+## Open question before I build
+
+Your FHA wording — "Property Value - 3.5% or Down Payment + 1.75%" — I'm interpreting as the standard FHA formula:
+
+> base loan = purchase_price − max(down_payment, 3.5% of price), then add 1.75% UFMIP financed on top.
+
+If you actually want a simpler literal reading (e.g., `purchase_price * 0.965` ignoring user down payment, or `down_payment * 1.0175`), say so and I'll change the formula. Everything else above stands either way.

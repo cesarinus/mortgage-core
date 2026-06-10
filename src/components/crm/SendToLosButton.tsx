@@ -11,10 +11,12 @@ import { useAuth } from "@/hooks/useAuth";
 import { fireZapier } from "@/lib/integrations/zapier";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { calcLoanAmountFromProfile } from "@/lib/loan/calcLoanAmount";
 
 interface Props {
   lead: any;
   opportunity?: { id?: string; loan_amount?: number | null; property_address?: string | null } | null;
+  mortgageProfile?: any | null;
   onSent?: () => void;
 }
 
@@ -26,7 +28,7 @@ const REQUIRED_FIELDS: { key: string; label: string }[] = [
   { key: "loan_purpose", label: "Loan purpose" },
 ];
 
-export default function SendToLosButton({ lead, opportunity, onSent }: Props) {
+export default function SendToLosButton({ lead, opportunity, mortgageProfile, onSent }: Props) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [sending, setSending] = useState(false);
@@ -34,7 +36,8 @@ export default function SendToLosButton({ lead, opportunity, onSent }: Props) {
 
   const missing = REQUIRED_FIELDS.filter((f) => !lead?.[f.key]);
   const propertyAddress = opportunity?.property_address || lead?.property_address;
-  const loanAmount = opportunity?.loan_amount ?? lead?.loan_amount;
+  const computed = calcLoanAmountFromProfile(mortgageProfile, lead);
+  const loanAmount = opportunity?.loan_amount ?? lead?.loan_amount ?? computed;
   if (!propertyAddress) missing.push({ key: "property_address", label: "Property address" });
   if (!loanAmount) missing.push({ key: "loan_amount", label: "Loan amount" });
 
