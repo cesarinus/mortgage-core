@@ -1,11 +1,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Building2, Briefcase, Paperclip, Plus, Download, FileText, Users, Pencil, Minus } from "lucide-react";
+import { Building2, Briefcase, Paperclip, Plus, Download, FileText, Users, Pencil, Minus, Star } from "lucide-react";
 import { format } from "date-fns";
 import { Link } from "react-router-dom";
 import { formatPhone } from "@/lib/format";
 import { formatOptionLabel } from "@/lib/format/labels";
+import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 interface Props {
   companies: any[];
@@ -22,6 +25,28 @@ interface Props {
 }
 
 export function RightRail({ companies, deals, attachments, contacts = [], onUpload, onAddCompany, onAddContact, onEditCompanies, onSignedUrl, onRemoveContact, onRemoveCompany }: Props) {
+  const { toast } = useToast();
+  const [sendingId, setSendingId] = useState<string | null>(null);
+
+  const sendReviewRequest = async (d: any) => {
+    const isOpportunity = "stage" in d && d.stage && typeof d.stage === "string" && d.lead_id;
+    const payload: Record<string, unknown> = isOpportunity
+      ? { opportunity_id: d.id }
+      : { deal_id: d.id };
+    setSendingId(d.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-review-request", { body: payload });
+      if (error || (data as any)?.error) {
+        toast({ title: "Send failed", description: error?.message || (data as any)?.error, variant: "destructive" });
+        return;
+      }
+      const { sent = 0, suppressed = 0, failed = 0 } = (data as any) || {};
+      toast({ title: "Review requests sent", description: `${sent} sent · ${suppressed} suppressed · ${failed} failed` });
+    } finally {
+      setSendingId(null);
+    }
+  };
+
   return (
     <div className="space-y-4 sticky top-4 self-start">
       {onAddContact && (
@@ -105,6 +130,19 @@ export function RightRail({ companies, deals, attachments, contacts = [], onUplo
                 <span className="text-muted-foreground">{formatOptionLabel(String(d.stage))}</span>
                 {d.loan_amount && <span>${Number(d.loan_amount).toLocaleString()}</span>}
               </div>
+              {String(d.stage).toLowerCase() === "closed" && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="mt-2 w-full h-7 text-xs"
+                  disabled={sendingId === d.id}
+                  onClick={() => sendReviewRequest(d)}
+                  title="Send Google review request to all contacts on this deal"
+                >
+                  <Star className="h-3 w-3 mr-1" />
+                  {sendingId === d.id ? "Sending…" : "Request Google review"}
+                </Button>
+              )}
             </div>
           ))}
         </CardContent>
