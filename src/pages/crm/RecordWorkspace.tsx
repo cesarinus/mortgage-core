@@ -16,6 +16,7 @@ import { DocumentsTab } from "@/components/crm/tabs/DocumentsTab";
 import { RelationshipsTab } from "@/components/crm/tabs/RelationshipsTab";
 import { TasksTab } from "@/components/crm/tabs/TasksTab";
 import { ConditionsTab } from "@/components/crm/tabs/ConditionsTab";
+import CustomFieldsRenderer from "@/components/crm/CustomFieldsRenderer";
 import { BarChart2, MessageSquare, FileCheck2, Users, CheckSquare, Mail, ClipboardCheck } from "lucide-react";
 import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -425,9 +426,14 @@ export default function RecordWorkspace({ kind }: Props) {
             </div>
           )}
           <Tabs defaultValue="catch-up" value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className={`w-full grid ${kind === "lead" ? "grid-cols-8" : "grid-cols-7"}`}>
+            <TabsList className={`w-full grid ${kind === "lead" ? "grid-cols-9" : "grid-cols-7"}`}>
               <TabsTrigger value="catch-up">Catch-up</TabsTrigger>
               <TabsTrigger value="activities">Activities</TabsTrigger>
+              {kind === "lead" && (
+                <TabsTrigger value="details" className="flex items-center gap-1.5">
+                  Details
+                </TabsTrigger>
+              )}
               {kind === "lead" && (
                 <TabsTrigger value="scenarios" className="flex items-center gap-1.5">
                   <BarChart2 className="h-3.5 w-3.5" /> Loan Scenarios
@@ -481,6 +487,11 @@ export default function RecordWorkspace({ kind }: Props) {
                 contactId={kind === "contact" ? id : undefined}
               />
             </TabsContent>
+            {kind === "lead" && id && (
+              <TabsContent value="details" className="mt-4">
+                <CustomFieldsRenderer moduleSlug="borrowers" recordType="lead" recordId={id} />
+              </TabsContent>
+            )}
             {kind === "lead" && (
               <TabsContent value="scenarios" className="mt-4">
                 <LoanScenariosTab leadId={id} lead={record} onActivity={loadAll} />
