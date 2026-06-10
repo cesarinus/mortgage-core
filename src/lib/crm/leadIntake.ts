@@ -1,7 +1,14 @@
 import { supabase } from "@/integrations/supabase/client";
 import { calcLoanAmount } from "@/lib/loan/calcLoanAmount";
 
-export type LoanPurpose = "purchase" | "refinance" | "cash_out_refi" | "heloc";
+export type LoanPurpose = "purchase" | "refinance";
+export type RefinanceType = "NoCashOut" | "LimitedCashOut" | "CashOut";
+export type CashOutPurpose =
+  | "DebtConsolidation"
+  | "Education"
+  | "HomeImprovement"
+  | "InterestRateReduction"
+  | "Other";
 export type PropertyTypeOpt = "single_family" | "condo" | "townhome" | "multi_unit" | "mobile";
 export type Occupancy = "primary" | "secondary" | "investment";
 export type TimelineOpt = "immediately" | "1_3_months" | "3_6_months" | "just_browsing";
@@ -26,6 +33,8 @@ export interface IntakeData {
   // Intent
   loan_purpose?: LoanPurpose | "";
   loan_type?: LoanTypeOpt | "";
+  refinance_type?: RefinanceType | "";
+  cash_out_purpose?: CashOutPurpose | "";
   property_type?: PropertyTypeOpt | "";
   occupancy?: Occupancy | "";
   timeline?: TimelineOpt | "";
@@ -47,7 +56,8 @@ export const EMPTY_INTAKE: IntakeData = {
   first_name: "", last_name: "", email: "", phone: "",
   source_id: null, preferred_contact_time: "", referral_source: "",
   primary_borrower_id: null, co_borrower_id: null, company_id: null,
-  loan_purpose: "", loan_type: "", property_type: "", occupancy: "", timeline: "",
+  loan_purpose: "", loan_type: "", refinance_type: "", cash_out_purpose: "",
+  property_type: "", occupancy: "", timeline: "",
   property_value: null, down_payment: null, credit_range: "",
   property_address: "",
   annual_income: null, monthly_debts: null, employment_type: "",
@@ -173,6 +183,13 @@ export async function saveLeadIntake(
     down_payment: data.down_payment ?? null,
   });
 
+  const normalizedRefinanceType =
+    data.loan_purpose === "refinance" ? (data.refinance_type || null) : null;
+  const normalizedCashOutPurpose =
+    data.loan_purpose === "refinance" && normalizedRefinanceType === "CashOut"
+      ? (data.cash_out_purpose || null)
+      : null;
+
   const leadRow: any = {
     first_name: data.first_name,
     last_name: data.last_name,
@@ -181,6 +198,8 @@ export async function saveLeadIntake(
     source_id: data.source_id || null,
     source: data.referral_source || undefined,
     loan_purpose: data.loan_purpose || null,
+    refinance_type: normalizedRefinanceType,
+    cash_out_purpose: normalizedCashOutPurpose,
     property_type: data.property_type || null,
     property_value: data.property_value ?? null,
     loan_amount: computedLoanAmount ?? null,
@@ -357,6 +376,8 @@ export function intakeFromLead(lead: any, mp: any | null): IntakeData {
     referral_source: (mpExtras.referral_source ?? lead?.source) ?? "",
     loan_purpose: lead?.loan_purpose ?? "",
     loan_type: mpExtras.loan_type ?? "",
+    refinance_type: lead?.refinance_type ?? "",
+    cash_out_purpose: lead?.cash_out_purpose ?? "",
     property_type: lead?.property_type ?? mp?.property_type ?? "",
     occupancy: mp?.occupancy_type ?? "",
     timeline: lead?.timeline ?? "",
