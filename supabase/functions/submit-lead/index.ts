@@ -63,6 +63,8 @@ Deno.serve(async (req) => {
     };
 
     const loan_purpose = sanitizeText(body.loan_purpose);
+    const refinance_type = sanitizeText(body.refinance_type, 50);
+    const cash_out_purpose = sanitizeText(body.cash_out_purpose, 50);
 
     // Auto-derive intent_tag from loan_purpose
     const deriveIntentTag = (purpose: string | null): string => {
@@ -127,6 +129,8 @@ Deno.serve(async (req) => {
       email,
       phone,
       loan_purpose,
+      refinance_type,
+      cash_out_purpose,
       property_type,
       property_value,
       credit_range,
