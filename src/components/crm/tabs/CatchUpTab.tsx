@@ -316,7 +316,14 @@ export function CatchUpTab({
                 <Stat label="Purchase price" value={fmtMoney(mortgage?.purchase_price ?? record?.property_value)} />
                 <Stat label="Down payment" value={dpDisplay} />
                 <Stat label="Total loan amount" value={totalDisplay} />
-                <Stat label="Estimated income" value={fmtMoney(mortgage?.est_income ?? record?.annual_income)} />
+                <Stat
+                  label="Estimated income"
+                  value={
+                    totalMonthly > 0
+                      ? `${fmtMoney(totalMonthly)}/mo`
+                      : fmtMoney(mortgage?.est_income ?? record?.annual_income)
+                  }
+                />
                 <Stat label="Estimated DTI" value={mortgage?.est_dti ? `${mortgage.est_dti}%` : null} />
                 <Stat label="Monthly payment" value={fmtMoney(mortgage?.est_monthly_payment)} />
                 <Stat
