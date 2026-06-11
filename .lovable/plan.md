@@ -1,35 +1,110 @@
-## Issue
+# ARIVE LOS Export Hardening Plan
 
-On the Leads page Smart Intake → Financial Snapshot, the **Employment Status** dropdown shows:
-- W-2 Employee, 1099 Contractor, Retired, Unemployed
+## Goal
+Every Lead exported from Mortgage Core CRM produces a clean, flat, ARIVE-compatible payload that Zapier accepts and ARIVE turns into a loan — without manual cleanup.
 
-But the CRM Fields → Leads → `employment_type` field (Mortgage Snapshot section) defines:
-- Employed, Self Employed, Not Employed, Retired
+## 1. New backend table — `lead_export_logs`
+Migration (extension-only, with GRANTs + RLS):
 
-These need to match.
+```
+id uuid pk default gen_random_uuid()
+lead_id uuid references public.leads(id) on delete cascade
+user_id uuid
+export_system text          -- 'arive' | 'zapier'
+payload jsonb               -- flat payload we sent
+response jsonb              -- Zapier/ARIVE response or null (no-cors limits this)
+validation_errors jsonb     -- [{field, code, message}]
+status text                 -- 'success' | 'failed' | 'invalid'
+created_at timestamptz default now()
+```
 
-## Change
+RLS: owners (`assigned_to`/`created_by` via `user_owns_lead`) + admins read; insert by authenticated; service_role full.
 
-In `src/components/crm/SmartLeadForm.tsx` (around line 517):
+## 2. Validation engine — `src/lib/los/ariveValidate.ts`
+Pure function `validateAriveLead(lead, mortgageProfile)` returns:
 
-1. Rename the field label from **"Employment status"** to **"Employment Type"** to match the CRM field label.
-2. Replace the hardcoded `<SelectItem>` options with the four values from the CRM field:
-   - `employed` → Employed
-   - `self_employed` → Self Employed
-   - `not_employed` → Not Employed
-   - `retired` → Retired
-3. Remove the separate **"Self-employed"** toggle row (lines 528–534) and the self-employed checklist conditional (lines 535–545) becomes driven by `data.employment_type === "self_employed"` instead of `data.self_employed`. This keeps the documentation checklist behavior intact without a duplicate boolean.
+```
+{
+  ok: boolean,
+  score: number (0-100),
+  fields: [{ crmField, crmValue, ariveField, status: 'valid'|'missing'|'invalid', message }],
+  payload: FlatArivePayload,   // null-safe, ready-to-send
+  errors: ValidationIssue[],
+}
+```
 
-## Mapping / persistence
+Rules:
+- Required: firstName, lastName, email, mobilePhone, loanPurpose, propertyUse, estimatedFICO. `loanAmount`, `purchasePrice`/`estimatedValue` required-if-available.
+- `mobilePhone` → 10 digits via `normalizePhone`; invalid otherwise.
+- `email` → `normalizeEmail` regex.
+- Money fields → `normalizeMoney` → number or null.
+- `estimatedFICO` → `normalizeCreditScore` midpoint integer.
+- Dates → `toISO8601(value)` helper (full ISO `2026-06-11T...Z`).
+- Empty strings collapse to `null`; `undefined` keys dropped before send.
 
-In `src/lib/crm/leadIntake.ts`:
-- Line 210 currently writes `data.self_employed ? "self_employed" : (data.employment_type || null)`. Simplify to just `data.employment_type || null` since the value already encodes self-employment.
-- Line 392 currently blanks out `employment_type` when the value is `"self_employed"`. Remove that special-case so `self_employed` round-trips cleanly.
-- Line 393 (`self_employed` form-state derivation) can remain for backwards compatibility with any legacy records that still have `mortgage_profiles.self_employed = true`; when true, initialize `employment_type` to `"self_employed"`.
+Scoring: 100 − (missing required × 15) − (invalid × 10) − (missing optional × 5), floored at 0.
 
-No DB schema change, no migration. Existing leads with `employment_type = "w2" | "1099" | "unemployed"` will still display (Select will just show empty/blank if value doesn't match an option) — acceptable since the user explicitly asked the dropdown to match the CRM field options.
+## 3. Default value mapping
+Centralised `ARIVE_DEFAULTS`:
 
-## Out of scope
+```
+homebuyingStage: "Just Started"
+leadSource:      "Mortgage Core CRM"
+loanStatus:      "Lead"
+occupancyType:   "Primary Residence"
+```
 
-- Underlying `mortgage_profiles.employment_type` column accepts any string, so no enum/check-constraint update needed.
-- Pipeline / LOS payload mapping is untouched — `employment_type` still flows through `leadIntake`.
+Applied only when the CRM value is null/empty AND the ARIVE field is required.
+
+## 4. Flat Zapier payload — `buildArivePayload(lead, mp)`
+Returns exactly these primitive keys (drops anything `undefined`/`""`):
+
+```
+firstName, lastName, email, mobilePhone,
+loanPurpose, propertyUse,
+purchasePrice, estimatedValue, estimatedFICO, loanAmount,
+leadSource, externalCreateDate (ISO 8601)
+```
+
+No nested objects, no arrays. Used by `SendToLosButton` instead of today's `rawPayload`.
+
+## 5. UI — Lead workspace additions
+File: `src/components/crm/LosSyncCard.tsx` (existing card) gets three new pieces:
+
+**a) Export Readiness chip**
+- Big number from `validateAriveLead().score` with progress bar.
+- Lists top issues blocking export.
+
+**b) "ARIVE Export Preview" modal** (new `AriveExportPreviewDialog.tsx`)
+- Triggered from a "Preview Payload" button next to Send/Re-sync.
+- Table: `Field | CRM Value | ARIVE Field | Status` with ✓ / ⚠ / ✕ icons + tooltip messages.
+- Footer shows the final flat JSON in a read-only code block.
+- "Send to LOS" button inside the modal is disabled until `ok === true`.
+
+**c) Export Debug panel** (collapsible inside `LosSyncCard`)
+- Last Attempt timestamp, Status badge.
+- Tabs: Payload Sent / Validation Errors / ARIVE Response / Zapier Response.
+- Data sourced from latest `lead_export_logs` row for the lead.
+
+## 6. Wire `SendToLosButton`
+- Run `validateAriveLead` before firing; block + toast when `!ok`.
+- Build payload with `buildArivePayload` (replaces the current ad-hoc `rawPayload`/`normalizeLosPayload` for ARIVE).
+- Insert a `lead_export_logs` row (`status: 'success' | 'failed' | 'invalid'`, payload, validation_errors) immediately after `fireZapier`. Keep the existing `los_integration_logs` write inside `fireZapier` untouched.
+- Continue to set `leads.sent_to_los_at` only on success.
+
+## 7. Field Mapping Documentation
+New settings page `src/pages/settings/AriveExportMappings.tsx` (read-only doc, surfaced from existing Arive section):
+
+| Mortgage Core Field | Zapier Field | ARIVE Field | Type | Required | Validation | Default |
+
+Generated from a single source-of-truth array in `src/lib/los/ariveFieldMap.ts` so the validator, preview modal, and docs page never drift.
+
+## 8. Out of scope
+- No changes to `los_field_mappings` / `los_integration_logs` schemas.
+- No edge function changes — Zapier remains the transport (no-cors, so `response` column will usually be null; we still capture request status + Zapier history pointer).
+- Smart Intake form UI unchanged.
+
+## Technical notes
+- New files: `src/lib/los/ariveValidate.ts`, `src/lib/los/ariveFieldMap.ts`, `src/lib/los/buildArivePayload.ts`, `src/components/crm/AriveExportPreviewDialog.tsx`, `src/components/crm/ExportDebugPanel.tsx`, `src/pages/settings/AriveExportMappings.tsx`, one new migration for `lead_export_logs`.
+- Edited: `src/components/crm/SendToLosButton.tsx`, `src/components/crm/LosSyncCard.tsx`, settings routing + Arive section nav entry.
+- All values pass through existing `src/lib/los/format.ts` helpers; add `toISO8601` there.
