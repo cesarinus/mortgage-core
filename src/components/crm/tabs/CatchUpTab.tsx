@@ -209,14 +209,6 @@ export function CatchUpTab({ activities, emailLogs, sentiment, mortgage, record,
         </CardContent>
       </Card>
 
-      {onEditIntake && (
-        <div className="flex justify-end -mt-2">
-          <Button size="sm" variant="outline" onClick={onEditIntake}>
-            <Sparkles className="h-3.5 w-3.5 mr-1.5" /> Edit Intake
-          </Button>
-        </div>
-      )}
-
       {!hideIncomeAnalysis && (
       <Card className="overflow-hidden">
         <CardHeader className="pb-3">
