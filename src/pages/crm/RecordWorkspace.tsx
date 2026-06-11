@@ -464,6 +464,7 @@ export default function RecordWorkspace({ kind }: Props) {
                 leadId={kind === "lead" ? id : (record as any)?.lead_id ?? undefined}
                 contactId={kind === "contact" ? id : undefined}
                 hideIncomeAnalysis
+                pipelineMode={kind === "lead" && fromPipeline}
               />
             </TabsContent>
             <TabsContent value="activities" className="mt-4">

@@ -26,6 +26,7 @@ import { IncomeAiAnalysis } from "@/components/crm/IncomeAiAnalysis";
 import { formatOptionLabel } from "@/lib/format/labels";
 import { getCurrentRateMeta, type MarketRate } from "@/lib/mortgage/rateService";
 import { estimatePayment } from "@/lib/mortgage/estimatePayment";
+import { calcLeadQualification, parseCreditScore } from "@/lib/mortgage/leadQualification";
 
 interface Props {
   activities: any[];
@@ -38,6 +39,12 @@ interface Props {
   contactId?: string;
   /** When true, omit the Income Analysis card (rendered full-width elsewhere). */
   hideIncomeAnalysis?: boolean;
+  /**
+   * When true, this workspace is opened from the Pipeline. The lead-page
+   * pre-qualification engine (HE/DTI/LTV/Readiness) must be hidden — those
+   * stages display ARIVE LOS values as the source of truth.
+   */
+  pipelineMode?: boolean;
 }
 
 export function CatchUpTab({
@@ -50,6 +57,7 @@ export function CatchUpTab({
   leadId,
   contactId,
   hideIncomeAnalysis,
+  pipelineMode = false,
 }: Props) {
   const inbound = activities
     .filter((a) => ["form_submit", "chat", "inbound_call"].includes(a.activity_type))
@@ -376,6 +384,65 @@ export function CatchUpTab({
                   value={formatOptionLabel(mortgage?.property_type ?? record?.property_type) || null}
                 />
                 <Stat label="Occupancy" value={formatOptionLabel(mortgage?.occupancy_type) || null} />
+                {!pipelineMode && marketRate && price > 0 && (() => {
+                  const propertyValue = Number(record?.property_value ?? price) || price;
+                  const loanAmount =
+                    loanType === "fha" ? price * 0.9825
+                    : loanType === "usda" ? price / 0.99
+                    : Math.max(0, price - dp);
+                  const liabilities = Number(
+                    mpExtras.monthly_liabilities ??
+                    (Number(mpExtras.car_payment ?? 0) +
+                     Number(mpExtras.student_loans ?? 0) +
+                     Number(mpExtras.credit_cards ?? 0) +
+                     Number(mpExtras.personal_loans ?? 0) +
+                     Number(mpExtras.child_support ?? 0) +
+                     Number(mpExtras.alimony ?? 0) +
+                     Number(mpExtras.other_debts ?? 0))
+                  ) || 0;
+                  const q = calcLeadQualification({
+                    purchasePrice: price,
+                    propertyValue,
+                    downPayment: dp,
+                    loanAmount,
+                    loanType,
+                    annualRatePct: marketRate.adjusted_rate,
+                    annualPropertyTax: mpExtras.annual_property_tax,
+                    annualInsurance: mpExtras.annual_insurance,
+                    hoaMonthly: mpExtras.hoa_monthly,
+                    floodInsuranceMonthly: mpExtras.flood_insurance_monthly,
+                    pmiMonthlyOverride: mpExtras.pmi_monthly,
+                    totalMonthlyIncome: totalMonthly,
+                    monthlyLiabilities: liabilities,
+                    creditScore: parseCreditScore(record?.credit_range),
+                    incomeStabilityYears: mpExtras.income_stability_years,
+                    reservesMonths: mpExtras.reserves_months,
+                  });
+                  const pct = (n: number) => `${(n * 100).toFixed(2)}%`;
+                  const statusCls =
+                    q.readinessStatus === "Excellent" ? "text-emerald-600"
+                    : q.readinessStatus === "Strong" ? "text-emerald-700"
+                    : q.readinessStatus === "Review" ? "text-amber-600"
+                    : "text-rose-600";
+                  return (
+                    <>
+                      <Stat label="Housing expense" value={fmtMoney(Math.round(q.housingExpense), 0)} />
+                      <Stat label="Front-End DTI" value={totalMonthly > 0 ? pct(q.frontEndDTI) : null} />
+                      <Stat label="Back-End DTI" value={totalMonthly > 0 ? pct(q.backEndDTI) : null} />
+                      <Stat label="LTV" value={pct(q.ltv)} />
+                      <div>
+                        <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Readiness score</div>
+                        <div className="font-medium">
+                          {q.readinessScore}
+                          <span className={`ml-2 text-xs ${statusCls}`}>{q.readinessStatus}</span>
+                        </div>
+                      </div>
+                      <div className="col-span-2 md:col-span-4 -mt-1 text-[11px] text-muted-foreground italic">
+                        Pre-qualification estimates only. Once a loan is created in ARIVE LOS, Pipeline values will be the source of truth.
+                      </div>
+                    </>
+                  );
+                })()}
               </>
             );
           })()}
