@@ -71,9 +71,6 @@ export function LeftRail({ record, kind, tags = [], onAction, onStatusChange, on
           </Avatar>
           <div className="min-w-0">
             <div className="font-semibold truncate">{fullName}</div>
-            {stageLabel && (
-              <Badge variant="outline" className="capitalize mt-1">{stageLabel}</Badge>
-            )}
           </div>
         </div>
 
