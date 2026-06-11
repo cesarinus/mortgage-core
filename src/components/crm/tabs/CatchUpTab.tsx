@@ -284,6 +284,23 @@ export function CatchUpTab({
           <CardTitle className="text-base">Mortgage snapshot</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+          {marketRate && (
+            <div className="col-span-2 md:col-span-4 -mb-1 flex items-center justify-between rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold uppercase tracking-wide text-primary">Live Market Rate</span>
+                <span className="text-muted-foreground">
+                  30Y Fixed (incl. +0.125% buffer):{" "}
+                  <span className="text-foreground font-semibold tabular-nums">
+                    {marketRate.adjusted_rate.toFixed(3)}%
+                  </span>
+                </span>
+              </div>
+              <div className="text-muted-foreground">
+                {marketRate.is_manual_override ? "Admin override" : `Source: ${marketRate.source}`} ·{" "}
+                {format(new Date(marketRate.fetched_at), "MMM d, p")}
+              </div>
+            </div>
+          )}
           {(() => {
             let mpExtras: any = {};
             try {
