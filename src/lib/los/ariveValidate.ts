@@ -77,6 +77,19 @@ function coerce(value: unknown, def: AriveFieldDef): { value: any; valid: boolea
           jumbo: "Jumbo",
         };
         v = map[raw] ?? null;
+      } else if (def.ariveField === "refinanceType") {
+        const raw = String(value).trim().toLowerCase().replace(/[\s_-]+/g, "");
+        const map: Record<string, string> = {
+          rateandterm: "Rate and Term",
+          ratenterm: "Rate and Term",
+          rt: "Rate and Term",
+          cashout: "Cash Out",
+          co: "Cash Out",
+          streamline: "Streamline",
+          irrrl: "Streamline",
+          fhastreamline: "Streamline",
+        };
+        v = map[raw] ?? null;
       } else {
         v = String(value).trim();
       }
