@@ -324,11 +324,6 @@ export function CatchUpTab({
                   value={formatOptionLabel(mortgage?.property_type ?? record?.property_type) || null}
                 />
                 <Stat label="Occupancy" value={formatOptionLabel(mortgage?.occupancy_type) || null} />
-                //
-                <Stat
-                  label="Pipeline stage"
-                  value={formatOptionLabel(mortgage?.pipeline_stage ?? record?.status) || null}
-                />
               </>
             );
           })()}
