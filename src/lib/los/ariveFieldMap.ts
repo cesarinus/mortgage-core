@@ -54,4 +54,5 @@ export const ARIVE_FIELD_MAP: AriveFieldDef[] = [
   { ariveField: "leadSource",         crmField: "Lead Source",           crmPath: "source",                     type: "string", required: true, defaultValue: ARIVE_DEFAULTS.leadSource },
   { ariveField: "externalCreateDate", crmField: "Created At",            crmPath: "created_at",                 type: "date",   required: true },
   { ariveField: "loanType",           crmField: "Loan Type",             crmPath: "mp.loan_type",               type: "enum",   required: false, enumValues: ["Conventional", "FHA", "VA", "USDA", "Jumbo"] },
+  { ariveField: "refinanceType",      crmField: "Refinance Type",        crmPath: "refinance_type",             type: "enum",   required: false, enumValues: ["Rate and Term", "Cash Out", "Streamline"] },
 ];
