@@ -2320,6 +2320,50 @@ export type Database = {
           },
         ]
       }
+      lead_export_logs: {
+        Row: {
+          created_at: string
+          export_system: string
+          id: string
+          lead_id: string
+          payload: Json | null
+          response: Json | null
+          status: string
+          user_id: string | null
+          validation_errors: Json | null
+        }
+        Insert: {
+          created_at?: string
+          export_system?: string
+          id?: string
+          lead_id: string
+          payload?: Json | null
+          response?: Json | null
+          status?: string
+          user_id?: string | null
+          validation_errors?: Json | null
+        }
+        Update: {
+          created_at?: string
+          export_system?: string
+          id?: string
+          lead_id?: string
+          payload?: Json | null
+          response?: Json | null
+          status?: string
+          user_id?: string | null
+          validation_errors?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_export_logs_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lead_screening_audit: {
         Row: {
           actions: Json

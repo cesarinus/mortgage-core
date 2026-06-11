@@ -30,6 +30,7 @@ import CrmLayoutDesigner from "@/pages/settings/CrmLayoutDesigner";
 import ImportArive from "@/pages/settings/ImportArive";
 import LosIntegrationLogs from "@/pages/settings/LosIntegrationLogs";
 import AriveFieldMappings from "@/pages/settings/AriveFieldMappings";
+import AriveExportMappings from "@/pages/settings/AriveExportMappings";
 import LosPayloadTester from "@/pages/settings/LosPayloadTester";
 import SchemaGapReport from "@/pages/settings/SchemaGapReport";
 import BlogIndex from "@/pages/BlogIndex";
@@ -109,6 +110,7 @@ const App = () => (
                   <Route path="pipeline-stages" element={<ComingSoonSection title="Pipeline Stages" />} />
                   <Route path="lead-sources" element={<ComingSoonSection title="Lead Sources" />} />
                   <Route path="los-mappings" element={<AriveFieldMappings />} />
+                  <Route path="arive-export-map" element={<AriveExportMappings />} />
                   <Route path="compliance" element={<ComingSoonSection title="Compliance" />} />
                   <Route path="company" element={<ComingSoonSection title="Company" />} />
                   <Route path="team" element={<ComingSoonSection title="Team" />} />

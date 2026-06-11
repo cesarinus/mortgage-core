@@ -39,6 +39,13 @@ export function normalizeDate(input?: string | Date | null): string | null {
   return Number.isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10);
 }
 
+/** Full ISO 8601 (UTC, with time + ms + Z) — what ARIVE expects for datetime fields. */
+export function toISO8601(input?: string | number | Date | null): string | null {
+  if (input == null || input === "") return null;
+  const d = input instanceof Date ? input : new Date(input as any);
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
+}
+
 /** ARIVE expects exact-case enum IDs: "Purchase" or "Refinance". */
 export function normalizeLoanPurpose(input?: string | null): string | null {
   if (!input) return null;

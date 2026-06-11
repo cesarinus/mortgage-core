@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { Settings2, FlaskConical, FileSearch, ListChecks } from "lucide-react";
+import { Settings2, FlaskConical, FileSearch, ListChecks, Map } from "lucide-react";
 
 export default function AriveSection() {
   return (
@@ -10,6 +10,7 @@ export default function AriveSection() {
       <div className="grid sm:grid-cols-2 gap-3">
         {[
           { to: "/settings/los-mappings", icon: Settings2, title: "Field Mappings", desc: "CRM → ARIVE field map" },
+          { to: "/settings/arive-export-map", icon: Map, title: "Export Mapping Doc", desc: "Flat Zapier payload contract" },
           { to: "/settings/los-tester", icon: FlaskConical, title: "Payload Tester", desc: "Preview + send test payloads" },
           { to: "/settings/los-gap-report", icon: FileSearch, title: "Schema Gap Report", desc: "Find missing/null fields" },
           { to: "/settings/los-logs", icon: ListChecks, title: "Integration Logs", desc: "Every Send-to-LOS call" },
