@@ -3088,6 +3088,39 @@ export type Database = {
           },
         ]
       }
+      mortgage_market_rates: {
+        Row: {
+          active: boolean
+          adjusted_rate: number
+          created_at: string
+          fetched_at: string
+          id: string
+          is_manual_override: boolean
+          rate_30yr: number
+          source: string
+        }
+        Insert: {
+          active?: boolean
+          adjusted_rate: number
+          created_at?: string
+          fetched_at?: string
+          id?: string
+          is_manual_override?: boolean
+          rate_30yr: number
+          source?: string
+        }
+        Update: {
+          active?: boolean
+          adjusted_rate?: number
+          created_at?: string
+          fetched_at?: string
+          id?: string
+          is_manual_override?: boolean
+          rate_30yr?: number
+          source?: string
+        }
+        Relationships: []
+      }
       mortgage_profiles: {
         Row: {
           created_at: string
