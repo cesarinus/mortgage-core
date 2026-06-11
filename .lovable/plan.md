@@ -1,110 +1,59 @@
-# ARIVE LOS Export Hardening Plan
+# Responsive Overhaul Plan
 
-## Goal
-Every Lead exported from Mortgage Core CRM produces a clean, flat, ARIVE-compatible payload that Zapier accepts and ARIVE turns into a loan — without manual cleanup.
+Goal: make the entire app usable down to 360–414px phones, comfortable on 768–1024px tablets, and free of horizontal scroll on 1280px laptops — without touching business logic or data.
 
-## 1. New backend table — `lead_export_logs`
-Migration (extension-only, with GRANTs + RLS):
+## Scope (frontend / presentation only)
 
-```
-id uuid pk default gen_random_uuid()
-lead_id uuid references public.leads(id) on delete cascade
-user_id uuid
-export_system text          -- 'arive' | 'zapier'
-payload jsonb               -- flat payload we sent
-response jsonb              -- Zapier/ARIVE response or null (no-cors limits this)
-validation_errors jsonb     -- [{field, code, message}]
-status text                 -- 'success' | 'failed' | 'invalid'
-created_at timestamptz default now()
-```
+### 1. Public website
+- `Navbar`: already has mobile menu — audit spacing, logo wrap, sticky height.
+- `HeroSection`, `ServicesSection`, `WhyChooseUsSection`, `ContactFormSection`, `Footer`: collapse multi-column grids to single column under `md`; tighten typography scale (`text-4xl md:text-6xl` etc.); reduce section padding on mobile.
+- `ApplicationHub` (7-step sheet): full-screen sheet on mobile, stacked field rows, sticky footer with Next/Back.
+- `MortgageCalculator` + `FloatingCalculatorButton`: bottom-sheet style on mobile, smaller floating button position to avoid covering iOS home indicator.
+- Blog: `BlogPost` sidebar moves below content on mobile; `StickyFloatingCTA` shrinks; `BlogIndex` cards become single column.
+- Booking pages: calendar + form stack vertically; chip rows wrap.
 
-RLS: owners (`assigned_to`/`created_by` via `user_owns_lead`) + admins read; insert by authenticated; service_role full.
+### 2. CRM shell
+- `AppLayout` header: hide search on `<md`, collapse Quick Add into an icon, keep AI Assistant primary CTA visible but icon-only on `<sm`.
+- `AppSidebar`: use shadcn `Sidebar` offcanvas behavior on mobile (drawer triggered by `SidebarTrigger`), icon-mini on tablet.
+- Main content padding: `p-4 md:p-6` instead of fixed `p-6`.
 
-## 2. Validation engine — `src/lib/los/ariveValidate.ts`
-Pure function `validateAriveLead(lead, mortgageProfile)` returns:
+### 3. CRM record workspace + lists
+- `Leads`, `Pipeline`, `Contacts`, `Companies`, `People`, `Subscribers`, `EmailTemplates`, `BlogAdmin` tables: convert rows to **stacked cards** under `md` (name + status badge + key metric + chevron); keep table on `md+`.
+- `RecordWorkspace` (LeftRail / center / RightRail): three-column on `xl`, two-column with collapsible right rail on `lg`, single column with tab switcher (`Details | Activity | AI`) on `<lg`.
+- Tab content (`UnifiedTimelineTab`, `ConditionsTab`, `DocumentsTab`, etc.): grid → single column; action button rows wrap.
+- `AriveExportPreviewDialog` and similar dialogs: become full-screen sheets on mobile.
 
-```
-{
-  ok: boolean,
-  score: number (0-100),
-  fields: [{ crmField, crmValue, ariveField, status: 'valid'|'missing'|'invalid', message }],
-  payload: FlatArivePayload,   // null-safe, ready-to-send
-  errors: ValidationIssue[],
-}
-```
+### 4. Settings
+- `SettingsLayout`: today is 3-column (`w-64` nav / content / `w-80` advisor).
+  - `<lg`: hide right advisor (already `hidden xl:block`, keep).
+  - `<md`: convert left nav into a top **Select dropdown** (or shadcn `Sheet` triggered by a hamburger) so content gets full width.
+- All settings sections: form rows stack, tables horizontally scroll inside a wrapper, tabs become scrollable.
 
-Rules:
-- Required: firstName, lastName, email, mobilePhone, loanPurpose, propertyUse, estimatedFICO. `loanAmount`, `purchasePrice`/`estimatedValue` required-if-available.
-- `mobilePhone` → 10 digits via `normalizePhone`; invalid otherwise.
-- `email` → `normalizeEmail` regex.
-- Money fields → `normalizeMoney` → number or null.
-- `estimatedFICO` → `normalizeCreditScore` midpoint integer.
-- Dates → `toISO8601(value)` helper (full ISO `2026-06-11T...Z`).
-- Empty strings collapse to `null`; `undefined` keys dropped before send.
+## Technical approach
 
-Scoring: 100 − (missing required × 15) − (invalid × 10) − (missing optional × 5), floored at 0.
+- Pure Tailwind responsive classes (`sm: md: lg: xl:`) — no new dependencies.
+- Reusable pattern for list→card swap:
+  ```tsx
+  <div className="hidden md:block"><Table>…</Table></div>
+  <div className="md:hidden space-y-2">{rows.map(r => <MobileCard …/>)}</div>
+  ```
+- Add a small `useIsMobile` (already exists) for conditional rendering where Tailwind isn't enough (e.g., Dialog ↔ Sheet swap).
+- Container rule: every page root uses `w-full max-w-full overflow-x-hidden` to prevent rogue horizontal scroll.
+- Tap targets: minimum `h-10 w-10` for icon buttons on touch.
+- No changes to: business logic, data fetching, edge functions, DB schema, ARIVE mapping, auth.
 
-## 3. Default value mapping
-Centralised `ARIVE_DEFAULTS`:
+## Delivery order (incremental, each shippable)
 
-```
-homebuyingStage: "Just Started"
-leadSource:      "Mortgage Core CRM"
-loanStatus:      "Lead"
-occupancyType:   "Primary Residence"
-```
+1. **CRM shell + Settings layout** — biggest unlock, touches every authenticated page.
+2. **Leads / Pipeline / Contacts list → mobile cards.**
+3. **RecordWorkspace 3-col → tabbed mobile view.**
+4. **Public website sections + ApplicationHub sheet.**
+5. **Blog + Booking polish.**
+6. **Settings inner pages (LOS mappings, field builder, integrations) row stacking.**
 
-Applied only when the CRM value is null/empty AND the ARIVE field is required.
+I'll start with step 1 in the next turn unless you want a different order.
 
-## 4. Flat Zapier payload — `buildArivePayload(lead, mp)`
-Returns exactly these primitive keys (drops anything `undefined`/`""`):
-
-```
-firstName, lastName, email, mobilePhone,
-loanPurpose, propertyUse,
-purchasePrice, estimatedValue, estimatedFICO, loanAmount,
-leadSource, externalCreateDate (ISO 8601)
-```
-
-No nested objects, no arrays. Used by `SendToLosButton` instead of today's `rawPayload`.
-
-## 5. UI — Lead workspace additions
-File: `src/components/crm/LosSyncCard.tsx` (existing card) gets three new pieces:
-
-**a) Export Readiness chip**
-- Big number from `validateAriveLead().score` with progress bar.
-- Lists top issues blocking export.
-
-**b) "ARIVE Export Preview" modal** (new `AriveExportPreviewDialog.tsx`)
-- Triggered from a "Preview Payload" button next to Send/Re-sync.
-- Table: `Field | CRM Value | ARIVE Field | Status` with ✓ / ⚠ / ✕ icons + tooltip messages.
-- Footer shows the final flat JSON in a read-only code block.
-- "Send to LOS" button inside the modal is disabled until `ok === true`.
-
-**c) Export Debug panel** (collapsible inside `LosSyncCard`)
-- Last Attempt timestamp, Status badge.
-- Tabs: Payload Sent / Validation Errors / ARIVE Response / Zapier Response.
-- Data sourced from latest `lead_export_logs` row for the lead.
-
-## 6. Wire `SendToLosButton`
-- Run `validateAriveLead` before firing; block + toast when `!ok`.
-- Build payload with `buildArivePayload` (replaces the current ad-hoc `rawPayload`/`normalizeLosPayload` for ARIVE).
-- Insert a `lead_export_logs` row (`status: 'success' | 'failed' | 'invalid'`, payload, validation_errors) immediately after `fireZapier`. Keep the existing `los_integration_logs` write inside `fireZapier` untouched.
-- Continue to set `leads.sent_to_los_at` only on success.
-
-## 7. Field Mapping Documentation
-New settings page `src/pages/settings/AriveExportMappings.tsx` (read-only doc, surfaced from existing Arive section):
-
-| Mortgage Core Field | Zapier Field | ARIVE Field | Type | Required | Validation | Default |
-
-Generated from a single source-of-truth array in `src/lib/los/ariveFieldMap.ts` so the validator, preview modal, and docs page never drift.
-
-## 8. Out of scope
-- No changes to `los_field_mappings` / `los_integration_logs` schemas.
-- No edge function changes — Zapier remains the transport (no-cors, so `response` column will usually be null; we still capture request status + Zapier history pointer).
-- Smart Intake form UI unchanged.
-
-## Technical notes
-- New files: `src/lib/los/ariveValidate.ts`, `src/lib/los/ariveFieldMap.ts`, `src/lib/los/buildArivePayload.ts`, `src/components/crm/AriveExportPreviewDialog.tsx`, `src/components/crm/ExportDebugPanel.tsx`, `src/pages/settings/AriveExportMappings.tsx`, one new migration for `lead_export_logs`.
-- Edited: `src/components/crm/SendToLosButton.tsx`, `src/components/crm/LosSyncCard.tsx`, settings routing + Arive section nav entry.
-- All values pass through existing `src/lib/los/format.ts` helpers; add `toISO8601` there.
+## Out of scope
+- Native app, PWA install prompts, offline mode.
+- Redesigning components (visual direction stays per brand memory).
+- Changing any backend, ARIVE, or AI behavior.
