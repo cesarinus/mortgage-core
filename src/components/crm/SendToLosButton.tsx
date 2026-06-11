@@ -41,6 +41,14 @@ export default function SendToLosButton({ lead, opportunity, mortgageProfile, on
   const loanAmount = opportunity?.loan_amount ?? lead?.loan_amount ?? computed;
   if (!loanAmount) missing.push({ key: "loan_amount", label: "Loan amount" });
 
+  // Parse extras stored in mortgage_profiles.notes (loan_type, etc.)
+  let mpExtras: any = {};
+  try {
+    mpExtras = mortgageProfile?.notes ? JSON.parse(mortgageProfile.notes) : {};
+  } catch {
+    mpExtras = {};
+  }
+
   const handleSend = async () => {
     setSending(true);
     try {
@@ -51,6 +59,10 @@ export default function SendToLosButton({ lead, opportunity, mortgageProfile, on
         email: lead.email,
         phone: lead.phone,
         loan_purpose: lead.loan_purpose,
+        refinance_type: lead.refinance_type ?? null,
+        cash_out_purpose: lead.cash_out_purpose ?? null,
+        loan_type: mpExtras.loan_type ?? null,
+        occupancy_type: mortgageProfile?.occupancy_type ?? null,
         loan_amount: loanAmount,
         estimated_credit_score: lead.credit_range,
         property_address: propertyAddress,
