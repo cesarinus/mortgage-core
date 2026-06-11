@@ -66,6 +66,17 @@ function coerce(value: unknown, def: AriveFieldDef): { value: any; valid: boolea
       let v: string | null;
       if (def.ariveField === "loanPurpose") {
         v = normalizeLoanPurpose(String(value));
+      } else if (def.ariveField === "loanType") {
+        const raw = String(value).trim().toLowerCase();
+        const map: Record<string, string> = {
+          conventional: "Conventional",
+          conv: "Conventional",
+          fha: "FHA",
+          va: "VA",
+          usda: "USDA",
+          jumbo: "Jumbo",
+        };
+        v = map[raw] ?? null;
       } else {
         v = String(value).trim();
       }
