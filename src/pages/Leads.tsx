@@ -461,9 +461,9 @@ export default function Leads() {
 
   return (
     <>
-    <div className="flex h-[calc(100vh-3.5rem)] overflow-hidden">
-      {/* Left Sidebar — Filters */}
-      <div className="hidden lg:flex w-56 flex-col border-r bg-card p-4 gap-5 overflow-y-auto">
+    <div className="flex h-[calc(100vh-3.5rem)] overflow-hidden -m-3 sm:-m-4 md:-m-6">
+      {/* Left Sidebar — Filters (desktop) */}
+      <div className="hidden lg:flex w-56 flex-col border-r bg-card p-4 gap-5 overflow-y-auto shrink-0">
         <div>
           <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Smart Views</h3>
           <div className="space-y-0.5">
