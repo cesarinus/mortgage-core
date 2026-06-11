@@ -361,7 +361,6 @@ export function CatchUpTab({
                       : fmtMoney(mortgage?.est_income ?? record?.annual_income, 0)
                   }
                 />
-                <Stat label="Estimated DTI" value={mortgage?.est_dti ? `${mortgage.est_dti}%` : null} />
                 <Stat
                   label="Monthly payment"
                   value={(() => {
