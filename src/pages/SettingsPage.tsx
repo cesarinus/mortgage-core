@@ -10,6 +10,7 @@ import BookingAvailabilitySettings from "@/components/settings/BookingAvailabili
 import { Switch } from "@/components/ui/switch";
 import EmailProviderSettings from "@/components/settings/EmailProviderSettings";
 import ZapierIntegrationSettings from "@/components/settings/ZapierIntegrationSettings";
+import MarketRatesSettings from "@/components/settings/MarketRatesSettings";
 import { Link } from "react-router-dom";
 import { Upload, Moon, Sun, Palette, Monitor, ListChecks, Settings2, FlaskConical, FileSearch } from "lucide-react";
 import { useTheme, type ThemeName } from "@/lib/theme";
@@ -129,6 +130,7 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
       <BookingAvailabilitySettings />
+      <MarketRatesSettings />
       <EmailProviderSettings />
       <ZapierIntegrationSettings />
       {user && (
