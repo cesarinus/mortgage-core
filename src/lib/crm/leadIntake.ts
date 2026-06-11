@@ -207,7 +207,7 @@ export async function saveLeadIntake(
     loan_amount: computedLoanAmount ?? null,
     property_address: (data.property_address ?? "").trim() || null,
     credit_range: data.credit_range || null,
-    employment_type: data.self_employed ? "self_employed" : (data.employment_type || null),
+    employment_type: data.employment_type || (data.self_employed ? "self_employed" : null),
     annual_income: data.annual_income ?? null,
     timeline: data.timeline || null,
     lead_score: score,
@@ -389,7 +389,7 @@ export function intakeFromLead(lead: any, mp: any | null): IntakeData {
     credit_range: lead?.credit_range ?? "",
     annual_income: lead?.annual_income ?? mp?.est_income ?? null,
     monthly_debts: mpExtras.monthly_debts ?? null,
-    employment_type: lead?.employment_type === "self_employed" ? "" : (lead?.employment_type ?? ""),
+    employment_type: lead?.employment_type ?? (mpExtras.self_employed ? "self_employed" : ""),
     self_employed: !!mpExtras.self_employed || lead?.employment_type === "self_employed",
     notes: lead?.notes ?? "",
   };

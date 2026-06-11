@@ -514,25 +514,18 @@ export function SmartLeadForm({ leadId, initial, sources = [], onSaved, onCancel
           <Field label="Monthly debts (car, student, cards)">
             <Input type="number" value={data.monthly_debts ?? ""} onChange={e => set("monthly_debts", e.target.value === "" ? null : Number(e.target.value))} />
           </Field>
-          <Field label="Employment status" className="col-span-2">
-            <Select value={data.employment_type || ""} onValueChange={v => set("employment_type", v)} disabled={data.self_employed}>
+          <Field label="Employment Type" className="col-span-2">
+            <Select value={data.employment_type || ""} onValueChange={v => set("employment_type", v)}>
               <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="w2">W-2 Employee</SelectItem>
-                <SelectItem value="1099">1099 Contractor</SelectItem>
+                <SelectItem value="employed">Employed</SelectItem>
+                <SelectItem value="self_employed">Self Employed</SelectItem>
+                <SelectItem value="not_employed">Not Employed</SelectItem>
                 <SelectItem value="retired">Retired</SelectItem>
-                <SelectItem value="unemployed">Unemployed</SelectItem>
               </SelectContent>
             </Select>
           </Field>
-          <div className="col-span-2 flex items-center justify-between rounded-md border p-3">
-            <div>
-              <p className="text-sm font-medium">Self-employed</p>
-              <p className="text-xs text-muted-foreground">Requires extra documentation</p>
-            </div>
-            <Switch checked={!!data.self_employed} onCheckedChange={(v) => set("self_employed", v)} />
-          </div>
-          {data.self_employed && (
+          {data.employment_type === "self_employed" && (
             <Card className="col-span-2 bg-muted/30">
               <CardContent className="p-3 text-sm space-y-1">
                 <p className="font-medium">Self-employed checklist</p>
