@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Zap, Loader2 } from "lucide-react";
+import { Zap, Loader2, Copy, CheckCircle2, AlertCircle, Clock } from "lucide-react";
 import { fireZapier } from "@/lib/integrations/zapier";
 
 const EVENT_OPTIONS: { id: string; label: string; description: string }[] = [
@@ -31,6 +31,19 @@ export default function ZapierIntegrationSettings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [recentLogs, setRecentLogs] = useState<any[]>([]);
+
+  const INBOUND_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/arive-webhook`;
+
+  const loadRecentLogs = async (uid: string) => {
+    const { data } = await supabase
+      .from("los_integration_logs")
+      .select("id, event, direction, status, error, created_at")
+      .eq("user_id", uid)
+      .order("created_at", { ascending: false })
+      .limit(5);
+    setRecentLogs(data ?? []);
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -50,6 +63,7 @@ export default function ZapierIntegrationSettings() {
         }
         setLoading(false);
       });
+    loadRecentLogs(user.id);
   }, [user]);
 
   const toggleEvent = (id: string, checked: boolean) => {
@@ -104,10 +118,24 @@ export default function ZapierIntegrationSettings() {
         setLastFiredAt(data.last_fired_at ?? null);
         setLastStatus(data.last_status ?? null);
       }
+      loadRecentLogs(user.id);
+    }
+  };
+
+  const copyInbound = async () => {
+    try {
+      await navigator.clipboard.writeText(INBOUND_URL);
+      toast({
+        title: "Inbound URL copied",
+        description: "Remember to add the x-arive-secret header in Arive/Zapier.",
+      });
+    } catch {
+      toast({ title: "Copy failed", description: INBOUND_URL, variant: "destructive" });
     }
   };
 
   return (
+    <div className="space-y-4">
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
@@ -181,7 +209,70 @@ export default function ZapierIntegrationSettings() {
             Send test payload
           </Button>
         </div>
+
+        <p className="text-xs text-muted-foreground">
+          Note: Zapier hooks use <code>no-cors</code>, so the CRM can't read the HTTP response.
+          Always confirm delivery in Zap History or the Recent activity panel below.
+        </p>
       </CardContent>
     </Card>
+
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Inbound webhook (Arive → CRM)</CardTitle>
+        <CardDescription>
+          Configure Arive (or a polling Zap) to POST status updates to this URL. Requests must include
+          the header <code>x-arive-secret</code> with the value of the <code>ARIVE_WEBHOOK_SECRET</code> backend secret.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="flex gap-2">
+          <Input readOnly value={INBOUND_URL} className="font-mono text-xs" />
+          <Button variant="outline" onClick={copyInbound}>
+            <Copy className="h-4 w-4 mr-2" /> Copy
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Required body fields: <code>crm_reference_id</code> (the CRM lead UUID), plus any of
+          <code> arive_loan_id, loan_status, loan_amount, interest_rate, loan_program,
+          estimated_close_date, du_findings, conditions, property_address</code>.
+        </p>
+      </CardContent>
+    </Card>
+
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Recent activity</CardTitle>
+        <CardDescription>Last 5 integration log entries for your account.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {recentLogs.length === 0 && (
+          <p className="text-xs text-muted-foreground">No activity yet. Send a test payload to see entries appear here.</p>
+        )}
+        {recentLogs.map((log) => {
+          const Icon =
+            log.status === "sent" ? CheckCircle2 :
+            log.status === "failed" ? AlertCircle : Clock;
+          const color =
+            log.status === "sent" ? "text-emerald-500" :
+            log.status === "failed" ? "text-destructive" : "text-muted-foreground";
+          return (
+            <div key={log.id} className="flex items-start gap-2 rounded-md border border-border/60 p-2 text-xs">
+              <Icon className={`h-4 w-4 mt-0.5 ${color}`} />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="font-medium">{log.event}</span>
+                  <span className="text-muted-foreground">
+                    {log.direction} · {new Date(log.created_at).toLocaleString()}
+                  </span>
+                </div>
+                {log.error && <p className="text-destructive mt-1 break-words">{log.error}</p>}
+              </div>
+            </div>
+          );
+        })}
+      </CardContent>
+    </Card>
+    </div>
   );
 }
