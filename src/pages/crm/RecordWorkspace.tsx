@@ -418,13 +418,6 @@ export default function RecordWorkspace({ kind }: Props) {
         </aside>
 
         <main className="col-span-12 lg:col-span-6">
-          {kind === "lead" && (
-            <div className="flex justify-end mb-2">
-              <Button size="sm" variant="outline" onClick={() => setIntakeOpen(true)}>
-                <Sparkles className="h-3.5 w-3.5 mr-1.5" /> Edit Intake
-              </Button>
-            </div>
-          )}
           <Tabs defaultValue="catch-up" value={activeTab} onValueChange={setActiveTab}>
             <TabsList className={`w-full grid ${kind === "lead" ? "grid-cols-9" : "grid-cols-8"}`}>
               <TabsTrigger value="catch-up">Catch-up</TabsTrigger>
@@ -471,6 +464,7 @@ export default function RecordWorkspace({ kind }: Props) {
                 leadId={kind === "lead" ? id : (record as any)?.lead_id ?? undefined}
                 contactId={kind === "contact" ? id : undefined}
                 hideIncomeAnalysis
+                onEditIntake={kind === "lead" ? () => setIntakeOpen(true) : undefined}
               />
             </TabsContent>
             <TabsContent value="activities" className="mt-4">
