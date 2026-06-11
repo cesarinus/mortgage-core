@@ -1038,6 +1038,52 @@ export default function Leads() {
           )}
         </SheetContent>
       </Sheet>
+
+      {/* Mobile Filters Sheet */}
+      <Sheet open={mobileFiltersOpen} onOpenChange={setMobileFiltersOpen}>
+        <SheetContent side="left" className="w-72 p-0 overflow-y-auto">
+          <SheetHeader className="p-4 border-b"><SheetTitle>Filters</SheetTitle></SheetHeader>
+          <div className="p-4 space-y-5">
+            <div>
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Smart Views</h3>
+              <div className="space-y-0.5">
+                {smartViews.map(v => (
+                  <button
+                    key={v.key}
+                    onClick={() => { setSmartView(v.key); setMobileFiltersOpen(false); }}
+                    className={`flex items-center gap-2 w-full rounded-md px-2.5 py-2 text-sm transition-colors ${
+                      smartView === v.key ? "bg-primary/10 text-primary font-medium" : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                    }`}
+                  >
+                    <v.icon className="h-3.5 w-3.5" />
+                    {v.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <Separator />
+            <div>
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Status</h3>
+              <div className="space-y-0.5">
+                <button onClick={() => setStatusFilter("all")} className={`w-full text-left rounded-md px-2.5 py-2 text-sm ${statusFilter === "all" ? "bg-muted font-medium" : "text-muted-foreground hover:bg-muted"}`}>All</button>
+                {statuses.map(s => (
+                  <button key={s} onClick={() => setStatusFilter(s)} className={`w-full text-left rounded-md px-2.5 py-2 text-sm capitalize ${statusFilter === s ? "bg-muted font-medium" : "text-muted-foreground hover:bg-muted"}`}>{s}</button>
+                ))}
+              </div>
+            </div>
+            <Separator />
+            <div>
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Source</h3>
+              <div className="space-y-0.5">
+                <button onClick={() => setSourceFilter("all")} className={`w-full text-left rounded-md px-2.5 py-2 text-sm ${sourceFilter === "all" ? "bg-muted font-medium" : "text-muted-foreground hover:bg-muted"}`}>All</button>
+                {uniqueSources.map(s => (
+                  <button key={s} onClick={() => setSourceFilter(s)} className={`w-full text-left rounded-md px-2.5 py-2 text-sm capitalize ${sourceFilter === s ? "bg-muted font-medium" : "text-muted-foreground hover:bg-muted"}`}>{s}</button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
     <AssistantLauncher scope="crm" />
 
