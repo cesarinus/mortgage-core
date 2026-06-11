@@ -58,3 +58,6 @@ verify_jwt = false
 
 [functions.arive-webhook]
 verify_jwt = false
+
+[functions.update-mortgage-rates]
+verify_jwt = false
