@@ -177,7 +177,7 @@ export async function saveLeadIntake(
   const temp = computeTemperature(score);
   const signals = deriveSignals(data);
   const dti = computeDti(data);
-  const monthly = estimateMonthlyPayment(data);
+  const monthly = await estimateMonthlyPayment(data);
 
   const computedLoanAmount = calcLoanAmount({
     loan_type: data.loan_type || null,
