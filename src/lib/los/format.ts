@@ -60,7 +60,18 @@ export function normalizeLoanPurpose(input?: string | null): string | null {
 export function normalizeCreditScore(input?: string | number | null): number | null {
   if (input == null || input === "") return null;
   if (typeof input === "number") return Math.round(input);
-  const nums = String(input).match(/\d{3}/g);
+  const raw = String(input).trim().toLowerCase();
+  // Named CRM enum buckets → FICO midpoint
+  const buckets: Record<string, number> = {
+    excellent: 770,      // 740+
+    good: 700,           // 660-739
+    fair: 620,           // 580-659
+    needs_work: 560,     // <580
+    "needs work": 560,
+    poor: 560,
+  };
+  if (raw in buckets) return buckets[raw];
+  const nums = raw.match(/\d{3}/g);
   if (!nums) return null;
   if (nums.length === 1) return Number(nums[0]);
   return Math.round((Number(nums[0]) + Number(nums[1])) / 2);
