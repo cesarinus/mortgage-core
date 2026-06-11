@@ -730,6 +730,7 @@ export default function Leads() {
                 ))}
               </TableBody>
             </Table>
+            </>
           ) : (
             /* Kanban View */
             <div className="flex gap-3 p-4 overflow-x-auto h-full">
