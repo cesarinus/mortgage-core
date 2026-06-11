@@ -2,11 +2,13 @@ import { useMemo, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
 import {
   User, Palette, Bell, Calendar, Bot, Brain, Cpu, Workflow, Sparkles,
   Database, FileSliders, Layers, ListChecks, Settings2, FlaskConical, FileSearch,
   Building, Users, CreditCard, Shield, Plug, Phone, Search,
-  Activity, History, HardDriveDownload, ChevronRight, Upload, type LucideIcon
+  Activity, History, HardDriveDownload, ChevronRight, Upload, Menu, type LucideIcon
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -66,6 +68,7 @@ export default function SettingsLayout() {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const [q, setQ] = useState("");
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const filtered = useMemo(() => {
     if (!q.trim()) return NAV;
@@ -77,10 +80,54 @@ export default function SettingsLayout() {
       .filter(g => g.items.length > 0);
   }, [q]);
 
+  const activeLabel = useMemo(() => {
+    for (const g of NAV) {
+      for (const it of g.items) {
+        if (pathname === it.path || (it.path !== "/settings" && pathname.startsWith(it.path))) {
+          return it.label;
+        }
+      }
+    }
+    return "Settings";
+  }, [pathname]);
+
+  const NavList = ({ onNavigate }: { onNavigate?: () => void }) => (
+    <nav className="p-2 space-y-4">
+      {filtered.map((g) => (
+        <div key={g.label}>
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground px-2 mb-1">{g.label}</div>
+          <div className="space-y-0.5">
+            {g.items.map((it) => {
+              const active = pathname === it.path || (it.path !== "/settings" && pathname.startsWith(it.path));
+              const Icon = it.icon;
+              return (
+                <NavLink
+                  key={it.path}
+                  to={it.path}
+                  onClick={onNavigate}
+                  className={cn(
+                    "group flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors",
+                    active
+                      ? "bg-primary/10 text-primary font-medium"
+                      : "text-foreground/80 hover:bg-muted hover:text-foreground"
+                  )}
+                >
+                  <Icon className={cn("h-3.5 w-3.5", active ? "text-primary" : "text-muted-foreground")} />
+                  <span className="flex-1 truncate">{it.label}</span>
+                  {it.soon && <span className="text-[9px] px-1 py-px rounded bg-muted text-muted-foreground">SOON</span>}
+                </NavLink>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </nav>
+  );
+
   return (
-    <div className="flex h-[calc(100vh-3.5rem)] w-full">
-      {/* Left nav */}
-      <aside className="w-64 shrink-0 border-r bg-muted/40 overflow-y-auto">
+    <div className="flex h-[calc(100vh-3.5rem)] w-full min-w-0">
+      {/* Left nav — hidden on mobile, shown via Sheet */}
+      <aside className="hidden md:flex md:flex-col w-56 lg:w-64 shrink-0 border-r bg-muted/40 overflow-y-auto">
         <div className="p-3 border-b sticky top-0 bg-background/80 backdrop-blur">
           <div className="relative">
             <Search className="h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
@@ -98,39 +145,41 @@ export default function SettingsLayout() {
           </div>
           <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-2 px-1">Settings</p>
         </div>
-        <nav className="p-2 space-y-4">
-          {filtered.map((g) => (
-            <div key={g.label}>
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground px-2 mb-1">{g.label}</div>
-              <div className="space-y-0.5">
-                {g.items.map((it) => {
-                  const active = pathname === it.path || (it.path !== "/settings" && pathname.startsWith(it.path));
-                  const Icon = it.icon;
-                  return (
-                    <NavLink
-                      key={it.path}
-                      to={it.path}
-                      className={cn(
-                        "group flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors",
-                        active
-                          ? "bg-primary/10 text-primary font-medium"
-                          : "text-foreground/80 hover:bg-muted hover:text-foreground"
-                      )}
-                    >
-                      <Icon className={cn("h-3.5 w-3.5", active ? "text-primary" : "text-muted-foreground")} />
-                      <span className="flex-1 truncate">{it.label}</span>
-                      {it.soon && <span className="text-[9px] px-1 py-px rounded bg-muted text-muted-foreground">SOON</span>}
-                    </NavLink>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-        </nav>
+        <div className="flex-1 overflow-y-auto">
+          <NavList />
+        </div>
       </aside>
 
       {/* Center content */}
-      <main className="flex-1 overflow-y-auto px-6 py-6">
+      <main className="flex-1 min-w-0 overflow-y-auto px-3 sm:px-4 md:px-6 py-4 md:py-6">
+        {/* Mobile section switcher */}
+        <div className="md:hidden mb-3 flex items-center justify-between gap-2">
+          <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+            <SheetTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2 flex-1 justify-start">
+                <Menu className="h-4 w-4" />
+                <span className="truncate">{activeLabel}</span>
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-72 p-0">
+              <div className="p-3 border-b">
+                <div className="relative">
+                  <Search className="h-3.5 w-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="Search settings..."
+                    value={q}
+                    onChange={(e) => setQ(e.target.value)}
+                    className="h-8 pl-7 text-xs"
+                  />
+                </div>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-2 px-1">Settings</p>
+              </div>
+              <div className="overflow-y-auto h-[calc(100vh-5rem)]">
+                <NavList onNavigate={() => setMobileNavOpen(false)} />
+              </div>
+            </SheetContent>
+          </Sheet>
+        </div>
         <Outlet />
       </main>
 
