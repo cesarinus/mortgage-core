@@ -464,7 +464,6 @@ export default function RecordWorkspace({ kind }: Props) {
                 leadId={kind === "lead" ? id : (record as any)?.lead_id ?? undefined}
                 contactId={kind === "contact" ? id : undefined}
                 hideIncomeAnalysis
-                onEditIntake={kind === "lead" ? () => setIntakeOpen(true) : undefined}
               />
             </TabsContent>
             <TabsContent value="activities" className="mt-4">
@@ -529,6 +528,13 @@ export default function RecordWorkspace({ kind }: Props) {
               </TabsContent>
             )}
           </Tabs>
+          {kind === "lead" && (
+            <div className="flex justify-end mt-4">
+              <Button size="sm" variant="outline" onClick={() => setIntakeOpen(true)}>
+                <Sparkles className="h-3.5 w-3.5 mr-1.5" /> Edit Intake
+              </Button>
+            </div>
+          )}
         </main>
 
         <aside className="col-span-12 lg:col-span-3">

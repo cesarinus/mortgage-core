@@ -23,11 +23,9 @@ interface Props {
   contactId?: string;
   /** When true, omit the Income Analysis card (rendered full-width elsewhere). */
   hideIncomeAnalysis?: boolean;
-  /** When provided, shows an "Edit Intake" button right-aligned under the Mortgage snapshot. */
-  onEditIntake?: () => void;
 }
 
-export function CatchUpTab({ activities, emailLogs, sentiment, mortgage, record, onRefreshSentiment, leadId, contactId, hideIncomeAnalysis, onEditIntake }: Props) {
+export function CatchUpTab({ activities, emailLogs, sentiment, mortgage, record, onRefreshSentiment, leadId, contactId, hideIncomeAnalysis }: Props) {
   const inbound = activities.filter((a) => ["form_submit", "chat", "inbound_call"].includes(a.activity_type)).slice(0, 5);
   const outbound = activities.filter((a) => ["email", "call", "task", "meeting"].includes(a.activity_type)).slice(0, 6);
   const [incomeModalOpen, setIncomeModalOpen] = useState(false);
@@ -208,14 +206,6 @@ export function CatchUpTab({ activities, emailLogs, sentiment, mortgage, record,
           })()}
         </CardContent>
       </Card>
-
-      {onEditIntake && (
-        <div className="flex justify-end -mt-2">
-          <Button size="sm" variant="outline" onClick={onEditIntake}>
-            <Sparkles className="h-3.5 w-3.5 mr-1.5" /> Edit Intake
-          </Button>
-        </div>
-      )}
 
       {!hideIncomeAnalysis && (
       <Card className="overflow-hidden">

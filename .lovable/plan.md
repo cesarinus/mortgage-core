@@ -1,26 +1,29 @@
 ## Goal
 
-Move **Edit Intake** from the top-right of the center column to **immediately under the Mortgage snapshot card, right-aligned**, so it sits roughly in line with the **Re-sync to LOS** button in the left column (as shown in the attached screenshot).
+Place **Edit Intake** at the **bottom-right of the center column**, **outside the Tabs container**, so it:
 
-## Files touched
+- Shows on every tab (Catch-up, Activities, Details, Loan Scenarios, Messages, Tasks, Conditions, Documents, Emails) — not just Catch-up.
+- Sits horizontally in line with the **Re-sync to LOS** button in the left column.
 
-1. `src/pages/crm/RecordWorkspace.tsx` — remove the existing top-of-column Edit Intake block (lines ~421–427) and pass an `onEditIntake` handler into `<CatchUpTab>`.
-2. `src/components/crm/tabs/CatchUpTab.tsx` — accept optional `onEditIntake?: () => void`. When provided, render a right-aligned outline button `✨ Edit Intake` directly **after** the Mortgage snapshot `</Card>` (after line 208).
+```text
+LEFT COLUMN              CENTER COLUMN
+-----------              -------------
+Lead card                [ Tabs bar ]
+Status / Actions         [ Active tab content ... ]
+Contact / fields         [ (Mortgage snapshot, etc.) ]
+                         [ Income Analysis ... ]
+[ Re-sync to LOS ]  ───  [               ✨ Edit Intake ]   ← right-aligned, same row
+LOS Sync Status
+```
+
+## Files to change
+
+1. **`src/components/crm/tabs/CatchUpTab.tsx`** — Revert: remove the `onEditIntake` prop and the inline Edit Intake button I added under the Mortgage snapshot. The tab goes back to its prior shape.
+
+2. **`src/pages/crm/RecordWorkspace.tsx`** — Stop passing `onEditIntake` to `<CatchUpTab>`. Render a single `Edit Intake` button **after** the `<Tabs>` block, at the bottom of the center column, wrapped in `<div class="flex justify-end mt-4">`. Same handler (`setIntakeOpen(true)`), same `Sparkles` icon, `variant="outline"`, `size="sm"`, gated on `kind === "lead"` exactly like before.
 
 ## Behavior
 
-- Same handler (`setIntakeOpen(true)`), same icon (`Sparkles`), same `variant="outline"`, `size="sm"`.
-- Only renders when `onEditIntake` is provided (i.e., `kind === "lead"`), matching today's gating.
-- Lives inside the Catch-up tab, so it appears under the snapshot it edits. On other tabs (Activities, Details, etc.) the button is not shown — consistent with the screenshot you attached.
-
-## Result
-
-```text
-LEFT COLUMN         CENTER COLUMN (Catch-up tab)
------------         ----------------------------
-Lead Card           [ Mortgage snapshot card ]
-Re-sync to LOS                            [ ✨ Edit Intake ]   ← right-aligned
-LOS Sync Status     [ Income Analysis ... ]
-```
-
-No functional/data changes. Approve and I'll apply.
+- One Edit Intake button per record workspace, always visible at the bottom of the center column regardless of active tab.
+- Right-aligned within the center column so it visually lines up with Re-sync to LOS in the left column (both are at the bottom of their respective columns).
+- No data/logic changes. Opens the same intake sheet as today.
