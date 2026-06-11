@@ -320,8 +320,8 @@ export function CatchUpTab({
                   label="Estimated income"
                   value={
                     totalMonthly > 0
-                      ? `${fmtMoney(totalMonthly)}/mo`
-                      : fmtMoney(mortgage?.est_income ?? record?.annual_income)
+                      ? `${fmtMoney(totalMonthly, 0)}/mo`
+                      : fmtMoney(mortgage?.est_income ?? record?.annual_income, 0)
                   }
                 />
                 <Stat label="Estimated DTI" value={mortgage?.est_dti ? `${mortgage.est_dti}%` : null} />
@@ -574,8 +574,11 @@ function Stat({ label, value }: { label: string; value?: any }) {
     </div>
   );
 }
-function fmtMoney(v: any) {
-  return v ? `$${Number(v).toLocaleString()}` : null;
+function fmtMoney(v: any, maxFractionDigits?: number) {
+  if (!v) return null;
+  const opts: Intl.NumberFormatOptions = {};
+  if (maxFractionDigits !== undefined) opts.maximumFractionDigits = maxFractionDigits;
+  return `$${Number(v).toLocaleString(undefined, opts)}`;
 }
 function iconFor(type: string) {
   if (type === "email") return <Mail className="h-3.5 w-3.5" />;
