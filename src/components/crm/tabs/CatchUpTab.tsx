@@ -24,6 +24,8 @@ import { fetchAllLatestIncome, IncomeCalc } from "@/lib/crm/income";
 import { fetchDealBorrowers, type DealBorrower } from "@/lib/crm/borrowers";
 import { IncomeAiAnalysis } from "@/components/crm/IncomeAiAnalysis";
 import { formatOptionLabel } from "@/lib/format/labels";
+import { getCurrentRateMeta, type MarketRate } from "@/lib/mortgage/rateService";
+import { estimatePayment } from "@/lib/mortgage/estimatePayment";
 
 interface Props {
   activities: any[];
@@ -122,6 +124,16 @@ export function CatchUpTab({
   // Combined totals
   const totalMonthly = allIncome.reduce((s, c) => s + Number(c.monthly_income ?? 0), 0);
   const totalAnnual = allIncome.reduce((s, c) => s + Number(c.annual_income ?? 0), 0);
+
+  // Live market rate
+  const [marketRate, setMarketRate] = useState<MarketRate | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    getCurrentRateMeta()
+      .then((m) => { if (!cancelled) setMarketRate(m); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
   const nameForCalc = (c: IncomeCalc): string => {
     if (c.borrower_name) return c.borrower_name;
     const b = borrowers.find((x) => (x.contactId ?? null) === (c.contact_id ?? null));
@@ -272,6 +284,23 @@ export function CatchUpTab({
           <CardTitle className="text-base">Mortgage snapshot</CardTitle>
         </CardHeader>
         <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+          {marketRate && (
+            <div className="col-span-2 md:col-span-4 -mb-1 flex items-center justify-between rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-xs">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold uppercase tracking-wide text-primary">Live Market Rate</span>
+                <span className="text-muted-foreground">
+                  30Y Fixed (incl. +0.125% buffer):{" "}
+                  <span className="text-foreground font-semibold tabular-nums">
+                    {marketRate.adjusted_rate.toFixed(3)}%
+                  </span>
+                </span>
+              </div>
+              <div className="text-muted-foreground">
+                {marketRate.is_manual_override ? "Admin override" : `Source: ${marketRate.source}`} ·{" "}
+                {format(new Date(marketRate.fetched_at), "MMM d, p")}
+              </div>
+            </div>
+          )}
           {(() => {
             let mpExtras: any = {};
             try {
@@ -325,7 +354,23 @@ export function CatchUpTab({
                   }
                 />
                 <Stat label="Estimated DTI" value={mortgage?.est_dti ? `${mortgage.est_dti}%` : null} />
-                <Stat label="Monthly payment" value={fmtMoney(mortgage?.est_monthly_payment)} />
+                <Stat
+                  label="Monthly payment"
+                  value={(() => {
+                    const p = Number(mortgage?.purchase_price ?? record?.property_value ?? 0);
+                    const d = Number(mortgage?.down_payment ?? 0);
+                    if (p > 0 && marketRate) {
+                      const res = estimatePayment({
+                        price: p,
+                        downPayment: d,
+                        annualRatePct: marketRate.adjusted_rate,
+                        loanType: loanType,
+                      });
+                      return fmtMoney(res.totalMonthly, 0);
+                    }
+                    return fmtMoney(mortgage?.est_monthly_payment, 0);
+                  })()}
+                />
                 <Stat
                   label="Property type"
                   value={formatOptionLabel(mortgage?.property_type ?? record?.property_type) || null}

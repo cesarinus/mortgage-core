@@ -1,5 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { calcLoanAmount } from "@/lib/loan/calcLoanAmount";
+import { getCurrentMortgageRate } from "@/lib/mortgage/rateService";
+import { estimatePayment, computeDtis } from "@/lib/mortgage/estimatePayment";
 
 export type LoanPurpose = "purchase" | "refinance";
 export type RefinanceType = "NoCashOut" | "LimitedCashOut" | "CashOut";
@@ -94,17 +96,17 @@ export function computeDti(d: IntakeData): number {
   return Math.round((debts / monthlyIncome) * 100);
 }
 
-export function estimateMonthlyPayment(d: IntakeData): number {
+export async function estimateMonthlyPayment(d: IntakeData): Promise<number> {
   const price = Number(d.property_value ?? 0);
-  const down = Number(d.down_payment ?? 0);
-  const principal = Math.max(price - down, 0);
-  if (principal <= 0) return 0;
-  // Rough P&I @ 6.75% / 30yr + 0.35% tax + ins escrow approximation
-  const rate = 0.0675 / 12;
-  const n = 360;
-  const pi = (principal * rate) / (1 - Math.pow(1 + rate, -n));
-  const escrow = (price * 0.015) / 12;
-  return Math.round(pi + escrow);
+  if (price <= 0) return 0;
+  const annualRate = await getCurrentMortgageRate();
+  const res = estimatePayment({
+    price,
+    downPayment: Number(d.down_payment ?? 0),
+    annualRatePct: annualRate,
+    loanType: d.loan_type || null,
+  });
+  return res.totalMonthly;
 }
 
 export interface Signals {
@@ -175,7 +177,7 @@ export async function saveLeadIntake(
   const temp = computeTemperature(score);
   const signals = deriveSignals(data);
   const dti = computeDti(data);
-  const monthly = estimateMonthlyPayment(data);
+  const monthly = await estimateMonthlyPayment(data);
 
   const computedLoanAmount = calcLoanAmount({
     loan_type: data.loan_type || null,
