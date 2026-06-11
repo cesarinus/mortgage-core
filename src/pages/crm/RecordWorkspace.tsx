@@ -406,12 +406,19 @@ export default function RecordWorkspace({ kind }: Props) {
           />
           {kind === "lead" && (
             <div className="mt-3 space-y-3">
-              <SendToLosButton
-                lead={record}
-                opportunity={primaryOpp}
-                mortgageProfile={mortgage}
-                onSent={() => window.location.reload()}
-              />
+              <div className="flex gap-2">
+                <Button size="sm" variant="outline" className="flex-1" onClick={() => setIntakeOpen(true)}>
+                  <Sparkles className="h-3.5 w-3.5 mr-1.5" /> Edit Intake
+                </Button>
+                <div className="flex-1">
+                  <SendToLosButton
+                    lead={record}
+                    opportunity={primaryOpp}
+                    mortgageProfile={mortgage}
+                    onSent={() => window.location.reload()}
+                  />
+                </div>
+              </div>
               <LosSyncCard leadId={record.id} />
             </div>
           )}
@@ -464,7 +471,6 @@ export default function RecordWorkspace({ kind }: Props) {
                 leadId={kind === "lead" ? id : (record as any)?.lead_id ?? undefined}
                 contactId={kind === "contact" ? id : undefined}
                 hideIncomeAnalysis
-                onEditIntake={kind === "lead" ? () => setIntakeOpen(true) : undefined}
               />
             </TabsContent>
             <TabsContent value="activities" className="mt-4">
