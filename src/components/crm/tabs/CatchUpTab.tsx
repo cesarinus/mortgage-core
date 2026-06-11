@@ -361,7 +361,6 @@ export function CatchUpTab({
                       : fmtMoney(mortgage?.est_income ?? record?.annual_income, 0)
                   }
                 />
-                
                 <Stat
                   label="Monthly payment"
                   value={(() => {
