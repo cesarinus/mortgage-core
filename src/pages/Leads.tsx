@@ -539,15 +539,15 @@ export default function Leads() {
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         {/* Toolbar */}
-        <div className="flex items-center gap-3 border-b bg-card px-4 py-3">
-          <div className="relative flex-1 max-w-sm">
+        <div className="flex items-center gap-2 sm:gap-3 border-b bg-card px-2 sm:px-4 py-2 sm:py-3">
+          <div className="relative flex-1 min-w-0 sm:max-w-sm">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input placeholder="Search leads…" className="pl-9 h-9" value={search} onChange={e => setSearch(e.target.value)} />
           </div>
 
-          <div className="flex items-center bg-muted rounded-md p-0.5">
+          <div className="hidden sm:flex items-center bg-muted rounded-md p-0.5">
             <button
               onClick={() => setViewMode("table")}
               className={`p-1.5 rounded transition-colors ${viewMode === "table" ? "bg-card shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
@@ -563,13 +563,13 @@ export default function Leads() {
           </div>
 
           {/* Mobile filter toggle */}
-          <Button variant="outline" size="sm" className="lg:hidden">
+          <Button variant="outline" size="sm" className="lg:hidden shrink-0" onClick={() => setMobileFiltersOpen(true)}>
             <Filter className="h-4 w-4" />
           </Button>
 
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button size="sm"><Plus className="mr-1.5 h-3.5 w-3.5" />Add Lead</Button>
+              <Button size="sm" className="shrink-0"><Plus className="sm:mr-1.5 h-3.5 w-3.5" /><span className="hidden sm:inline">Add Lead</span></Button>
             </DialogTrigger>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader><DialogTitle>New Lead — Smart Intake</DialogTitle></DialogHeader>
@@ -591,7 +591,42 @@ export default function Leads() {
         {/* View Content */}
         <div className="flex-1 overflow-auto">
           {viewMode === "table" ? (
-            <Table>
+            <>
+            {/* Mobile cards */}
+            <div className="md:hidden divide-y">
+              {filtered.length === 0 ? (
+                <div className="text-center text-muted-foreground py-12 text-sm">No leads found</div>
+              ) : filtered.map(l => (
+                <button
+                  key={l.id}
+                  onClick={() => setSelectedLead(l)}
+                  className={`w-full text-left px-3 py-3 hover:bg-muted/50 transition-colors ${(l as any).is_stuck ? "bg-amber-500/5" : ""}`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="h-9 w-9 shrink-0 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-semibold">
+                      {l.first_name[0]}{l.last_name[0]}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <p className="font-medium text-sm truncate">{l.first_name} {l.last_name}</p>
+                        <StuckBadge lead={l} />
+                      </div>
+                      <p className="text-xs text-muted-foreground truncate">{l.email ?? "—"}</p>
+                      <div className="mt-1.5 flex items-center gap-2 flex-wrap">
+                        <Badge variant="secondary" className={`text-[10px] ${statusColors[l.status] ?? ""}`}>
+                          {stageLabels[l.status] ?? l.status}
+                        </Badge>
+                        <HeatBadge score={l.lead_score} />
+                        <span className="text-[10px] text-muted-foreground"><LastActivity lead={l} /></span>
+                      </div>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 mt-1" />
+                  </div>
+                </button>
+              ))}
+            </div>
+            {/* Desktop table */}
+            <Table className="hidden md:table">
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
