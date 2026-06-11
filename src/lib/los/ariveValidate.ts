@@ -92,6 +92,25 @@ function coerce(value: unknown, def: AriveFieldDef): { value: any; valid: boolea
           fhastreamline: "Streamline",
         };
         v = map[raw] ?? null;
+      } else if (def.ariveField === "propertyType") {
+        const raw = String(value).trim().toLowerCase().replace(/[\s_-]+/g, "");
+        const map: Record<string, string> = {
+          singlefamily: "Single Family",
+          sfr: "Single Family",
+          sf: "Single Family",
+          condo: "Condo",
+          condominium: "Condo",
+          townhome: "Townhome",
+          townhouse: "Townhome",
+          multiunit: "Multi-Unit",
+          multifamily: "Multi-Unit",
+          duplex: "Multi-Unit",
+          triplex: "Multi-Unit",
+          fourplex: "Multi-Unit",
+          mobile: "Mobile",
+          manufactured: "Mobile",
+        };
+        v = map[raw] ?? null;
       } else {
         v = String(value).trim();
       }
