@@ -26,6 +26,7 @@ import { IncomeAiAnalysis } from "@/components/crm/IncomeAiAnalysis";
 import { formatOptionLabel } from "@/lib/format/labels";
 import { getCurrentRateMeta, type MarketRate } from "@/lib/mortgage/rateService";
 import { estimatePayment } from "@/lib/mortgage/estimatePayment";
+import { calcLeadQualification, parseCreditScore } from "@/lib/mortgage/leadQualification";
 
 interface Props {
   activities: any[];
@@ -38,6 +39,12 @@ interface Props {
   contactId?: string;
   /** When true, omit the Income Analysis card (rendered full-width elsewhere). */
   hideIncomeAnalysis?: boolean;
+  /**
+   * When true, this workspace is opened from the Pipeline. The lead-page
+   * pre-qualification engine (HE/DTI/LTV/Readiness) must be hidden — those
+   * stages display ARIVE LOS values as the source of truth.
+   */
+  pipelineMode?: boolean;
 }
 
 export function CatchUpTab({
@@ -50,6 +57,7 @@ export function CatchUpTab({
   leadId,
   contactId,
   hideIncomeAnalysis,
+  pipelineMode = false,
 }: Props) {
   const inbound = activities
     .filter((a) => ["form_submit", "chat", "inbound_call"].includes(a.activity_type))
