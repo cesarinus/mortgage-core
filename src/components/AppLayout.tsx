@@ -34,8 +34,8 @@ export default function AppLayout() {
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-background">
         <AppSidebar />
-        <div className="flex flex-1 flex-col">
-          <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-border/60 bg-card/70 px-4 backdrop-blur-xl">
+        <div className="flex flex-1 flex-col min-w-0">
+          <header className="sticky top-0 z-30 flex h-14 md:h-16 items-center gap-2 md:gap-3 border-b border-border/60 bg-card/70 px-2 md:px-4 backdrop-blur-xl">
             <SidebarTrigger className="text-muted-foreground" />
 
             <div className="relative hidden flex-1 max-w-xl md:block">
@@ -53,7 +53,7 @@ export default function AppLayout() {
               <div className="hidden rounded-full border border-border/60 bg-background/60 px-3 py-1.5 text-xs font-medium text-muted-foreground lg:block">
                 {dateLabel}
               </div>
-              <Button variant="ghost" size="icon" className="rounded-full" title="Tasks">
+              <Button variant="ghost" size="icon" className="hidden sm:inline-flex rounded-full" title="Tasks">
                 <CheckSquare className="h-4 w-4" />
               </Button>
               <Button variant="ghost" size="icon" className="relative rounded-full" title="Notifications">
@@ -70,14 +70,14 @@ export default function AppLayout() {
               </Button>
               <Button
                 size="sm"
-                className="gap-1.5 rounded-full bg-gradient-to-r from-primary to-orange-dark text-primary-foreground shadow-orange hover:opacity-95"
+                className="gap-1.5 rounded-full bg-gradient-to-r from-primary to-orange-dark text-primary-foreground shadow-orange hover:opacity-95 px-2.5 sm:px-3"
                 onClick={() => navigate("/ask")}
               >
-                <Sparkles className="h-3.5 w-3.5" /> AI Assistant
+                <Sparkles className="h-3.5 w-3.5" /> <span className="hidden sm:inline">AI Assistant</span>
               </Button>
             </div>
           </header>
-          <main className="flex-1 overflow-auto p-6">
+          <main className="flex-1 overflow-auto p-3 sm:p-4 md:p-6 min-w-0">
             <Outlet />
           </main>
         </div>
