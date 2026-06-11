@@ -150,6 +150,7 @@ export default function Leads() {
   const [smartView, setSmartView] = useState<SmartView>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [newTag, setNewTag] = useState("");
   const [editLead, setEditLead] = useState<{ lead: Lead; initial: IntakeData } | null>(null);
   const [deleteLead, setDeleteLead] = useState<Lead | null>(null);
