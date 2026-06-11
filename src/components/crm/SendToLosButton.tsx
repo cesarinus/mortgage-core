@@ -11,8 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { fireZapier } from "@/lib/integrations/zapier";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { calcLoanAmountFromProfile } from "@/lib/loan/calcLoanAmount";
-import { normalizeLosPayload } from "@/lib/los/format";
+import { validateAriveLead } from "@/lib/los/ariveValidate";
 
 interface Props {
   lead: any;
@@ -21,61 +20,38 @@ interface Props {
   onSent?: () => void;
 }
 
-const REQUIRED_FIELDS: { key: string; label: string }[] = [
-  { key: "first_name", label: "First name" },
-  { key: "last_name", label: "Last name" },
-  { key: "email", label: "Email" },
-  { key: "phone", label: "Phone" },
-  { key: "loan_purpose", label: "Loan purpose" },
-];
-
 export default function SendToLosButton({ lead, opportunity, mortgageProfile, onSent }: Props) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [sending, setSending] = useState(false);
   const sent = !!lead?.sent_to_los_at;
 
-  const missing = REQUIRED_FIELDS.filter((f) => !lead?.[f.key]);
-  const propertyAddress = opportunity?.property_address || lead?.property_address;
-  const computed = calcLoanAmountFromProfile(mortgageProfile, lead);
-  const loanAmount = opportunity?.loan_amount ?? lead?.loan_amount ?? computed;
-  if (!loanAmount) missing.push({ key: "loan_amount", label: "Loan amount" });
-
-  // Parse extras stored in mortgage_profiles.notes (loan_type, etc.)
-  let mpExtras: any = {};
-  try {
-    mpExtras = mortgageProfile?.notes ? JSON.parse(mortgageProfile.notes) : {};
-  } catch {
-    mpExtras = {};
-  }
+  const validation = validateAriveLead(lead, mortgageProfile);
+  const missing = validation.errors.map((e) => ({ key: e.field, label: `${e.field} (${e.code})` }));
 
   const handleSend = async () => {
     setSending(true);
+    const logBase = {
+      lead_id: lead.id,
+      user_id: user?.id ?? null,
+      export_system: "arive",
+      payload: validation.payload as any,
+      validation_errors: validation.errors as any,
+    };
+    if (!validation.ok) {
+      await (supabase as any).from("lead_export_logs").insert({ ...logBase, status: "invalid" });
+      toast({ title: "Cannot export", description: "Resolve validation issues first.", variant: "destructive" });
+      setSending(false);
+      return;
+    }
     try {
-      const rawPayload = {
+      // Flat, ARIVE-compatible payload + small envelope of internal references.
+      const payload = {
+        ...validation.payload,
         crm_reference_id: lead.id,
-        first_name: lead.first_name,
-        last_name: lead.last_name,
-        email: lead.email,
-        phone: lead.phone,
-        loan_purpose: lead.loan_purpose,
-        refinance_type: lead.refinance_type ?? null,
-        cash_out_purpose: lead.cash_out_purpose ?? null,
-        loan_type: mpExtras.loan_type ?? null,
-        occupancy_type: mortgageProfile?.occupancy_type ?? null,
-        loan_amount: loanAmount,
-        estimated_credit_score: lead.credit_range,
-        property_address: propertyAddress,
-        property_type: lead.property_type,
-        property_value: lead.property_value,
-        annual_income: lead.annual_income,
-        employment_status: lead.employment_type,
-        timeline: lead.timeline,
-        loan_officer_email: user?.email ?? null,
         deal_id: opportunity?.id ?? null,
-        sent_at: new Date().toISOString(),
+        loan_officer_email: user?.email ?? null,
       };
-      const payload = normalizeLosPayload(rawPayload);
       await fireZapier("lead.sent_to_los", payload);
 
       await supabase
@@ -83,12 +59,23 @@ export default function SendToLosButton({ lead, opportunity, mortgageProfile, on
         .update({ sent_to_los_at: new Date().toISOString() })
         .eq("id", lead.id);
 
+      await (supabase as any).from("lead_export_logs").insert({
+        ...logBase,
+        status: "success",
+        response: { zapier: { note: "no-cors POST — confirm in Zap history" } } as any,
+      });
+
       toast({
         title: "Sent to LOS",
         description: "Zapier received the payload. Check Zap history to confirm.",
       });
       onSent?.();
     } catch (e: any) {
+      await (supabase as any).from("lead_export_logs").insert({
+        ...logBase,
+        status: "failed",
+        response: { error: String(e?.message ?? e) } as any,
+      });
       toast({ title: "Send failed", description: e?.message ?? "Unknown error", variant: "destructive" });
     } finally {
       setSending(false);
