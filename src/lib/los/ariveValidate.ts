@@ -129,6 +129,15 @@ export function validateAriveLead(
       computedLoanAmount,
   };
 
+  // Loan type lives in mortgage_profiles.notes JSON (mpExtras) for most records,
+  // but may also be present on the lead row itself. Normalise to a top-level key.
+  (source as any).loan_type =
+    (lead as any).loan_type ??
+    mpExtras?.loan_type ??
+    (mortgageProfile as any)?.loan_type ??
+    null;
+  (source as any).mp = { ...mpExtras, loan_type: (source as any).loan_type };
+
   const fields: FieldReport[] = [];
   const errors: ValidationIssue[] = [];
   const payload: Record<string, string | number> = {};
