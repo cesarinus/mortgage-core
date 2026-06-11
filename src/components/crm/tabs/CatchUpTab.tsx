@@ -170,8 +170,7 @@ export function CatchUpTab({ activities, emailLogs, sentiment, mortgage, record,
 
       <Card>
         <CardHeader className="pb-3"><CardTitle className="text-base">Mortgage snapshot</CardTitle></CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+        <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
           {(() => {
             let mpExtras: any = {};
             try { mpExtras = mortgage?.notes ? JSON.parse(mortgage.notes) : {}; } catch {}
@@ -207,16 +206,16 @@ export function CatchUpTab({ activities, emailLogs, sentiment, mortgage, record,
               </>
             );
           })()}
-          </div>
-          {onEditIntake && (
-            <div className="flex justify-end pt-2 border-t">
-              <Button size="sm" variant="outline" onClick={onEditIntake}>
-                <Sparkles className="h-3.5 w-3.5 mr-1.5" /> Edit Intake
-              </Button>
-            </div>
-          )}
         </CardContent>
       </Card>
+
+      {onEditIntake && (
+        <div className="flex justify-end -mt-2">
+          <Button size="sm" variant="outline" onClick={onEditIntake}>
+            <Sparkles className="h-3.5 w-3.5 mr-1.5" /> Edit Intake
+          </Button>
+        </div>
+      )}
 
       {!hideIncomeAnalysis && (
       <Card className="overflow-hidden">
