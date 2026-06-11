@@ -83,6 +83,8 @@ function coerce(value: unknown, def: AriveFieldDef): { value: any; valid: boolea
           rateandterm: "Rate and Term",
           ratenterm: "Rate and Term",
           rt: "Rate and Term",
+          nocashout: "Rate and Term",
+          limitedcashout: "Rate and Term",
           cashout: "Cash Out",
           co: "Cash Out",
           streamline: "Streamline",
