@@ -7,24 +7,28 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Save } from "lucide-react";
+import { Loader2, Save, ChevronDown, ChevronRight } from "lucide-react";
 import { formatOptionLabel } from "@/lib/format/labels";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import {
   listModules, listSections, listFields, listFieldOptions,
   getRecordValues, upsertRecordValue,
-  listFieldPermissions, listFieldConditions, getDefaultLayout,
+  listFieldPermissions, listFieldConditions, getDefaultLayout, listSectionPermissions,
   type CrmSection, type CrmField, type CrmFieldOption,
-  type CrmFieldPermission, type CrmFieldCondition, type CrmLayout,
+  type CrmFieldPermission, type CrmFieldCondition, type CrmLayout, type CrmSectionPermission,
+  type AppRole,
 } from "@/lib/crm-fields/api";
-import { evaluateField } from "@/lib/crm-fields/conditions";
+import { evaluateField, evaluateSection } from "@/lib/crm-fields/conditions";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { cn } from "@/lib/utils";
 
 export default function CustomFieldsRenderer({
   moduleSlug, recordType, recordId,
 }: { moduleSlug: string; recordType: string; recordId: string }) {
   const { toast } = useToast();
   const { role } = useAuth();
+  const isMobile = useIsMobile();
   const [loading, setLoading] = useState(true);
   const [sections, setSections] = useState<CrmSection[]>([]);
   const [fields, setFields] = useState<CrmField[]>([]);
@@ -33,6 +37,8 @@ export default function CustomFieldsRenderer({
   const [permissions, setPermissions] = useState<CrmFieldPermission[]>([]);
   const [conditions, setConditions] = useState<CrmFieldCondition[]>([]);
   const [layout, setLayout] = useState<CrmLayout | null>(null);
+  const [sectionPerms, setSectionPerms] = useState<CrmSectionPermission[]>([]);
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState<string | null>(null);
 
   useEffect(() => {
@@ -48,8 +54,15 @@ export default function CustomFieldsRenderer({
       setOptions(await listFieldOptions(f.map(x => x.id)));
       setValues(v);
       const ids = f.map((x) => x.id);
-      const [p, c] = await Promise.all([listFieldPermissions(ids), listFieldConditions(ids)]);
-      setPermissions(p); setConditions(c); setLayout(l);
+      const [p, c, sp] = await Promise.all([
+        listFieldPermissions(ids), listFieldConditions(ids), listSectionPermissions(s.map((x) => x.id)),
+      ]);
+      setPermissions(p); setConditions(c); setSectionPerms(sp); setLayout(l);
+      // seed collapsed map from layout
+      const initCollapsed: Record<string, boolean> = {};
+      const stored = l?.layout?.sections ?? [];
+      for (const ls of stored) if (ls.default_collapsed) initCollapsed[ls.section_id] = true;
+      setCollapsed(initCollapsed);
       setLoading(false);
     })();
   }, [moduleSlug, recordType, recordId]);
@@ -76,15 +89,33 @@ export default function CustomFieldsRenderer({
     );
   }
 
+  const currentRole = (role ?? null) as AppRole | null;
+
+  // Section-level role gates
+  const sectionRoleAllowed = (sectionId: string, ls: any | undefined) => {
+    if (!currentRole || currentRole === "admin") return true;
+    if (ls?.role_visibility && ls.role_visibility[currentRole] === false) return false;
+    const sp = sectionPerms.find((p) => p.section_id === sectionId && p.role === currentRole);
+    if (sp && !sp.can_view) return false;
+    return true;
+  };
+  const sectionReadOnly = (sectionId: string, ls: any | undefined) => {
+    if (!currentRole || currentRole === "admin") return false;
+    if (ls?.role_permissions?.[currentRole]?.edit === false) return true;
+    const sp = sectionPerms.find((p) => p.section_id === sectionId && p.role === currentRole);
+    if (sp && !sp.can_edit) return true;
+    return false;
+  };
+
   // Resolve permission for current role (admin = full).
   const canView = (f: CrmField) => {
     if (role === "admin" || !role) return true;
-    const p = permissions.find((x) => x.field_id === f.id && x.role === role);
+    const p = permissions.find((x) => x.field_id === f.id && x.role === currentRole);
     return p ? p.can_view : true;
   };
   const canEdit = (f: CrmField) => {
     if (role === "admin") return true;
-    const p = permissions.find((x) => x.field_id === f.id && x.role === role);
+    const p = permissions.find((x) => x.field_id === f.id && x.role === currentRole);
     return p ? p.can_edit : true;
   };
 
@@ -95,11 +126,24 @@ export default function CustomFieldsRenderer({
         section: sections.find((s) => s.id === ls.section_id)!,
         hidden: ls.hidden,
         columns: ls.columns ?? 2,
+        width: ls.width ?? "full",
+        mobile: ls.mobile ?? "show",
+        ls,
         fieldOrder: ls.fields,
       })).filter((x) => x.section && !x.hidden)
-    : sections.filter((s) => !s.hidden).map((section) => ({ section, hidden: false, columns: 2 as 1 | 2, fieldOrder: fields.filter(f => f.section_id === section.id).map((f) => ({ field_id: f.id, sort: f.sort_order, width: 1 as 1 | 2 })) }));
+    : sections.filter((s) => !s.hidden).map((section) => ({ section, hidden: false, columns: 2 as 1 | 2, width: "full" as const, mobile: "show" as const, ls: undefined, fieldOrder: fields.filter(f => f.section_id === section.id).map((f) => ({ field_id: f.id, sort: f.sort_order, width: 1 as 1 | 2 })) }));
 
-  const sectionsWithFields = orderedSections.filter((x) => x.fieldOrder.length > 0);
+  const sectionsWithFields = orderedSections
+    .filter((x) => x.fieldOrder.length > 0)
+    // role-based section visibility
+    .filter((x) => sectionRoleAllowed(x.section.id, x.ls))
+    // mobile visibility
+    .filter((x) => {
+      if (!isMobile) return x.mobile !== "hide" ? true : true; // desktop: always show non-hidden
+      return x.mobile === "show";
+    })
+    // section-level conditional logic
+    .filter((x) => evaluateSection(x.section.id, false, conditions, values).visible);
 
   const renderField = (f: CrmField) => {
     const v = values[f.id];
@@ -128,14 +172,28 @@ export default function CustomFieldsRenderer({
     }
   };
 
+  const widthClass = (w: string) => w === "half" ? "lg:col-span-3" : w === "third" ? "lg:col-span-2" : "lg:col-span-6";
+
   return (
-    <div className="space-y-4">
-      {sectionsWithFields.map(({ section, columns, fieldOrder }) => (
-        <Card key={section.id}>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">{section.label}</CardTitle>
+    <div className="grid grid-cols-1 lg:grid-cols-6 gap-4">
+      {sectionsWithFields.map(({ section, columns, fieldOrder, width, ls }) => {
+        const isCollapsed = !!collapsed[section.id];
+        const secReadOnly = sectionReadOnly(section.id, ls);
+        return (
+        <Card key={section.id} className={cn("col-span-1", widthClass(width))}>
+          <CardHeader className="pb-3 flex flex-row items-start justify-between gap-2 space-y-0">
+            <div>
+              <CardTitle className="text-base flex items-center gap-2">
+                <button onClick={() => setCollapsed((c) => ({ ...c, [section.id]: !c[section.id] }))} className="hover:bg-muted rounded p-0.5">
+                  {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </button>
+                {section.label}
+                {secReadOnly && <Badge variant="secondary" className="text-[9px]">Read-only</Badge>}
+              </CardTitle>
             {section.description && <CardDescription>{section.description}</CardDescription>}
+            </div>
           </CardHeader>
+          {!isCollapsed && (
           <CardContent className={`grid gap-3 ${columns === 1 ? "grid-cols-1" : "sm:grid-cols-2"}`}>
             {fieldOrder.map((fo) => {
               const f = fields.find((x) => x.id === fo.field_id);
@@ -143,7 +201,7 @@ export default function CustomFieldsRenderer({
               if (!canView(f)) return null;
               const state = evaluateField(f.id, f.required, f.read_only, false, conditions, values);
               if (!state.visible) return null;
-              const readOnly = state.readOnly || !canEdit(f);
+              const readOnly = state.readOnly || !canEdit(f) || secReadOnly;
               const fullWidth = fo.width === 2 || columns === 1;
               return (
                 <div key={f.id} className={`space-y-1 ${fullWidth ? "sm:col-span-2" : ""}`}>
@@ -163,8 +221,10 @@ export default function CustomFieldsRenderer({
               );
             })}
           </CardContent>
+          )}
         </Card>
-      ))}
+        );
+      })}
     </div>
   );
 }
