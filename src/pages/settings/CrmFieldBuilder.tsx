@@ -24,9 +24,14 @@ import {
   saveSection, deleteSection, replaceFieldOptions,
   listFieldPermissions, upsertFieldPermission,
   listFieldConditions, saveFieldCondition, deleteFieldCondition,
+  listSectionPermissions, upsertSectionPermission,
+  listAuditLogs,
+  APP_ROLES, ROLE_LABELS,
   type CrmModule, type CrmSection, type CrmField, type CrmFieldOption,
-  type CrmFieldPermission, type CrmFieldCondition,
+  type CrmFieldPermission, type CrmFieldCondition, type CrmSectionPermission, type CrmAuditLog,
+  type AppRole, type ConditionClause,
 } from "@/lib/crm-fields/api";
+import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
@@ -77,6 +82,13 @@ export default function CrmFieldBuilder() {
   const [editingOptions, setEditingOptions] = useState<{ value: string; label: string }[]>([]);
   const [permissions, setPermissions] = useState<CrmFieldPermission[]>([]);
   const [conditions, setConditions] = useState<CrmFieldCondition[]>([]);
+  const [sectionPerms, setSectionPerms] = useState<CrmSectionPermission[]>([]);
+  const [auditLogs, setAuditLogs] = useState<CrmAuditLog[]>([]);
+  const [auditActor, setAuditActor] = useState<string>("__all__");
+  const [auditUsers, setAuditUsers] = useState<{ id: string; name: string }[]>([]);
+  const [auditFrom, setAuditFrom] = useState<string>("");
+  const [auditTo, setAuditTo] = useState<string>("");
+  const [diffLog, setDiffLog] = useState<CrmAuditLog | null>(null);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<string>("__all__");
   const [sectionFilter, setSectionFilter] = useState<string>("__all__");
@@ -98,10 +110,30 @@ export default function CrmFieldBuilder() {
       setSections(s); setFields(f);
       setOptions(await listFieldOptions(f.map(x => x.id)));
       const ids = f.map((x) => x.id);
-      const [p, c] = await Promise.all([listFieldPermissions(ids), listFieldConditions(ids)]);
-      setPermissions(p); setConditions(c);
+      const [p, c, sp] = await Promise.all([
+        listFieldPermissions(ids), listFieldConditions(ids), listSectionPermissions(s.map((x) => x.id)),
+      ]);
+      setPermissions(p); setConditions(c); setSectionPerms(sp);
     })();
   }, [moduleId]);
+
+  // Audit logs
+  const refreshAudit = async () => {
+    const logs = await listAuditLogs({
+      module_id: moduleId,
+      actor_id: auditActor !== "__all__" ? auditActor : undefined,
+      from: auditFrom || undefined,
+      to: auditTo || undefined,
+    });
+    setAuditLogs(logs);
+    // hydrate actor names
+    const actorIds = Array.from(new Set(logs.map((l) => l.actor_id).filter(Boolean) as string[]));
+    if (actorIds.length) {
+      const { data } = await (supabase as any).from("profiles").select("id, first_name, last_name, email").in("id", actorIds);
+      setAuditUsers((data ?? []).map((u: any) => ({ id: u.id, name: [u.first_name, u.last_name].filter(Boolean).join(" ") || u.email || "—" })));
+    } else setAuditUsers([]);
+  };
+  useEffect(() => { if (moduleId) refreshAudit(); }, [moduleId, auditActor, auditFrom, auditTo]);
 
   const sectionLabel = (id: string | null) => sections.find(s => s.id === id)?.label ?? "—";
   const currentModule = modules.find(m => m.id === moduleId);
