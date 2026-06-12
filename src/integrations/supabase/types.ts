@@ -990,6 +990,53 @@ export type Database = {
           },
         ]
       }
+      crm_audit_logs: {
+        Row: {
+          action: string
+          actor_id: string | null
+          after: Json | null
+          before: Json | null
+          created_at: string
+          entity_id: string | null
+          entity_label: string | null
+          entity_type: string
+          id: string
+          module_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          after?: Json | null
+          before?: Json | null
+          created_at?: string
+          entity_id?: string | null
+          entity_label?: string | null
+          entity_type: string
+          id?: string
+          module_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          after?: Json | null
+          before?: Json | null
+          created_at?: string
+          entity_id?: string | null
+          entity_label?: string | null
+          entity_type?: string
+          id?: string
+          module_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_audit_logs_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "crm_modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crm_calls: {
         Row: {
           contact_id: string | null
@@ -1186,6 +1233,8 @@ export type Database = {
           id: string
           rule: Json
           sort_order: number
+          target_id: string | null
+          target_kind: string
           updated_at: string
         }
         Insert: {
@@ -1196,6 +1245,8 @@ export type Database = {
           id?: string
           rule?: Json
           sort_order?: number
+          target_id?: string | null
+          target_kind?: string
           updated_at?: string
         }
         Update: {
@@ -1206,6 +1257,8 @@ export type Database = {
           id?: string
           rule?: Json
           sort_order?: number
+          target_id?: string | null
+          target_kind?: string
           updated_at?: string
         }
         Relationships: [
@@ -1406,6 +1459,47 @@ export type Database = {
             columns: ["section_id"]
             isOneToOne: false
             referencedRelation: "crm_sections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_layout_templates: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          layout: Json
+          module_id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          layout?: Json
+          module_id: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          layout?: Json
+          module_id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_layout_templates_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "crm_modules"
             referencedColumns: ["id"]
           },
         ]
@@ -1629,6 +1723,47 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_section_permissions: {
+        Row: {
+          can_delete: boolean
+          can_edit: boolean
+          can_view: boolean
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          section_id: string
+          updated_at: string
+        }
+        Insert: {
+          can_delete?: boolean
+          can_edit?: boolean
+          can_view?: boolean
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          section_id: string
+          updated_at?: string
+        }
+        Update: {
+          can_delete?: boolean
+          can_edit?: boolean
+          can_view?: boolean
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          section_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_section_permissions_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "crm_sections"
             referencedColumns: ["id"]
           },
         ]
@@ -4028,7 +4163,7 @@ export type Database = {
       user_owns_lead: { Args: { _lead_id: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "admin" | "loan_officer" | "processor"
+      app_role: "admin" | "loan_officer" | "processor" | "assistant" | "realtor"
       blog_post_status: "draft" | "published"
       borrower_employment_type: "employee" | "self_employed"
       company_type:
@@ -4230,7 +4365,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "loan_officer", "processor"],
+      app_role: ["admin", "loan_officer", "processor", "assistant", "realtor"],
       blog_post_status: ["draft", "published"],
       borrower_employment_type: ["employee", "self_employed"],
       company_type: [
