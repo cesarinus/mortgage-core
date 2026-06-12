@@ -34,6 +34,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { ConditionsTab, PermissionsTab, HistoryTab } from "./CrmBuilderTabs";
 
 const FIELD_TYPES = [
   "text","textarea","number","currency","percent","dropdown","multiselect",
