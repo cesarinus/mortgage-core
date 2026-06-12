@@ -1,59 +1,91 @@
-# Responsive Overhaul Plan
+# Sprint 1 — Settings Control Center
 
-Goal: make the entire app usable down to 360–414px phones, comfortable on 768–1024px tablets, and free of horizontal scroll on 1280px laptops — without touching business logic or data.
+Big scope. Delivered in 4 sequential, shippable phases. Each phase ends with working UI persisted to the database and surviving reload.
 
-## Scope (frontend / presentation only)
+## Phase 1 — Layout Designer (full)
 
-### 1. Public website
-- `Navbar`: already has mobile menu — audit spacing, logo wrap, sticky height.
-- `HeroSection`, `ServicesSection`, `WhyChooseUsSection`, `ContactFormSection`, `Footer`: collapse multi-column grids to single column under `md`; tighten typography scale (`text-4xl md:text-6xl` etc.); reduce section padding on mobile.
-- `ApplicationHub` (7-step sheet): full-screen sheet on mobile, stacked field rows, sticky footer with Next/Back.
-- `MortgageCalculator` + `FloatingCalculatorButton`: bottom-sheet style on mobile, smaller floating button position to avoid covering iOS home indicator.
-- Blog: `BlogPost` sidebar moves below content on mobile; `StickyFloatingCTA` shrinks; `BlogIndex` cards become single column.
-- Booking pages: calendar + form stack vertically; chip rows wrap.
+Extend `crm_layouts.layout` JSON to carry per-section settings (no new tables — keeps it additive):
 
-### 2. CRM shell
-- `AppLayout` header: hide search on `<md`, collapse Quick Add into an icon, keep AI Assistant primary CTA visible but icon-only on `<sm`.
-- `AppSidebar`: use shadcn `Sidebar` offcanvas behavior on mobile (drawer triggered by `SidebarTrigger`), icon-mini on tablet.
-- Main content padding: `p-4 md:p-6` instead of fixed `p-6`.
+```text
+layout.sections[i] = {
+  section_id, sort, hidden,
+  width: "full" | "half" | "third",
+  default_collapsed: boolean,
+  mobile: "show" | "hide" | "desktop_only",
+  role_visibility: { admin, loan_officer, processor, assistant, realtor },  // bool each
+  role_permissions: { <role>: { view, edit, delete } },
+  columns?, fields: [...existing]
+}
+```
 
-### 3. CRM record workspace + lists
-- `Leads`, `Pipeline`, `Contacts`, `Companies`, `People`, `Subscribers`, `EmailTemplates`, `BlogAdmin` tables: convert rows to **stacked cards** under `md` (name + status badge + key metric + chevron); keep table on `md+`.
-- `RecordWorkspace` (LeftRail / center / RightRail): three-column on `xl`, two-column with collapsible right rail on `lg`, single column with tab switcher (`Details | Activity | AI`) on `<lg`.
-- Tab content (`UnifiedTimelineTab`, `ConditionsTab`, `DocumentsTab`, etc.): grid → single column; action button rows wrap.
-- `AriveExportPreviewDialog` and similar dialogs: become full-screen sheets on mobile.
+Rebuild `CrmLayoutDesigner.tsx`:
+- `@dnd-kit/core` + `@dnd-kit/sortable` (already in repo if present; install otherwise) for drag-and-drop section reordering with a grip handle.
+- Per-section inline controls: width selector, default state (Expanded/Collapsed), mobile visibility, role visibility checkboxes, role permission matrix (view/edit/delete) — collapsible "Advanced" panel to keep the row compact.
+- Live preview rail on the right shows the resulting grid (`grid-cols-6`: full=6, half=3, third=2) so admins see Row 1 / Row 2 visually.
+- Save writes the full sections array via existing `saveLayout()` (already snapshots prior versions to `crm_layout_versions`).
 
-### 4. Settings
-- `SettingsLayout`: today is 3-column (`w-64` nav / content / `w-80` advisor).
-  - `<lg`: hide right advisor (already `hidden xl:block`, keep).
-  - `<md`: convert left nav into a top **Select dropdown** (or shadcn `Sheet` triggered by a hamburger) so content gets full width.
-- All settings sections: form rows stack, tables horizontally scroll inside a wrapper, tabs become scrollable.
+**Layout Templates** — new lightweight table:
+```sql
+crm_layout_templates(id, module_id, name, description, layout jsonb, created_by, created_at, updated_at)
+```
+"Save as template" + "Apply template" dropdown in the designer. Templates are module-scoped (Lead Intake, Loan Officer, Processor, Realtor).
 
-## Technical approach
+## Phase 2 — Conditional Logic Engine
 
-- Pure Tailwind responsive classes (`sm: md: lg: xl:`) — no new dependencies.
-- Reusable pattern for list→card swap:
-  ```tsx
-  <div className="hidden md:block"><Table>…</Table></div>
-  <div className="md:hidden space-y-2">{rows.map(r => <MobileCard …/>)}</div>
-  ```
-- Add a small `useIsMobile` (already exists) for conditional rendering where Tailwind isn't enough (e.g., Dialog ↔ Sheet swap).
-- Container rule: every page root uses `w-full max-w-full overflow-x-hidden` to prevent rogue horizontal scroll.
-- Tap targets: minimum `h-10 w-10` for icon buttons on touch.
-- No changes to: business logic, data fetching, edge functions, DB schema, ARIVE mapping, auth.
+Real visual rule builder replacing the placeholder tab. Uses existing `crm_field_conditions` (already has `rule jsonb`, `action`, `field_id`).
 
-## Delivery order (incremental, each shippable)
+- Extend `rule` shape to support OR: `{ all?: Clause[], any?: Clause[] }`. Update `src/lib/crm-fields/conditions.ts` to evaluate both.
+- Add `target_kind: "field" | "section"` and `target_id` columns (migration) so a rule can show/hide a whole section, not only a field.
+- Add ops already listed: `eq, neq, contains, gt, lt, empty, not_empty`.
+- Builder UI: source field picker → operator → value (typed by source field), with AND/OR toggle and `+ Add condition`. Action picker: Show / Hide / Require / Read-only, target = field or section.
+- `CustomFieldsRenderer` already calls `evaluateField`; extend it to also evaluate section-level rules and hide whole sections live in record forms.
 
-1. **CRM shell + Settings layout** — biggest unlock, touches every authenticated page.
-2. **Leads / Pipeline / Contacts list → mobile cards.**
-3. **RecordWorkspace 3-col → tabbed mobile view.**
-4. **Public website sections + ApplicationHub sheet.**
-5. **Blog + Booking polish.**
-6. **Settings inner pages (LOS mappings, field builder, integrations) row stacking.**
+## Phase 3 — Permissions Tab
 
-I'll start with step 1 in the next turn unless you want a different order.
+Powered by existing `crm_field_permissions` plus a new `crm_section_permissions` table:
+```sql
+crm_section_permissions(id, section_id, role app_role, can_view, can_edit, can_delete)
+```
+- Matrix UI: rows = fields/sections, columns = the 5 roles (extend `app_role` enum with `assistant`, `realtor` via migration), cells = checkboxes (View / Edit / Required / Hidden for fields; View / Edit / Delete for sections).
+- Bulk "apply to all fields in section" action.
+- Enforcement: `CustomFieldsRenderer` already respects field permissions via `evaluateField`; add section-permission gate in `RecordWorkspace` so hidden sections never render and read-only sections lock all inputs inside.
+
+## Phase 4 — History & Audit Log
+
+New table:
+```sql
+crm_audit_logs(
+  id, module_id, actor_id,
+  entity_type text,    -- field | section | layout | condition | permission
+  entity_id uuid,
+  action text,         -- created | updated | deleted | renamed | moved
+  before jsonb, after jsonb,
+  created_at timestamptz default now()
+)
+```
+- Helper `logAudit()` called from every save path in `src/lib/crm-fields/api.ts` (saveField, deleteField, saveSection, deleteSection, saveLayout, saveFieldCondition, upsertFieldPermission, plus new section-permission saves).
+- History tab: filterable list (module / user / date range), shows timestamp, actor name (joined from `profiles`), entity, action, and a diff popover for `before`/`after`.
+
+## Technical notes
+
+- All DB changes are additive — no breaking change to existing `crm_layouts` shape (new keys default safely).
+- RLS: new tables get authenticated read + admin-write policies, matching existing `crm_*` pattern.
+- `dnd-kit` (`@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities`) installed if missing.
+- No edits to `src/integrations/supabase/client.ts` or `types.ts` (regenerated).
+- Mobile responsiveness work from prior sprint is preserved.
 
 ## Out of scope
-- Native app, PWA install prompts, offline mode.
-- Redesigning components (visual direction stays per brand memory).
-- Changing any backend, ARIVE, or AI behavior.
+
+- New modules beyond the existing ones.
+- Form-builder reordering of fields within sections via DnD (fields keep current sort controls; section DnD only).
+- Realtime sync across multiple admins editing the same module.
+
+## Delivery order
+
+1. Migration: new tables (`crm_layout_templates`, `crm_section_permissions`, `crm_audit_logs`), enum additions, condition columns.
+2. Phase 1 Layout Designer + templates.
+3. Phase 2 Conditional Logic builder + section-level rules in renderer.
+4. Phase 3 Permissions matrix + enforcement.
+5. Phase 4 Audit log writes + History tab.
+
+Each phase is independently testable; you can preview after each.
