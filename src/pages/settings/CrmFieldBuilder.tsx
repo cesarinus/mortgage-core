@@ -492,108 +492,54 @@ export default function CrmFieldBuilder() {
         </TabsContent>
 
         <TabsContent value="permissions" className="m-0 p-5">
-          <Card>
-            <CardHeader><CardTitle>Field permissions</CardTitle><CardDescription>Per-role view and edit access. Admins always have full access.</CardDescription></CardHeader>
-            <CardContent className="p-0">
-              <div className="grid grid-cols-12 px-4 py-2 text-[11px] font-medium text-muted-foreground uppercase border-b">
-                <div className="col-span-4">Field</div>
-                <div className="col-span-4">Loan Officer</div>
-                <div className="col-span-4">Processor</div>
-              </div>
-              {fields.map((f) => {
-                const perm = (role: "loan_officer" | "processor") =>
-                  permissions.find((p) => p.field_id === f.id && p.role === role) ?? { field_id: f.id, role, can_view: true, can_edit: true } as any;
-                const togglePerm = async (role: "loan_officer" | "processor", patch: Partial<CrmFieldPermission>) => {
-                  const cur = perm(role);
-                  const next = { ...cur, ...patch };
-                  await upsertFieldPermission(next);
-                  setPermissions(await listFieldPermissions(fields.map((x) => x.id)));
-                };
-                const Row = ({ role }: { role: "loan_officer" | "processor" }) => {
-                  const p = perm(role);
-                  return (
-                    <div className="flex items-center gap-4">
-                      <label className="flex items-center gap-1.5 text-xs"><Switch checked={p.can_view} onCheckedChange={(v) => togglePerm(role, { can_view: v })} /> View</label>
-                      <label className="flex items-center gap-1.5 text-xs"><Switch checked={p.can_edit} onCheckedChange={(v) => togglePerm(role, { can_edit: v })} /> Edit</label>
-                    </div>
-                  );
-                };
-                return (
-                  <div key={f.id} className="grid grid-cols-12 px-4 py-2 items-center border-b text-sm">
-                    <div className="col-span-4"><div className="font-medium">{f.label}</div><div className="text-[10px] font-mono text-muted-foreground">{f.internal_name}</div></div>
-                    <div className="col-span-4"><Row role="loan_officer" /></div>
-                    <div className="col-span-4"><Row role="processor" /></div>
-                  </div>
-                );
-              })}
-              {fields.length === 0 && <div className="p-8 text-center text-sm text-muted-foreground">No fields yet.</div>}
-            </CardContent>
-          </Card>
+          <PermissionsTab
+            fields={fields}
+            sections={sections}
+            permissions={permissions}
+            sectionPerms={sectionPerms}
+            onChangedField={async () => setPermissions(await listFieldPermissions(fields.map((x) => x.id)))}
+            onChangedSection={async () => setSectionPerms(await listSectionPermissions(sections.map((x) => x.id)))}
+          />
         </TabsContent>
 
         <TabsContent value="conditions" className="m-0 p-5">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0">
-              <div><CardTitle>Conditional Logic</CardTitle><CardDescription>Show, hide, require, or lock a field based on another field's value.</CardDescription></div>
-              <Button size="sm" onClick={async () => {
-                if (!fields[0]) return;
-                await saveFieldCondition({ field_id: fields[0].id, action: "show", rule: { all: [{ field_id: fields[0].id, op: "not_empty" }] }, sort_order: conditions.length * 10, active: true } as any);
-                setConditions(await listFieldConditions(fields.map((x) => x.id)));
-              }}><Plus className="h-4 w-4 mr-1" /> Add rule</Button>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {conditions.length === 0 && <div className="text-sm text-muted-foreground italic">No rules yet.</div>}
-              {conditions.map((c) => {
-                const clause = c.rule?.all?.[0] ?? { field_id: fields[0]?.id ?? "", op: "not_empty" as const };
-                const update = async (patch: Partial<CrmFieldCondition>) => {
-                  await saveFieldCondition({ id: c.id, ...patch });
-                  setConditions(await listFieldConditions(fields.map((x) => x.id)));
-                };
-                const updateClause = (patch: Partial<typeof clause>) => {
-                  const next = { ...clause, ...patch };
-                  update({ rule: { all: [next] } } as any);
-                };
-                return (
-                  <div key={c.id} className="flex items-center gap-2 border rounded-md p-2 flex-wrap">
-                    <span className="text-xs text-muted-foreground">When</span>
-                    <Select value={clause.field_id} onValueChange={(v) => updateClause({ field_id: v })}>
-                      <SelectTrigger className="w-44 h-8"><SelectValue /></SelectTrigger>
-                      <SelectContent>{fields.map((f) => <SelectItem key={f.id} value={f.id}>{f.label}</SelectItem>)}</SelectContent>
-                    </Select>
-                    <Select value={clause.op} onValueChange={(v: any) => updateClause({ op: v })}>
-                      <SelectTrigger className="w-32 h-8"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {["eq","neq","gt","lt","empty","not_empty"].map(o => <SelectItem key={o} value={o}>{o}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                    {!["empty","not_empty"].includes(clause.op) && (
-                      <Input className="w-32 h-8" value={clause.value ?? ""} onChange={(e) => updateClause({ value: e.target.value })} placeholder="value" />
-                    )}
-                    <span className="text-xs text-muted-foreground">then</span>
-                    <Select value={c.action} onValueChange={(v: any) => update({ action: v })}>
-                      <SelectTrigger className="w-32 h-8"><SelectValue /></SelectTrigger>
-                      <SelectContent>{["show","hide","require","readonly"].map(a => <SelectItem key={a} value={a}>{a}</SelectItem>)}</SelectContent>
-                    </Select>
-                    <span className="text-xs text-muted-foreground">field</span>
-                    <Select value={c.field_id} onValueChange={(v) => update({ field_id: v })}>
-                      <SelectTrigger className="w-44 h-8"><SelectValue /></SelectTrigger>
-                      <SelectContent>{fields.map((f) => <SelectItem key={f.id} value={f.id}>{f.label}</SelectItem>)}</SelectContent>
-                    </Select>
-                    <div className="ml-auto flex items-center gap-2">
-                      <Switch checked={c.active} onCheckedChange={(v) => update({ active: v })} />
-                      <Button size="sm" variant="ghost" onClick={async () => { await deleteFieldCondition(c.id); setConditions(await listFieldConditions(fields.map((x) => x.id))); }}>
-                        <Trash2 className="h-3 w-3 text-destructive" />
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })}
-            </CardContent>
-          </Card>
+          <ConditionsTab
+            fields={fields}
+            sections={sections}
+            conditions={conditions}
+            onChanged={async () => setConditions(await listFieldConditions(fields.map((x) => x.id)))}
+          />
         </TabsContent>
 
-        <TabsContent value="history" className="m-0 p-10 text-center text-sm text-muted-foreground">
-          Change history will appear here.
+        <TabsContent value="history" className="m-0 p-5">
+          <HistoryTab
+            logs={auditLogs}
+            users={auditUsers}
+            actor={auditActor}
+            from={auditFrom}
+            to={auditTo}
+            onActor={setAuditActor}
+            onFrom={setAuditFrom}
+            onTo={setAuditTo}
+            onOpen={setDiffLog}
+          />
+          <Dialog open={!!diffLog} onOpenChange={(o) => !o && setDiffLog(null)}>
+            <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+              <DialogHeader><DialogTitle>Change details</DialogTitle></DialogHeader>
+              {diffLog && (
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <Label className="text-muted-foreground">Before</Label>
+                    <pre className="bg-muted rounded p-2 overflow-x-auto whitespace-pre-wrap break-words">{JSON.stringify(diffLog.before, null, 2) || "—"}</pre>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">After</Label>
+                    <pre className="bg-muted rounded p-2 overflow-x-auto whitespace-pre-wrap break-words">{JSON.stringify(diffLog.after, null, 2) || "—"}</pre>
+                  </div>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
         </TabsContent>
         </Tabs>
       </Card>
