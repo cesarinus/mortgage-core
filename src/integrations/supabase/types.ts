@@ -2570,21 +2570,142 @@ export type Database = {
           },
         ]
       }
-      lead_sources: {
+      lead_source_analytics_daily: {
         Row: {
+          applications: number
+          avg_close_days: number | null
+          conversion_pct: number
           created_at: string
-          id: string
-          name: string
+          day: string
+          funded: number
+          leads: number
+          revenue_cents: number
+          source_id: string
         }
         Insert: {
+          applications?: number
+          avg_close_days?: number | null
+          conversion_pct?: number
           created_at?: string
-          id?: string
-          name: string
+          day: string
+          funded?: number
+          leads?: number
+          revenue_cents?: number
+          source_id: string
         }
         Update: {
+          applications?: number
+          avg_close_days?: number | null
+          conversion_pct?: number
           created_at?: string
+          day?: string
+          funded?: number
+          leads?: number
+          revenue_cents?: number
+          source_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_source_analytics_daily_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "lead_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_source_rules: {
+        Row: {
+          actions: Json
+          conditions: Json
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          name: string
+          sort: number
+          source_id: string
+          updated_at: string
+        }
+        Insert: {
+          actions?: Json
+          conditions?: Json
+          created_at?: string
+          created_by?: string | null
           id?: string
+          is_active?: boolean
+          name: string
+          sort?: number
+          source_id: string
+          updated_at?: string
+        }
+        Update: {
+          actions?: Json
+          conditions?: Json
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
           name?: string
+          sort?: number
+          source_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_source_rules_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "lead_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_sources: {
+        Row: {
+          color: string | null
+          created_at: string
+          created_by: string | null
+          default_lead_score: number
+          description: string | null
+          icon: string | null
+          id: string
+          is_active: boolean
+          is_archived: boolean
+          name: string
+          owner_id: string | null
+          sort: number
+          updated_at: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          default_lead_score?: number
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          is_archived?: boolean
+          name: string
+          owner_id?: string | null
+          sort?: number
+          updated_at?: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          default_lead_score?: number
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          is_archived?: boolean
+          name?: string
+          owner_id?: string | null
+          sort?: number
+          updated_at?: string
         }
         Relationships: []
       }
@@ -3359,6 +3480,156 @@ export type Database = {
           },
         ]
       }
+      notification_digests: {
+        Row: {
+          created_at: string
+          id: string
+          items: Json
+          mode: string
+          sent_at: string | null
+          user_id: string
+          window_end: string
+          window_start: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          items?: Json
+          mode: string
+          sent_at?: string | null
+          user_id: string
+          window_end: string
+          window_start: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          items?: Json
+          mode?: string
+          sent_at?: string | null
+          user_id?: string
+          window_end?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
+      notification_events: {
+        Row: {
+          body: string | null
+          channel: string
+          clicked_at: string | null
+          created_at: string
+          dismissed_at: string | null
+          id: string
+          opened_at: string | null
+          payload: Json
+          priority: string
+          sent_at: string | null
+          status: string
+          title: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          channel?: string
+          clicked_at?: string | null
+          created_at?: string
+          dismissed_at?: string | null
+          id?: string
+          opened_at?: string | null
+          payload?: Json
+          priority?: string
+          sent_at?: string | null
+          status?: string
+          title?: string | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          channel?: string
+          clicked_at?: string | null
+          created_at?: string
+          dismissed_at?: string | null
+          id?: string
+          opened_at?: string | null
+          payload?: Json
+          priority?: string
+          sent_at?: string | null
+          status?: string
+          title?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notification_preferences: {
+        Row: {
+          channels: Json
+          created_at: string
+          digest_mode: string
+          id: string
+          quiet_hours: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          channels?: Json
+          created_at?: string
+          digest_mode?: string
+          id?: string
+          quiet_hours?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          channels?: Json
+          created_at?: string
+          digest_mode?: string
+          id?: string
+          quiet_hours?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notification_templates: {
+        Row: {
+          body: string
+          channel: string
+          created_at: string
+          id: string
+          is_active: boolean
+          key: string
+          subject: string | null
+          updated_at: string
+          variables: Json
+        }
+        Insert: {
+          body: string
+          channel: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          key: string
+          subject?: string | null
+          updated_at?: string
+          variables?: Json
+        }
+        Update: {
+          body?: string
+          channel?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          key?: string
+          subject?: string | null
+          updated_at?: string
+          variables?: Json
+        }
+        Relationships: []
+      }
       pipeline_opportunities: {
         Row: {
           arive_loan_id: string | null
@@ -3438,6 +3709,193 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      pipeline_stage_analytics_daily: {
+        Row: {
+          avg_time_hours: number
+          conversion_pct: number
+          created_at: string
+          day: string
+          drop_off_pct: number
+          funded: number
+          revenue_cents: number
+          stage_id: string
+        }
+        Insert: {
+          avg_time_hours?: number
+          conversion_pct?: number
+          created_at?: string
+          day: string
+          drop_off_pct?: number
+          funded?: number
+          revenue_cents?: number
+          stage_id: string
+        }
+        Update: {
+          avg_time_hours?: number
+          conversion_pct?: number
+          created_at?: string
+          day?: string
+          drop_off_pct?: number
+          funded?: number
+          revenue_cents?: number
+          stage_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pipeline_stage_analytics_daily_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_stages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pipeline_stage_requirements: {
+        Row: {
+          created_at: string
+          field_id: string | null
+          field_key: string | null
+          id: string
+          required: boolean
+          sort: number
+          stage_id: string
+        }
+        Insert: {
+          created_at?: string
+          field_id?: string | null
+          field_key?: string | null
+          id?: string
+          required?: boolean
+          sort?: number
+          stage_id: string
+        }
+        Update: {
+          created_at?: string
+          field_id?: string | null
+          field_key?: string | null
+          id?: string
+          required?: boolean
+          sort?: number
+          stage_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pipeline_stage_requirements_field_id_fkey"
+            columns: ["field_id"]
+            isOneToOne: false
+            referencedRelation: "crm_fields"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pipeline_stage_requirements_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_stages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pipeline_stage_rules: {
+        Row: {
+          actions: Json
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          sort: number
+          stage_id: string
+          trigger: string
+          updated_at: string
+        }
+        Insert: {
+          actions?: Json
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          sort?: number
+          stage_id: string
+          trigger?: string
+          updated_at?: string
+        }
+        Update: {
+          actions?: Json
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort?: number
+          stage_id?: string
+          trigger?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pipeline_stage_rules_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_stages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pipeline_stages: {
+        Row: {
+          arive_stage_id: string | null
+          color: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          expected_days: number
+          icon: string | null
+          id: string
+          is_active: boolean
+          is_archived: boolean
+          is_terminal: boolean
+          key: string
+          name: string
+          probability_pct: number
+          sort: number
+          updated_at: string
+        }
+        Insert: {
+          arive_stage_id?: string | null
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          expected_days?: number
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          is_archived?: boolean
+          is_terminal?: boolean
+          key: string
+          name: string
+          probability_pct?: number
+          sort?: number
+          updated_at?: string
+        }
+        Update: {
+          arive_stage_id?: string | null
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          expected_days?: number
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          is_archived?: boolean
+          is_terminal?: boolean
+          key?: string
+          name?: string
+          probability_pct?: number
+          sort?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       portal_invites: {
         Row: {
