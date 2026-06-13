@@ -27,6 +27,9 @@ import AriveSection from "@/pages/settings/sections/AriveSection";
 import ComingSoonSection from "@/pages/settings/sections/ComingSoonSection";
 import CrmFieldBuilder from "@/pages/settings/CrmFieldBuilder";
 import CrmLayoutDesigner from "@/pages/settings/CrmLayoutDesigner";
+import LeadSourcesManager from "@/pages/settings/LeadSourcesManager";
+import PipelineStagesManager from "@/pages/settings/PipelineStagesManager";
+import NotificationCenter from "@/pages/settings/NotificationCenter";
 import ImportArive from "@/pages/settings/ImportArive";
 import LosIntegrationLogs from "@/pages/settings/LosIntegrationLogs";
 import AriveFieldMappings from "@/pages/settings/AriveFieldMappings";
@@ -97,7 +100,7 @@ const App = () => (
                   <Route index element={<Navigate to="/settings/profile" replace />} />
                   <Route path="profile" element={<ProfileSection />} />
                   <Route path="appearance" element={<AppearanceSection />} />
-                  <Route path="notifications" element={<ComingSoonSection title="Notifications" />} />
+                  <Route path="notifications" element={<NotificationCenter />} />
                   <Route path="calendar" element={<CalendarSection />} />
                   <Route path="ai-assistant" element={<AiAssistantSection />} />
                   <Route path="digital-twin" element={<ComingSoonSection title="Digital Twin" />} />
@@ -107,8 +110,8 @@ const App = () => (
                   <Route path="crm-fields" element={<CrmFieldBuilder />} />
                   <Route path="crm-layout" element={<CrmLayoutDesigner />} />
                   <Route path="loan-settings" element={<ComingSoonSection title="Loan Settings" />} />
-                  <Route path="pipeline-stages" element={<ComingSoonSection title="Pipeline Stages" />} />
-                  <Route path="lead-sources" element={<ComingSoonSection title="Lead Sources" />} />
+                  <Route path="pipeline-stages" element={<PipelineStagesManager />} />
+                  <Route path="lead-sources" element={<LeadSourcesManager />} />
                   <Route path="los-mappings" element={<AriveFieldMappings />} />
                   <Route path="arive-export-map" element={<AriveExportMappings />} />
                   <Route path="compliance" element={<ComingSoonSection title="Compliance" />} />
