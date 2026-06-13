@@ -19,7 +19,7 @@ const NAV: Group[] = [
   { label: "Personal", items: [
     { label: "Profile", path: "/settings/profile", icon: User },
     { label: "Appearance", path: "/settings/appearance", icon: Palette },
-    { label: "Notifications", path: "/settings/notifications", icon: Bell, soon: true },
+    { label: "Notifications", path: "/settings/notifications", icon: Bell },
     { label: "Calendar", path: "/settings/calendar", icon: Calendar },
   ]},
   { label: "AI & Automation", items: [
@@ -33,8 +33,8 @@ const NAV: Group[] = [
     { label: "CRM Fields", path: "/settings/crm-fields", icon: FileSliders },
     { label: "Layout Designer", path: "/settings/crm-layout", icon: Layers },
     { label: "Loan Settings", path: "/settings/loan-settings", icon: Layers, soon: true },
-    { label: "Pipeline Stages", path: "/settings/pipeline-stages", icon: Workflow, soon: true },
-    { label: "Lead Sources", path: "/settings/lead-sources", icon: Database, soon: true },
+    { label: "Pipeline Stages", path: "/settings/pipeline-stages", icon: Workflow },
+    { label: "Lead Sources", path: "/settings/lead-sources", icon: Database },
     { label: "LOS Mapping", path: "/settings/los-mappings", icon: Settings2 },
     { label: "Compliance", path: "/settings/compliance", icon: Shield, soon: true },
   ]},
