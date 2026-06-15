@@ -34,6 +34,10 @@ import ImportArive from "@/pages/settings/ImportArive";
 import LosIntegrationLogs from "@/pages/settings/LosIntegrationLogs";
 import AriveFieldMappings from "@/pages/settings/AriveFieldMappings";
 import AriveExportMappings from "@/pages/settings/AriveExportMappings";
+import AriveMappingCenter from "@/pages/settings/AriveMappingCenter";
+import IntegrationsHub from "@/pages/settings/IntegrationsHub";
+import TeamManagement from "@/pages/settings/TeamManagement";
+import SecurityCenter from "@/pages/settings/SecurityCenter";
 import LosPayloadTester from "@/pages/settings/LosPayloadTester";
 import SchemaGapReport from "@/pages/settings/SchemaGapReport";
 import BlogIndex from "@/pages/BlogIndex";
@@ -112,13 +116,15 @@ const App = () => (
                   <Route path="loan-settings" element={<ComingSoonSection title="Loan Settings" />} />
                   <Route path="pipeline-stages" element={<PipelineStagesManager />} />
                   <Route path="lead-sources" element={<LeadSourcesManager />} />
-                  <Route path="los-mappings" element={<AriveFieldMappings />} />
+                  <Route path="los-mappings" element={<AriveMappingCenter />} />
+                  <Route path="los-mappings/legacy" element={<AriveFieldMappings />} />
                   <Route path="arive-export-map" element={<AriveExportMappings />} />
                   <Route path="compliance" element={<ComingSoonSection title="Compliance" />} />
                   <Route path="company" element={<ComingSoonSection title="Company" />} />
-                  <Route path="team" element={<ComingSoonSection title="Team" />} />
+                  <Route path="team" element={<TeamManagement />} />
                   <Route path="billing" element={<ComingSoonSection title="Billing" />} />
-                  <Route path="security" element={<ComingSoonSection title="Security" />} />
+                  <Route path="security" element={<SecurityCenter />} />
+                  <Route path="integrations" element={<IntegrationsHub />} />
                   <Route path="integrations/arive" element={<AriveSection />} />
                   <Route path="integrations/twilio" element={<ComingSoonSection title="Twilio" />} />
                   <Route path="integrations/openai" element={<ComingSoonSection title="OpenAI" />} />
