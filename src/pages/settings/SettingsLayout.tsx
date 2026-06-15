@@ -40,11 +40,12 @@ const NAV: Group[] = [
   ]},
   { label: "Business", items: [
     { label: "Company", path: "/settings/company", icon: Building, soon: true },
-    { label: "Team", path: "/settings/team", icon: Users, soon: true },
+    { label: "Team", path: "/settings/team", icon: Users },
     { label: "Billing", path: "/settings/billing", icon: CreditCard, soon: true },
-    { label: "Security", path: "/settings/security", icon: Shield, soon: true },
+    { label: "Security", path: "/settings/security", icon: Shield },
   ]},
   { label: "Integrations", items: [
+    { label: "Integrations Hub", path: "/settings/integrations", icon: Plug },
     { label: "ARIVE LOS", path: "/settings/integrations/arive", icon: Plug },
     { label: "Twilio", path: "/settings/integrations/twilio", icon: Phone, soon: true },
     { label: "OpenAI", path: "/settings/integrations/openai", icon: Sparkles, soon: true },
