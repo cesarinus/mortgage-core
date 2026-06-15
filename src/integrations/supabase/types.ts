@@ -50,6 +50,48 @@ export type Database = {
         }
         Relationships: []
       }
+      arive_sync_jobs: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          direction: string
+          error: string | null
+          finished_at: string | null
+          id: string
+          object_id: string | null
+          object_type: string
+          payload: Json | null
+          started_at: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          direction?: string
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          object_id?: string | null
+          object_type: string
+          payload?: Json | null
+          started_at?: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          direction?: string
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          object_id?: string | null
+          object_type?: string
+          payload?: Json | null
+          started_at?: string
+          status?: string
+        }
+        Relationships: []
+      }
       assistant_interactions: {
         Row: {
           created_at: string
@@ -2337,6 +2379,89 @@ export type Database = {
           },
         ]
       }
+      integration_connections: {
+        Row: {
+          category: string
+          config: Json
+          created_at: string
+          credentials_secret_ref: string | null
+          id: string
+          is_active: boolean
+          key: string
+          name: string
+          provider: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          config?: Json
+          created_at?: string
+          credentials_secret_ref?: string | null
+          id?: string
+          is_active?: boolean
+          key: string
+          name: string
+          provider: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          config?: Json
+          created_at?: string
+          credentials_secret_ref?: string | null
+          id?: string
+          is_active?: boolean
+          key?: string
+          name?: string
+          provider?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      integration_health_snapshots: {
+        Row: {
+          checked_at: string
+          connection_id: string | null
+          details: Json | null
+          error_count: number | null
+          id: string
+          latency_ms: number | null
+          requests_today: number | null
+          status: string
+        }
+        Insert: {
+          checked_at?: string
+          connection_id?: string | null
+          details?: Json | null
+          error_count?: number | null
+          id?: string
+          latency_ms?: number | null
+          requests_today?: number | null
+          status: string
+        }
+        Update: {
+          checked_at?: string
+          connection_id?: string | null
+          details?: Json | null
+          error_count?: number | null
+          id?: string
+          latency_ms?: number | null
+          requests_today?: number | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_health_snapshots_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "integration_connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       integration_webhooks: {
         Row: {
           created_at: string
@@ -3166,6 +3291,7 @@ export type Database = {
       los_field_mappings: {
         Row: {
           active: boolean
+          category: string | null
           created_at: string
           crm_field: string
           crm_field_id: string | null
@@ -3174,15 +3300,21 @@ export type Database = {
           external_field: string
           id: string
           integration: string
+          last_validated_at: string | null
           module_slug: string | null
           notes: string | null
           required: boolean
           sort_order: number
+          sync_direction: string
           transform: string | null
+          transform_config: Json
+          transform_type: string
           updated_at: string
+          validation_status: string
         }
         Insert: {
           active?: boolean
+          category?: string | null
           created_at?: string
           crm_field: string
           crm_field_id?: string | null
@@ -3191,15 +3323,21 @@ export type Database = {
           external_field: string
           id?: string
           integration?: string
+          last_validated_at?: string | null
           module_slug?: string | null
           notes?: string | null
           required?: boolean
           sort_order?: number
+          sync_direction?: string
           transform?: string | null
+          transform_config?: Json
+          transform_type?: string
           updated_at?: string
+          validation_status?: string
         }
         Update: {
           active?: boolean
+          category?: string | null
           created_at?: string
           crm_field?: string
           crm_field_id?: string | null
@@ -3208,12 +3346,17 @@ export type Database = {
           external_field?: string
           id?: string
           integration?: string
+          last_validated_at?: string | null
           module_slug?: string | null
           notes?: string | null
           required?: boolean
           sort_order?: number
+          sync_direction?: string
           transform?: string | null
+          transform_config?: Json
+          transform_type?: string
           updated_at?: string
+          validation_status?: string
         }
         Relationships: [
           {
@@ -3387,6 +3530,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      mfa_settings: {
+        Row: {
+          channel: string
+          created_at: string
+          enabled: boolean
+          id: string
+          secret_ref: string | null
+          updated_at: string
+          user_id: string
+          verified_at: string | null
+        }
+        Insert: {
+          channel?: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          secret_ref?: string | null
+          updated_at?: string
+          user_id: string
+          verified_at?: string | null
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          secret_ref?: string | null
+          updated_at?: string
+          user_id?: string
+          verified_at?: string | null
+        }
+        Relationships: []
       }
       mortgage_market_rates: {
         Row: {
@@ -3627,6 +3803,24 @@ export type Database = {
           subject?: string | null
           updated_at?: string
           variables?: Json
+        }
+        Relationships: []
+      }
+      permissions: {
+        Row: {
+          action: string
+          id: string
+          resource: string
+        }
+        Insert: {
+          action: string
+          id?: string
+          resource: string
+        }
+        Update: {
+          action?: string
+          id?: string
+          resource?: string
         }
         Relationships: []
       }
@@ -4079,6 +4273,176 @@ export type Database = {
           time_of_day?: string | null
           total_score?: number
           trend_indicator?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      record_permissions: {
+        Row: {
+          created_at: string
+          id: string
+          resource: string
+          role_id: string
+          scope: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          resource: string
+          role_id: string
+          scope?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          resource?: string
+          role_id?: string
+          scope?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "record_permissions_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      role_permissions: {
+        Row: {
+          created_at: string
+          id: string
+          permission_id: string
+          role_id: string
+          scope: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          permission_id: string
+          role_id: string
+          scope?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          permission_id?: string
+          role_id?: string
+          scope?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_permissions_permission_id_fkey"
+            columns: ["permission_id"]
+            isOneToOne: false
+            referencedRelation: "permissions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "role_permissions_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      roles: {
+        Row: {
+          base_role: string | null
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          is_system: boolean
+          key: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          base_role?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          key: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          base_role?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          is_system?: boolean
+          key?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      security_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          ip: string | null
+          metadata: Json
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          ip?: string | null
+          metadata?: Json
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          ip?: string | null
+          metadata?: Json
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      security_settings: {
+        Row: {
+          id: string
+          lockout_minutes: number
+          lockout_threshold: number
+          mfa_default_channel: string
+          mfa_mode: string
+          password_policy: Json
+          session_timeout_minutes: number
+          singleton: boolean
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          lockout_minutes?: number
+          lockout_threshold?: number
+          mfa_default_channel?: string
+          mfa_mode?: string
+          password_policy?: Json
+          session_timeout_minutes?: number
+          singleton?: boolean
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          lockout_minutes?: number
+          lockout_threshold?: number
+          mfa_default_channel?: string
+          mfa_mode?: string
+          password_policy?: Json
+          session_timeout_minutes?: number
+          singleton?: boolean
           updated_at?: string
         }
         Relationships: []
@@ -4581,6 +4945,50 @@ export type Database = {
           },
         ]
       }
+      team_invitations: {
+        Row: {
+          accepted_at: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string | null
+          role_id: string | null
+          status: string
+          token: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          role_id?: string | null
+          status?: string
+          token?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          role_id?: string | null
+          status?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_invitations_role_id_fkey"
+            columns: ["role_id"]
+            isOneToOne: false
+            referencedRelation: "roles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -4602,6 +5010,42 @@ export type Database = {
         }
         Relationships: []
       }
+      user_sessions: {
+        Row: {
+          created_at: string
+          device: string | null
+          id: string
+          ip: string | null
+          last_seen_at: string
+          location: string | null
+          revoked_at: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          device?: string | null
+          id?: string
+          ip?: string | null
+          last_seen_at?: string
+          location?: string | null
+          revoked_at?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          device?: string | null
+          id?: string
+          ip?: string | null
+          last_seen_at?: string
+          location?: string | null
+          revoked_at?: string | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -4610,6 +5054,10 @@ export type Database = {
       crm_format_option_label: { Args: { _raw: string }; Returns: string }
       current_portal_user_deal: { Args: never; Returns: string }
       get_available_slots: { Args: { p_date: string }; Returns: string[] }
+      has_permission: {
+        Args: { _action: string; _resource: string; _user_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: { _role: Database["public"]["Enums"]["app_role"] }
         Returns: boolean
@@ -4621,7 +5069,13 @@ export type Database = {
       user_owns_lead: { Args: { _lead_id: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "admin" | "loan_officer" | "processor" | "assistant" | "realtor"
+      app_role:
+        | "admin"
+        | "loan_officer"
+        | "processor"
+        | "assistant"
+        | "realtor"
+        | "portal_user"
       blog_post_status: "draft" | "published"
       borrower_employment_type: "employee" | "self_employed"
       company_type:
@@ -4823,7 +5277,14 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "loan_officer", "processor", "assistant", "realtor"],
+      app_role: [
+        "admin",
+        "loan_officer",
+        "processor",
+        "assistant",
+        "realtor",
+        "portal_user",
+      ],
       blog_post_status: ["draft", "published"],
       borrower_employment_type: ["employee", "self_employed"],
       company_type: [
