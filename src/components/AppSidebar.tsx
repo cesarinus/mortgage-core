@@ -24,6 +24,7 @@ type NavItem = {
 const navItems: NavItem[] = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Leads", url: "/leads", icon: Users },
+  { title: "People", url: "/people", icon: UserRound },
   {
     title: "Contacts",
     url: "/contacts",
