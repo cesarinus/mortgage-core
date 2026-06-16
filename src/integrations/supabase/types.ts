@@ -792,6 +792,7 @@ export type Database = {
           license_number: string | null
           middle_name: string | null
           notes: string | null
+          person_id: string | null
           phone: string | null
           role: Database["public"]["Enums"]["contact_role"] | null
           temperature: string | null
@@ -815,6 +816,7 @@ export type Database = {
           license_number?: string | null
           middle_name?: string | null
           notes?: string | null
+          person_id?: string | null
           phone?: string | null
           role?: Database["public"]["Enums"]["contact_role"] | null
           temperature?: string | null
@@ -838,6 +840,7 @@ export type Database = {
           license_number?: string | null
           middle_name?: string | null
           notes?: string | null
+          person_id?: string | null
           phone?: string | null
           role?: Database["public"]["Enums"]["contact_role"] | null
           temperature?: string | null
@@ -849,6 +852,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "crm_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contacts_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
             referencedColumns: ["id"]
           },
         ]
@@ -2929,6 +2939,7 @@ export type Database = {
           los_sync_status: Database["public"]["Enums"]["los_sync_status_enum"]
           name: string | null
           notes: string | null
+          person_id: string | null
           phone: string | null
           property_address: string | null
           property_type: string | null
@@ -2971,6 +2982,7 @@ export type Database = {
           los_sync_status?: Database["public"]["Enums"]["los_sync_status_enum"]
           name?: string | null
           notes?: string | null
+          person_id?: string | null
           phone?: string | null
           property_address?: string | null
           property_type?: string | null
@@ -3013,6 +3025,7 @@ export type Database = {
           los_sync_status?: Database["public"]["Enums"]["los_sync_status_enum"]
           name?: string | null
           notes?: string | null
+          person_id?: string | null
           phone?: string | null
           property_address?: string | null
           property_type?: string | null
@@ -3041,6 +3054,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "crm_companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
             referencedColumns: ["id"]
           },
           {
@@ -3806,6 +3826,72 @@ export type Database = {
         }
         Relationships: []
       }
+      people: {
+        Row: {
+          address: string | null
+          alternate_phone: string | null
+          city: string | null
+          company: string | null
+          created_at: string
+          created_by: string | null
+          date_of_birth: string | null
+          email: string | null
+          email_normalized: string | null
+          first_name: string
+          full_name: string
+          id: string
+          last_name: string
+          middle_name: string | null
+          phone: string | null
+          phone_normalized: string | null
+          state: string | null
+          updated_at: string
+          zip: string | null
+        }
+        Insert: {
+          address?: string | null
+          alternate_phone?: string | null
+          city?: string | null
+          company?: string | null
+          created_at?: string
+          created_by?: string | null
+          date_of_birth?: string | null
+          email?: string | null
+          email_normalized?: string | null
+          first_name?: string
+          full_name?: string
+          id?: string
+          last_name?: string
+          middle_name?: string | null
+          phone?: string | null
+          phone_normalized?: string | null
+          state?: string | null
+          updated_at?: string
+          zip?: string | null
+        }
+        Update: {
+          address?: string | null
+          alternate_phone?: string | null
+          city?: string | null
+          company?: string | null
+          created_at?: string
+          created_by?: string | null
+          date_of_birth?: string | null
+          email?: string | null
+          email_normalized?: string | null
+          first_name?: string
+          full_name?: string
+          id?: string
+          last_name?: string
+          middle_name?: string | null
+          phone?: string | null
+          phone_normalized?: string | null
+          state?: string | null
+          updated_at?: string
+          zip?: string | null
+        }
+        Relationships: []
+      }
       permissions: {
         Row: {
           action: string
@@ -3823,6 +3909,73 @@ export type Database = {
           resource?: string
         }
         Relationships: []
+      }
+      person_audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          details: Json
+          id: string
+          person_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          details?: Json
+          id?: string
+          person_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          details?: Json
+          id?: string
+          person_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "person_audit_log_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      person_roles: {
+        Row: {
+          assigned_by: string | null
+          created_at: string
+          id: string
+          person_id: string
+          role_type: Database["public"]["Enums"]["person_role_type"]
+        }
+        Insert: {
+          assigned_by?: string | null
+          created_at?: string
+          id?: string
+          person_id: string
+          role_type: Database["public"]["Enums"]["person_role_type"]
+        }
+        Update: {
+          assigned_by?: string | null
+          created_at?: string
+          id?: string
+          person_id?: string
+          role_type?: Database["public"]["Enums"]["person_role_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "person_roles_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pipeline_opportunities: {
         Row: {
@@ -5051,8 +5204,31 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      convert_person_to_lead: {
+        Args: { _person_id: string }
+        Returns: {
+          lead_id: string
+          was_existing: boolean
+        }[]
+      }
       crm_format_option_label: { Args: { _raw: string }; Returns: string }
       current_portal_user_deal: { Args: never; Returns: string }
+      find_person_matches: {
+        Args: { _email?: string; _name?: string; _phone?: string }
+        Returns: {
+          city: string
+          company: string
+          confidence: string
+          email: string
+          full_name: string
+          match_reason: string
+          match_tier: number
+          person_id: string
+          phone: string
+          similarity: number
+          zip: string
+        }[]
+      }
       get_available_slots: { Args: { p_date: string }; Returns: string[] }
       has_permission: {
         Args: { _action: string; _resource: string; _user_id: string }
@@ -5064,7 +5240,11 @@ export type Database = {
       }
       is_admin: { Args: never; Returns: boolean }
       is_portal_user_for_deal: { Args: { _deal_id: string }; Returns: boolean }
+      normalize_email: { Args: { _email: string }; Returns: string }
+      normalize_phone: { Args: { _phone: string }; Returns: string }
       run_document_reminders: { Args: never; Returns: number }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
       user_owns_contact: { Args: { _contact_id: string }; Returns: boolean }
       user_owns_lead: { Args: { _lead_id: string }; Returns: boolean }
     }
@@ -5132,6 +5312,16 @@ export type Database = {
         | "closed"
         | "clear_to_close"
       los_sync_status_enum: "pending" | "synced" | "error" | "skipped"
+      person_role_type:
+        | "Contact"
+        | "Lead"
+        | "Borrower"
+        | "CoBorrower"
+        | "Realtor"
+        | "ReferralPartner"
+        | "Builder"
+        | "Attorney"
+        | "Vendor"
       role_on_deal:
         | "primary_borrower"
         | "co_borrower"
@@ -5347,6 +5537,17 @@ export const Constants = {
         "clear_to_close",
       ],
       los_sync_status_enum: ["pending", "synced", "error", "skipped"],
+      person_role_type: [
+        "Contact",
+        "Lead",
+        "Borrower",
+        "CoBorrower",
+        "Realtor",
+        "ReferralPartner",
+        "Builder",
+        "Attorney",
+        "Vendor",
+      ],
       role_on_deal: [
         "primary_borrower",
         "co_borrower",

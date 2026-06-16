@@ -14,6 +14,8 @@ import Dashboard from "@/pages/Dashboard";
 import Leads from "@/pages/Leads";
 import People from "@/pages/contacts/People";
 import Companies from "@/pages/contacts/Companies";
+import PeopleList from "@/pages/people/PeopleList";
+import PersonDetail from "@/pages/people/PersonDetail";
 import Pipeline from "@/pages/Pipeline";
 import SettingsPage from "@/pages/SettingsPage";
 import SettingsLayout from "@/pages/settings/SettingsLayout";
@@ -98,6 +100,8 @@ const App = () => (
                 <Route path="/contacts" element={<Navigate to="/contacts/people" replace />} />
                 <Route path="/contacts/people" element={<People />} />
                 <Route path="/contacts/companies" element={<Companies />} />
+                <Route path="/people" element={<PeopleList />} />
+                <Route path="/people/:id" element={<PersonDetail />} />
                 <Route path="/pipeline" element={<Pipeline />} />
                 <Route path="/pipeline/kanban" element={<Pipeline />} />
                 <Route path="/settings" element={<SettingsLayout />}>
