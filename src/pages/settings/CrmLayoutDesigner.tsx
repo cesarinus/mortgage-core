@@ -18,6 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   listModules, listSections, listFields, getDefaultLayout, saveLayout,
   listLayoutTemplates, saveLayoutTemplate, deleteLayoutTemplate,
+  remapTemplateLayoutForModule,
   APP_ROLES, ROLE_LABELS,
   type CrmModule, type CrmSection, type CrmField, type CrmLayout,
   type SectionLayoutEntry, type SectionWidth, type MobileVisibility, type AppRole,
@@ -76,6 +77,11 @@ export default function CrmLayoutDesigner() {
   const [saveTplOpen, setSaveTplOpen] = useState(false);
   const [tplName, setTplName] = useState("");
   const [tplDesc, setTplDesc] = useState("");
+  const [tplShared, setTplShared] = useState(true);
+
+  const APPLICANT_SLUGS = ["borrowers", "co_borrowers"] as const;
+  const currentModule = modules.find((m) => m.id === moduleId);
+  const isApplicantModule = !!currentModule && (APPLICANT_SLUGS as readonly string[]).includes((currentModule as any).slug);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -158,17 +164,33 @@ export default function CrmLayoutDesigner() {
   const saveAsTemplate = async () => {
     if (!tplName.trim()) return;
     try {
-      await saveLayoutTemplate({ module_id: moduleId, name: tplName.trim(), description: tplDesc.trim() || null, layout: { sections: working } });
+      await saveLayoutTemplate({
+        module_id: moduleId,
+        name: tplName.trim(),
+        description: tplDesc.trim() || null,
+        layout: { sections: working },
+        scope: isApplicantModule && tplShared ? "applicant_shared" : "module_only",
+      } as any);
       setTemplates(await listLayoutTemplates(moduleId));
-      setSaveTplOpen(false); setTplName(""); setTplDesc("");
+      setSaveTplOpen(false); setTplName(""); setTplDesc(""); setTplShared(true);
       toast({ title: "Template saved" });
     } catch (e: any) {
       toast({ title: "Save failed", description: e.message, variant: "destructive" });
     }
   };
 
-  const applyTemplate = (t: CrmLayoutTemplate) => {
-    const stored = t.layout?.sections ?? [];
+  const applyTemplate = async (t: CrmLayoutTemplate) => {
+    let stored = t.layout?.sections ?? [];
+    // Cross-module template (shared applicant template) — remap by slug/internal_name.
+    if (t.module_id !== moduleId) {
+      try {
+        const remapped = await remapTemplateLayoutForModule({ sections: stored }, t.module_id, moduleId);
+        stored = remapped.sections;
+      } catch (e: any) {
+        toast({ title: "Could not map template", description: e.message, variant: "destructive" });
+        return;
+      }
+    }
     // re-merge against current sections/fields
     const merged: SectionLayoutEntry[] = sections.map((sec, idx) => {
       const found = stored.find((x) => x.section_id === sec.id);
