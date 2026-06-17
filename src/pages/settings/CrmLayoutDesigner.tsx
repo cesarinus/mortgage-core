@@ -239,6 +239,9 @@ export default function CrmLayoutDesigner() {
                 <SelectItem key={t.id} value={t.id}>
                   <div className="flex items-center justify-between gap-3 w-full">
                     <span>{t.name}</span>
+                    {t.module_id !== moduleId && (
+                      <Badge variant="secondary" className="text-[10px]">Shared</Badge>
+                    )}
                   </div>
                 </SelectItem>
               ))}
@@ -399,7 +402,15 @@ export default function CrmLayoutDesigner() {
             {templates.map((t) => (
               <div key={t.id} className="flex items-center justify-between border rounded-md p-2 text-sm">
                 <div className="min-w-0">
-                  <div className="font-medium truncate">{t.name}</div>
+                  <div className="font-medium truncate flex items-center gap-2">
+                    {t.name}
+                    {(t as any).scope === "applicant_shared" && (
+                      <Badge variant="secondary" className="text-[10px]">Shared</Badge>
+                    )}
+                    {t.module_id !== moduleId && (
+                      <Badge variant="outline" className="text-[10px]">From sibling</Badge>
+                    )}
+                  </div>
                   {t.description && <div className="text-xs text-muted-foreground truncate">{t.description}</div>}
                 </div>
                 <div className="flex items-center gap-2">
@@ -422,6 +433,17 @@ export default function CrmLayoutDesigner() {
           <div className="space-y-3">
             <div><Label>Name</Label><Input value={tplName} onChange={(e) => setTplName(e.target.value)} placeholder="e.g. Loan Officer Layout" /></div>
             <div><Label>Description</Label><Textarea value={tplDesc} onChange={(e) => setTplDesc(e.target.value)} rows={2} /></div>
+            {isApplicantModule && (
+              <label className="flex items-start gap-2 text-sm">
+                <Checkbox checked={tplShared} onCheckedChange={(v) => setTplShared(!!v)} className="mt-0.5" />
+                <span>
+                  Share with Borrower &amp; Co-Borrower
+                  <span className="block text-xs text-muted-foreground">
+                    Template appears in both applicant sections. Fields are matched by name when applying.
+                  </span>
+                </span>
+              </label>
+            )}
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setSaveTplOpen(false)}>Cancel</Button>
