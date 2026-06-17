@@ -72,6 +72,7 @@ export interface CrmLayout {
 export interface CrmLayoutTemplate {
   id: string; module_id: string; name: string; description: string | null;
   layout: { sections: SectionLayoutEntry[] };
+  scope?: "module_only" | "applicant_shared";
   created_by: string | null; created_at: string; updated_at: string;
 }
 export interface CrmAuditLog {
@@ -289,11 +290,101 @@ export async function saveLayout(row: Partial<CrmLayout> & { id?: string }) {
 }
 
 // ---------- Layout Templates ----------
-export async function listLayoutTemplates(module_id: string): Promise<CrmLayoutTemplate[]> {
-  const { data, error } = await sb.from("crm_layout_templates").select("*")
-    .eq("module_id", module_id).order("created_at", { ascending: false });
+// Applicant modules share a template library. Saving from either Borrower or
+// Co-Borrower with scope "applicant_shared" makes the template appear in both.
+const APPLICANT_MODULE_SLUGS = ["borrowers", "co_borrowers"] as const;
+
+async function getApplicantModuleIds(): Promise<string[]> {
+  const { data, error } = await sb.from("crm_modules").select("id,slug")
+    .in("slug", APPLICANT_MODULE_SLUGS as unknown as string[]);
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []).map((r: any) => r.id as string);
+}
+
+export async function listLayoutTemplates(module_id: string): Promise<CrmLayoutTemplate[]> {
+  // Always include templates owned by this module.
+  const own = sb.from("crm_layout_templates").select("*")
+    .eq("module_id", module_id).order("created_at", { ascending: false });
+
+  // Check whether this module is part of the applicant group.
+  const { data: modRow } = await sb.from("crm_modules").select("slug").eq("id", module_id).maybeSingle();
+  const isApplicant = modRow && (APPLICANT_MODULE_SLUGS as readonly string[]).includes(modRow.slug);
+
+  const { data: ownData, error: ownErr } = await own;
+  if (ownErr) throw ownErr;
+  let rows: CrmLayoutTemplate[] = ownData ?? [];
+
+  if (isApplicant) {
+    const applicantIds = await getApplicantModuleIds();
+    const siblingIds = applicantIds.filter((id) => id !== module_id);
+    if (siblingIds.length) {
+      const { data: sharedData, error: sharedErr } = await sb.from("crm_layout_templates").select("*")
+        .in("module_id", siblingIds).eq("scope", "applicant_shared")
+        .order("created_at", { ascending: false });
+      if (sharedErr) throw sharedErr;
+      rows = [...rows, ...(sharedData ?? [])];
+    }
+  }
+
+  // De-dupe by id and sort newest first.
+  const seen = new Set<string>();
+  return rows
+    .filter((r) => (seen.has(r.id) ? false : (seen.add(r.id), true)))
+    .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+}
+
+/**
+ * Remap a template authored against `sourceModuleId` so that its section_id /
+ * field_id values point at the equivalent records in `targetModuleId`,
+ * matching by section.slug and field.internal_name. Fields/sections that have
+ * no counterpart in the target module are dropped silently.
+ */
+export async function remapTemplateLayoutForModule(
+  templateLayout: { sections: SectionLayoutEntry[] },
+  sourceModuleId: string,
+  targetModuleId: string,
+): Promise<{ sections: SectionLayoutEntry[] }> {
+  if (sourceModuleId === targetModuleId) return templateLayout;
+
+  const [srcSecs, tgtSecs, srcFields, tgtFields] = await Promise.all([
+    sb.from("crm_sections").select("id,slug").eq("module_id", sourceModuleId),
+    sb.from("crm_sections").select("id,slug").eq("module_id", targetModuleId),
+    sb.from("crm_fields").select("id,section_id,internal_name").eq("module_id", sourceModuleId),
+    sb.from("crm_fields").select("id,section_id,internal_name").eq("module_id", targetModuleId),
+  ]);
+
+  const srcSecById = new Map<string, string>((srcSecs.data ?? []).map((r: any) => [r.id, r.slug]));
+  const tgtSecBySlug = new Map<string, string>((tgtSecs.data ?? []).map((r: any) => [r.slug, r.id]));
+  const srcFieldById = new Map<string, { section_id: string; internal_name: string }>(
+    (srcFields.data ?? []).map((r: any) => [r.id, { section_id: r.section_id, internal_name: r.internal_name }])
+  );
+  // Lookup: `${sectionSlug}::${internal_name}` -> target field id
+  const tgtFieldKey = new Map<string, string>();
+  for (const f of (tgtFields.data ?? []) as any[]) {
+    const slug = (tgtSecs.data ?? []).find((s: any) => s.id === f.section_id)?.slug;
+    if (!slug) continue;
+    tgtFieldKey.set(`${slug}::${f.internal_name}`, f.id);
+  }
+
+  const mapped: SectionLayoutEntry[] = [];
+  for (const s of templateLayout.sections ?? []) {
+    const srcSlug = srcSecById.get(s.section_id);
+    if (!srcSlug) continue;
+    const tgtSecId = tgtSecBySlug.get(srcSlug);
+    if (!tgtSecId) continue;
+    const mappedFields = (s.fields ?? [])
+      .map((f) => {
+        const srcF = srcFieldById.get(f.field_id);
+        if (!srcF) return null;
+        const key = `${srcSlug}::${srcF.internal_name}`;
+        const tgtFieldId = tgtFieldKey.get(key);
+        if (!tgtFieldId) return null;
+        return { ...f, field_id: tgtFieldId };
+      })
+      .filter(Boolean) as SectionLayoutEntry["fields"];
+    mapped.push({ ...s, section_id: tgtSecId, fields: mappedFields });
+  }
+  return { sections: mapped };
 }
 export async function saveLayoutTemplate(row: Partial<CrmLayoutTemplate> & { id?: string }) {
   const { data: { user } } = await supabase.auth.getUser();

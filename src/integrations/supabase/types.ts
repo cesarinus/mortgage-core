@@ -1524,6 +1524,7 @@ export type Database = {
           layout: Json
           module_id: string
           name: string
+          scope: string
           updated_at: string
         }
         Insert: {
@@ -1534,6 +1535,7 @@ export type Database = {
           layout?: Json
           module_id: string
           name: string
+          scope?: string
           updated_at?: string
         }
         Update: {
@@ -1544,6 +1546,7 @@ export type Database = {
           layout?: Json
           module_id?: string
           name?: string
+          scope?: string
           updated_at?: string
         }
         Relationships: [

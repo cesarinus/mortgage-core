@@ -18,6 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   listModules, listSections, listFields, getDefaultLayout, saveLayout,
   listLayoutTemplates, saveLayoutTemplate, deleteLayoutTemplate,
+  remapTemplateLayoutForModule,
   APP_ROLES, ROLE_LABELS,
   type CrmModule, type CrmSection, type CrmField, type CrmLayout,
   type SectionLayoutEntry, type SectionWidth, type MobileVisibility, type AppRole,
@@ -76,6 +77,11 @@ export default function CrmLayoutDesigner() {
   const [saveTplOpen, setSaveTplOpen] = useState(false);
   const [tplName, setTplName] = useState("");
   const [tplDesc, setTplDesc] = useState("");
+  const [tplShared, setTplShared] = useState(true);
+
+  const APPLICANT_SLUGS = ["borrowers", "co_borrowers"] as const;
+  const currentModule = modules.find((m) => m.id === moduleId);
+  const isApplicantModule = !!currentModule && (APPLICANT_SLUGS as readonly string[]).includes((currentModule as any).slug);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -158,17 +164,33 @@ export default function CrmLayoutDesigner() {
   const saveAsTemplate = async () => {
     if (!tplName.trim()) return;
     try {
-      await saveLayoutTemplate({ module_id: moduleId, name: tplName.trim(), description: tplDesc.trim() || null, layout: { sections: working } });
+      await saveLayoutTemplate({
+        module_id: moduleId,
+        name: tplName.trim(),
+        description: tplDesc.trim() || null,
+        layout: { sections: working },
+        scope: isApplicantModule && tplShared ? "applicant_shared" : "module_only",
+      } as any);
       setTemplates(await listLayoutTemplates(moduleId));
-      setSaveTplOpen(false); setTplName(""); setTplDesc("");
+      setSaveTplOpen(false); setTplName(""); setTplDesc(""); setTplShared(true);
       toast({ title: "Template saved" });
     } catch (e: any) {
       toast({ title: "Save failed", description: e.message, variant: "destructive" });
     }
   };
 
-  const applyTemplate = (t: CrmLayoutTemplate) => {
-    const stored = t.layout?.sections ?? [];
+  const applyTemplate = async (t: CrmLayoutTemplate) => {
+    let stored = t.layout?.sections ?? [];
+    // Cross-module template (shared applicant template) — remap by slug/internal_name.
+    if (t.module_id !== moduleId) {
+      try {
+        const remapped = await remapTemplateLayoutForModule({ sections: stored }, t.module_id, moduleId);
+        stored = remapped.sections;
+      } catch (e: any) {
+        toast({ title: "Could not map template", description: e.message, variant: "destructive" });
+        return;
+      }
+    }
     // re-merge against current sections/fields
     const merged: SectionLayoutEntry[] = sections.map((sec, idx) => {
       const found = stored.find((x) => x.section_id === sec.id);
@@ -217,6 +239,9 @@ export default function CrmLayoutDesigner() {
                 <SelectItem key={t.id} value={t.id}>
                   <div className="flex items-center justify-between gap-3 w-full">
                     <span>{t.name}</span>
+                    {t.module_id !== moduleId && (
+                      <Badge variant="secondary" className="text-[10px]">Shared</Badge>
+                    )}
                   </div>
                 </SelectItem>
               ))}
@@ -377,7 +402,15 @@ export default function CrmLayoutDesigner() {
             {templates.map((t) => (
               <div key={t.id} className="flex items-center justify-between border rounded-md p-2 text-sm">
                 <div className="min-w-0">
-                  <div className="font-medium truncate">{t.name}</div>
+                  <div className="font-medium truncate flex items-center gap-2">
+                    {t.name}
+                    {(t as any).scope === "applicant_shared" && (
+                      <Badge variant="secondary" className="text-[10px]">Shared</Badge>
+                    )}
+                    {t.module_id !== moduleId && (
+                      <Badge variant="outline" className="text-[10px]">From sibling</Badge>
+                    )}
+                  </div>
                   {t.description && <div className="text-xs text-muted-foreground truncate">{t.description}</div>}
                 </div>
                 <div className="flex items-center gap-2">
@@ -400,6 +433,17 @@ export default function CrmLayoutDesigner() {
           <div className="space-y-3">
             <div><Label>Name</Label><Input value={tplName} onChange={(e) => setTplName(e.target.value)} placeholder="e.g. Loan Officer Layout" /></div>
             <div><Label>Description</Label><Textarea value={tplDesc} onChange={(e) => setTplDesc(e.target.value)} rows={2} /></div>
+            {isApplicantModule && (
+              <label className="flex items-start gap-2 text-sm">
+                <Checkbox checked={tplShared} onCheckedChange={(v) => setTplShared(!!v)} className="mt-0.5" />
+                <span>
+                  Share with Borrower &amp; Co-Borrower
+                  <span className="block text-xs text-muted-foreground">
+                    Template appears in both applicant sections. Fields are matched by name when applying.
+                  </span>
+                </span>
+              </label>
+            )}
           </div>
           <DialogFooter>
             <Button variant="ghost" onClick={() => setSaveTplOpen(false)}>Cancel</Button>
