@@ -72,6 +72,7 @@ export interface CrmLayout {
 export interface CrmLayoutTemplate {
   id: string; module_id: string; name: string; description: string | null;
   layout: { sections: SectionLayoutEntry[] };
+  scope?: "module_only" | "applicant_shared";
   created_by: string | null; created_at: string; updated_at: string;
 }
 export interface CrmAuditLog {
