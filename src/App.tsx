@@ -100,7 +100,7 @@ const App = () => (
                 <Route path="/contacts" element={<Navigate to="/contacts/people" replace />} />
                 <Route path="/contacts/people" element={<People />} />
                 <Route path="/contacts/companies" element={<Companies />} />
-                <Route path="/people" element={<PeopleList />} />
+                <Route path="/people" element={<Navigate to="/contacts/people" replace />} />
                 <Route path="/people/:id" element={<PersonDetail />} />
                 <Route path="/pipeline" element={<Pipeline />} />
                 <Route path="/pipeline/kanban" element={<Pipeline />} />
