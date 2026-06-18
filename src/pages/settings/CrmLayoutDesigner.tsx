@@ -18,7 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   listModules, listSections, listFields, getDefaultLayout, saveLayout,
   listLayoutTemplates, saveLayoutTemplate, deleteLayoutTemplate,
-  remapTemplateLayoutForModule,
+  remapTemplateLayoutForModuleDetailed,
   APP_ROLES, ROLE_LABELS,
   type CrmModule, type CrmSection, type CrmField, type CrmLayout,
   type SectionLayoutEntry, type SectionWidth, type MobileVisibility, type AppRole,
