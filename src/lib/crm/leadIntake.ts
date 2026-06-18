@@ -32,6 +32,8 @@ export interface IntakeData {
   primary_borrower_id?: string | null;
   co_borrower_id?: string | null;
   company_id?: string | null;
+  /** When the lead was created from / linked to an existing People record. */
+  person_id?: string | null;
   // Intent
   loan_purpose?: LoanPurpose | "";
   loan_type?: LoanTypeOpt | "";
@@ -58,6 +60,7 @@ export const EMPTY_INTAKE: IntakeData = {
   first_name: "", last_name: "", email: "", phone: "",
   source_id: null, preferred_contact_time: "", referral_source: "",
   primary_borrower_id: null, co_borrower_id: null, company_id: null,
+  person_id: null,
   loan_purpose: "", loan_type: "", refinance_type: "", cash_out_purpose: "",
   property_type: "", occupancy: "", timeline: "",
   property_value: null, down_payment: null, credit_range: "",
