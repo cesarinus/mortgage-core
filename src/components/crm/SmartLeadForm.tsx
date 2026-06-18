@@ -21,6 +21,11 @@ import {
 } from "@/lib/crm/leadIntake";
 import { RecordLookup } from "@/components/crm/RecordLookup";
 import { fetchAllContacts, fetchAllCompanies } from "@/lib/crm/queries";
+import { BorrowerLookupDropdown } from "@/components/crm/BorrowerLookupDropdown";
+import { AddressAutocomplete } from "@/components/crm/AddressAutocomplete";
+import { resolvePersonFromLookup } from "@/lib/people/lookup";
+import { createPerson } from "@/lib/people/api";
+import { Link2 } from "lucide-react";
 
 interface Props {
   leadId?: string | null;
@@ -59,6 +64,7 @@ export function SmartLeadForm({ leadId, initial, sources = [], onSaved, onCancel
   });
   const [emailDup, setEmailDup] = useState<{ id: string; name: string; email: string } | null>(null);
   const [checkingEmail, setCheckingEmail] = useState(false);
+  const [linkedPersonLabel, setLinkedPersonLabel] = useState<string | null>(null);
   useEffect(() => {
     fetchAllContacts().then(setContactsList).catch(() => {});
     fetchAllCompanies().then(setCompaniesList).catch(() => {});
@@ -221,6 +227,59 @@ export function SmartLeadForm({ leadId, initial, sources = [], onSaved, onCancel
             )}
           </Field>
           <Field label="Phone"><Input value={data.phone} onChange={e => set("phone", e.target.value)} /></Field>
+          {!leadId && (
+            <div className="col-span-2">
+              {linkedPersonLabel ? (
+                <div className="rounded-md border bg-emerald-500/10 border-emerald-500/30 px-3 py-2 flex items-center gap-2 text-sm">
+                  <Link2 className="h-4 w-4 text-emerald-600" />
+                  <span className="flex-1">
+                    Linked to existing person: <span className="font-medium">{linkedPersonLabel}</span>.
+                    Information loaded — no duplicate will be created.
+                  </span>
+                  <button
+                    type="button"
+                    className="text-xs text-muted-foreground hover:text-foreground underline"
+                    onClick={() => { set("person_id", null); setLinkedPersonLabel(null); }}
+                  >
+                    Unlink
+                  </button>
+                </div>
+              ) : (
+                <BorrowerLookupDropdown
+                  query={{ name: `${data.first_name} ${data.last_name}`.trim(), email: data.email, phone: data.phone }}
+                  onPick={async (r) => {
+                    try {
+                      const person = await resolvePersonFromLookup(r);
+                      const resolved = person ?? (await createPerson({
+                        first_name: r.firstName || data.first_name || "",
+                        last_name: r.lastName || data.last_name || "",
+                        email: r.email,
+                        phone: r.phone,
+                        company: r.company,
+                        city: r.city,
+                        zip: r.zip,
+                      }, ["Borrower"]));
+                      setData((d) => ({
+                        ...d,
+                        first_name: resolved.first_name || r.firstName || d.first_name,
+                        last_name: resolved.last_name || r.lastName || d.last_name,
+                        email: resolved.email ?? r.email ?? d.email,
+                        phone: resolved.phone ?? r.phone ?? d.phone,
+                        person_id: resolved.id,
+                      }));
+                      setLinkedPersonLabel(resolved.full_name || `${resolved.first_name} ${resolved.last_name}`.trim());
+                      toast({
+                        title: r.source === "portal" ? "Portal applicant linked" : "Existing person found",
+                        description: "Information loaded. We won't create a duplicate.",
+                      });
+                    } catch (e: any) {
+                      toast({ title: "Could not link record", description: e?.message, variant: "destructive" });
+                    }
+                  }}
+                />
+              )}
+            </div>
+          )}
           <Field label="Source">
             <Select value={data.source_id ?? ""} onValueChange={v => set("source_id", v || null)}>
               <SelectTrigger><SelectValue placeholder="Select source" /></SelectTrigger>
@@ -413,10 +472,17 @@ export function SmartLeadForm({ leadId, initial, sources = [], onSaved, onCancel
             />
           </Field>
           <Field label="Property address (required to move to Pipeline)" className="col-span-2">
-            <Input
-              placeholder="123 Main St, City, ST 00000"
+            <AddressAutocomplete
               value={data.property_address ?? ""}
-              onChange={e => set("property_address", e.target.value)}
+              onChange={(v) => set("property_address", v)}
+              onResolved={(addr) => {
+                set("property_address", addr.formatted);
+                toast({
+                  title: "Address selected",
+                  description: [addr.city, addr.state, addr.zip].filter(Boolean).join(", "),
+                });
+              }}
+              placeholder="123 Main St, City, ST 00000"
             />
           </Field>
           <Field
