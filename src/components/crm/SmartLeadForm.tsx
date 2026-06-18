@@ -24,7 +24,6 @@ import { fetchAllContacts, fetchAllCompanies } from "@/lib/crm/queries";
 import { BorrowerLookupDropdown } from "@/components/crm/BorrowerLookupDropdown";
 import { AddressAutocomplete } from "@/components/crm/AddressAutocomplete";
 import { resolvePersonFromLookup } from "@/lib/people/lookup";
-import type { LookupResult } from "@/lib/people/lookup";
 import { createPerson } from "@/lib/people/api";
 import { Link2 } from "lucide-react";
 
