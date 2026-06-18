@@ -217,6 +217,7 @@ export async function saveLeadIntake(
     notes: data.notes || null,
     company_id: data.company_id || null,
     co_borrower_id: data.co_borrower_id || null,
+    person_id: data.person_id || null,
   };
 
   let leadId = existingLeadId;
