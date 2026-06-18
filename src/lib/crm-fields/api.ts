@@ -301,6 +301,21 @@ async function getApplicantModuleIds(): Promise<string[]> {
   return (data ?? []).map((r: any) => r.id as string);
 }
 
+// Applicant field names use a prefix that identifies which applicant they
+// belong to. When a template is shared across the Borrower / Co-Borrower pair
+// we accept either prefix and translate to the target module's convention.
+const APPLICANT_PREFIXES = ["borrower_", "coborrower_", "co_borrower_"] as const;
+function applicantInternalNameVariants(name: string): string[] {
+  const variants = new Set<string>([name]);
+  for (const p of APPLICANT_PREFIXES) {
+    if (name.startsWith(p)) {
+      const stem = name.slice(p.length);
+      for (const q of APPLICANT_PREFIXES) variants.add(q + stem);
+    }
+  }
+  return Array.from(variants);
+}
+
 export async function listLayoutTemplates(module_id: string): Promise<CrmLayoutTemplate[]> {
   // Always include templates owned by this module.
   const own = sb.from("crm_layout_templates").select("*")
@@ -339,52 +354,103 @@ export async function listLayoutTemplates(module_id: string): Promise<CrmLayoutT
  * matching by section.slug and field.internal_name. Fields/sections that have
  * no counterpart in the target module are dropped silently.
  */
+export interface TemplateRemapReport {
+  layout: { sections: SectionLayoutEntry[] };
+  sectionsMapped: number;
+  sectionsMissing: string[]; // labels of dropped sections
+  fieldsMapped: number;
+  fieldsMissing: Array<{ section: string; field: string }>;
+}
+
+export async function remapTemplateLayoutForModuleDetailed(
+  templateLayout: { sections: SectionLayoutEntry[] },
+  sourceModuleId: string,
+  targetModuleId: string,
+): Promise<TemplateRemapReport> {
+  const empty: TemplateRemapReport = {
+    layout: templateLayout,
+    sectionsMapped: templateLayout.sections?.length ?? 0,
+    sectionsMissing: [],
+    fieldsMapped: (templateLayout.sections ?? []).reduce((n, s) => n + (s.fields?.length ?? 0), 0),
+    fieldsMissing: [],
+  };
+  if (sourceModuleId === targetModuleId) return empty;
+
+  const [srcSecs, tgtSecs, srcFields, tgtFields] = await Promise.all([
+    sb.from("crm_sections").select("id,slug,label").eq("module_id", sourceModuleId),
+    sb.from("crm_sections").select("id,slug,label").eq("module_id", targetModuleId),
+    sb.from("crm_fields").select("id,section_id,internal_name,label").eq("module_id", sourceModuleId),
+    sb.from("crm_fields").select("id,section_id,internal_name").eq("module_id", targetModuleId),
+  ]);
+
+  const srcSecById = new Map<string, { slug: string; label: string }>(
+    (srcSecs.data ?? []).map((r: any) => [r.id, { slug: r.slug, label: r.label }])
+  );
+  const tgtSecBySlug = new Map<string, string>((tgtSecs.data ?? []).map((r: any) => [r.slug, r.id]));
+  const tgtSecSlugById = new Map<string, string>((tgtSecs.data ?? []).map((r: any) => [r.id, r.slug]));
+  const srcFieldById = new Map<string, { section_id: string; internal_name: string; label: string }>(
+    (srcFields.data ?? []).map((r: any) => [r.id, { section_id: r.section_id, internal_name: r.internal_name, label: r.label }])
+  );
+  // Lookup: `${sectionSlug}::${internal_name}` -> target field id
+  const tgtFieldKey = new Map<string, string>();
+  for (const f of (tgtFields.data ?? []) as any[]) {
+    const slug = tgtSecSlugById.get(f.section_id);
+    if (!slug) continue;
+    tgtFieldKey.set(`${slug}::${f.internal_name}`, f.id);
+  }
+
+  const report: TemplateRemapReport = {
+    layout: { sections: [] },
+    sectionsMapped: 0,
+    sectionsMissing: [],
+    fieldsMapped: 0,
+    fieldsMissing: [],
+  };
+
+  for (const s of templateLayout.sections ?? []) {
+    const src = srcSecById.get(s.section_id);
+    if (!src) {
+      report.sectionsMissing.push(s.section_id);
+      continue;
+    }
+    const tgtSecId = tgtSecBySlug.get(src.slug);
+    if (!tgtSecId) {
+      report.sectionsMissing.push(src.label || src.slug);
+      continue;
+    }
+    report.sectionsMapped += 1;
+    const mappedFields: SectionLayoutEntry["fields"] = [];
+    for (const f of s.fields ?? []) {
+      const srcF = srcFieldById.get(f.field_id);
+      if (!srcF) {
+        report.fieldsMissing.push({ section: src.label, field: f.field_id });
+        continue;
+      }
+      // Try direct then prefix-tolerant lookups.
+      let tgtFieldId: string | undefined;
+      for (const variant of applicantInternalNameVariants(srcF.internal_name)) {
+        tgtFieldId = tgtFieldKey.get(`${src.slug}::${variant}`);
+        if (tgtFieldId) break;
+      }
+      if (!tgtFieldId) {
+        report.fieldsMissing.push({ section: src.label, field: srcF.label || srcF.internal_name });
+        continue;
+      }
+      mappedFields.push({ ...f, field_id: tgtFieldId });
+      report.fieldsMapped += 1;
+    }
+    report.layout.sections.push({ ...s, section_id: tgtSecId, fields: mappedFields });
+  }
+  return report;
+}
+
 export async function remapTemplateLayoutForModule(
   templateLayout: { sections: SectionLayoutEntry[] },
   sourceModuleId: string,
   targetModuleId: string,
 ): Promise<{ sections: SectionLayoutEntry[] }> {
-  if (sourceModuleId === targetModuleId) return templateLayout;
-
-  const [srcSecs, tgtSecs, srcFields, tgtFields] = await Promise.all([
-    sb.from("crm_sections").select("id,slug").eq("module_id", sourceModuleId),
-    sb.from("crm_sections").select("id,slug").eq("module_id", targetModuleId),
-    sb.from("crm_fields").select("id,section_id,internal_name").eq("module_id", sourceModuleId),
-    sb.from("crm_fields").select("id,section_id,internal_name").eq("module_id", targetModuleId),
-  ]);
-
-  const srcSecById = new Map<string, string>((srcSecs.data ?? []).map((r: any) => [r.id, r.slug]));
-  const tgtSecBySlug = new Map<string, string>((tgtSecs.data ?? []).map((r: any) => [r.slug, r.id]));
-  const srcFieldById = new Map<string, { section_id: string; internal_name: string }>(
-    (srcFields.data ?? []).map((r: any) => [r.id, { section_id: r.section_id, internal_name: r.internal_name }])
-  );
-  // Lookup: `${sectionSlug}::${internal_name}` -> target field id
-  const tgtFieldKey = new Map<string, string>();
-  for (const f of (tgtFields.data ?? []) as any[]) {
-    const slug = (tgtSecs.data ?? []).find((s: any) => s.id === f.section_id)?.slug;
-    if (!slug) continue;
-    tgtFieldKey.set(`${slug}::${f.internal_name}`, f.id);
-  }
-
-  const mapped: SectionLayoutEntry[] = [];
-  for (const s of templateLayout.sections ?? []) {
-    const srcSlug = srcSecById.get(s.section_id);
-    if (!srcSlug) continue;
-    const tgtSecId = tgtSecBySlug.get(srcSlug);
-    if (!tgtSecId) continue;
-    const mappedFields = (s.fields ?? [])
-      .map((f) => {
-        const srcF = srcFieldById.get(f.field_id);
-        if (!srcF) return null;
-        const key = `${srcSlug}::${srcF.internal_name}`;
-        const tgtFieldId = tgtFieldKey.get(key);
-        if (!tgtFieldId) return null;
-        return { ...f, field_id: tgtFieldId };
-      })
-      .filter(Boolean) as SectionLayoutEntry["fields"];
-    mapped.push({ ...s, section_id: tgtSecId, fields: mappedFields });
-  }
-  return { sections: mapped };
+  const r = await remapTemplateLayoutForModuleDetailed(templateLayout, sourceModuleId, targetModuleId);
+  return r.layout;
 }
 export async function saveLayoutTemplate(row: Partial<CrmLayoutTemplate> & { id?: string }) {
   const { data: { user } } = await supabase.auth.getUser();
