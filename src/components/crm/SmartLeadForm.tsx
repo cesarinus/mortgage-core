@@ -21,6 +21,12 @@ import {
 } from "@/lib/crm/leadIntake";
 import { RecordLookup } from "@/components/crm/RecordLookup";
 import { fetchAllContacts, fetchAllCompanies } from "@/lib/crm/queries";
+import { BorrowerLookupDropdown } from "@/components/crm/BorrowerLookupDropdown";
+import { AddressAutocomplete } from "@/components/crm/AddressAutocomplete";
+import { resolvePersonFromLookup } from "@/lib/people/lookup";
+import type { LookupResult } from "@/lib/people/lookup";
+import { createPerson } from "@/lib/people/api";
+import { Link2 } from "lucide-react";
 
 interface Props {
   leadId?: string | null;
@@ -59,6 +65,7 @@ export function SmartLeadForm({ leadId, initial, sources = [], onSaved, onCancel
   });
   const [emailDup, setEmailDup] = useState<{ id: string; name: string; email: string } | null>(null);
   const [checkingEmail, setCheckingEmail] = useState(false);
+  const [linkedPersonLabel, setLinkedPersonLabel] = useState<string | null>(null);
   useEffect(() => {
     fetchAllContacts().then(setContactsList).catch(() => {});
     fetchAllCompanies().then(setCompaniesList).catch(() => {});
