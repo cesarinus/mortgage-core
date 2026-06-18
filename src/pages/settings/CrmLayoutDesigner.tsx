@@ -184,8 +184,24 @@ export default function CrmLayoutDesigner() {
     // Cross-module template (shared applicant template) — remap by slug/internal_name.
     if (t.module_id !== moduleId) {
       try {
-        const remapped = await remapTemplateLayoutForModule({ sections: stored }, t.module_id, moduleId);
-        stored = remapped.sections;
+        const report = await remapTemplateLayoutForModuleDetailed(
+          { sections: stored }, t.module_id, moduleId,
+        );
+        stored = report.layout.sections;
+        const missingParts: string[] = [];
+        if (report.sectionsMissing.length) missingParts.push(`${report.sectionsMissing.length} section(s)`);
+        if (report.fieldsMissing.length) missingParts.push(`${report.fieldsMissing.length} field(s)`);
+        if (missingParts.length) {
+          toast({
+            title: "Template partially compatible",
+            description: `${report.sectionsMapped} sections / ${report.fieldsMapped} fields mapped. Skipped: ${missingParts.join(", ")}.`,
+          });
+        } else {
+          toast({
+            title: "Template fully compatible",
+            description: `${report.sectionsMapped} sections / ${report.fieldsMapped} fields mapped.`,
+          });
+        }
       } catch (e: any) {
         toast({ title: "Could not map template", description: e.message, variant: "destructive" });
         return;
