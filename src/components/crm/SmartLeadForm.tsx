@@ -473,10 +473,17 @@ export function SmartLeadForm({ leadId, initial, sources = [], onSaved, onCancel
             />
           </Field>
           <Field label="Property address (required to move to Pipeline)" className="col-span-2">
-            <Input
-              placeholder="123 Main St, City, ST 00000"
+            <AddressAutocomplete
               value={data.property_address ?? ""}
-              onChange={e => set("property_address", e.target.value)}
+              onChange={(v) => set("property_address", v)}
+              onResolved={(addr) => {
+                set("property_address", addr.formatted);
+                toast({
+                  title: "Address selected",
+                  description: [addr.city, addr.state, addr.zip].filter(Boolean).join(", "),
+                });
+              }}
+              placeholder="123 Main St, City, ST 00000"
             />
           </Field>
           <Field
