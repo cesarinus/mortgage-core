@@ -90,43 +90,41 @@ export async function getRateMonitor(): Promise<RateRow[]> {
 export type ReferralPartner = { id: string; name: string; company: string | null; loans: number; volume: number };
 
 export async function getReferralPartners(limit = 5): Promise<ReferralPartner[]> {
-  const { data: roles } = await supabase
-    .from("person_roles")
-    .select("person_id")
-    .eq("role_type", "ReferralPartner");
-  const ids = (roles ?? []).map((r: any) => r.person_id);
-  if (ids.length === 0) return [];
-  const { data: people } = await supabase
-    .from("people")
-    .select("id,full_name,company")
-    .in("id", ids);
-  const { data: leads } = await supabase
-    .from("leads")
-    .select("id,referral_partner_id")
-    .in("referral_partner_id", ids);
-  const leadIds = (leads ?? []).map((l: any) => l.id);
-  const partnerByLead = new Map<string, string>((leads ?? []).map((l: any) => [l.id, l.referral_partner_id]));
-  let opps: any[] = [];
-  if (leadIds.length) {
-    const { data } = await supabase
-      .from("pipeline_opportunities")
-      .select("lead_id,loan_amount,stage")
-      .in("lead_id", leadIds);
-    opps = data ?? [];
-  }
-  const agg = new Map<string, { loans: number; volume: number }>();
-  opps.forEach((o) => {
-    const pid = partnerByLead.get(o.lead_id);
-    if (!pid) return;
-    const cur = agg.get(pid) ?? { loans: 0, volume: 0 };
-    cur.loans += 1;
-    cur.volume += Number(o.loan_amount || 0);
-    agg.set(pid, cur);
+  const { data: lcs } = await supabase
+    .from("lead_contacts")
+    .select("lead_id,contact_id,role,role_on_deal");
+  const partnerRows = (lcs ?? []).filter((r: any) => {
+    const blob = `${r.role ?? ""} ${r.role_on_deal ?? ""}`.toLowerCase();
+    return blob.includes("referral") || blob.includes("partner") || blob.includes("realtor");
   });
-  return (people ?? [])
-    .map((p: any) => ({
-      id: p.id, name: p.full_name, company: p.company,
-      loans: agg.get(p.id)?.loans ?? 0, volume: agg.get(p.id)?.volume ?? 0,
+  if (partnerRows.length === 0) return [];
+  const contactIds = Array.from(new Set(partnerRows.map((r: any) => r.contact_id).filter(Boolean)));
+  const leadIds = Array.from(new Set(partnerRows.map((r: any) => r.lead_id).filter(Boolean)));
+  const [{ data: contacts }, { data: opps }] = await Promise.all([
+    supabase.from("contacts").select("id,first_name,last_name,company_id").in("id", contactIds),
+    leadIds.length
+      ? supabase.from("pipeline_opportunities").select("lead_id,loan_amount").in("lead_id", leadIds)
+      : Promise.resolve({ data: [] as any[] }),
+  ]);
+  const volByLead = new Map<string, number>();
+  (opps ?? []).forEach((o: any) => {
+    volByLead.set(o.lead_id, (volByLead.get(o.lead_id) ?? 0) + Number(o.loan_amount || 0));
+  });
+  const agg = new Map<string, { loans: number; volume: number }>();
+  partnerRows.forEach((r: any) => {
+    if (!r.contact_id) return;
+    const cur = agg.get(r.contact_id) ?? { loans: 0, volume: 0 };
+    cur.loans += 1;
+    cur.volume += volByLead.get(r.lead_id) ?? 0;
+    agg.set(r.contact_id, cur);
+  });
+  return (contacts ?? [])
+    .map((c: any) => ({
+      id: c.id,
+      name: `${c.first_name ?? ""} ${c.last_name ?? ""}`.trim() || "Unknown",
+      company: null,
+      loans: agg.get(c.id)?.loans ?? 0,
+      volume: agg.get(c.id)?.volume ?? 0,
     }))
     .filter((p) => p.loans > 0)
     .sort((a, b) => b.volume - a.volume)
@@ -141,7 +139,7 @@ export async function getScorecard(userId: string): Promise<ScorecardRow[]> {
 
   const [callsR, oppsR, targetsR] = await Promise.all([
     supabase.from("crm_calls").select("id", { count: "exact", head: true }).gte("created_at", startIso).eq("created_by", userId),
-    supabase.from("pipeline_opportunities").select("id,stage,close_date,loan_officer_id,created_at").or(`loan_officer_id.eq.${userId},created_by.eq.${userId}`),
+    supabase.from("pipeline_opportunities").select("id,stage,close_date,created_at,created_by").eq("created_by", userId),
     supabase.from("user_targets").select("*").eq("user_id", userId).maybeSingle(),
   ]);
 
