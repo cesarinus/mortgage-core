@@ -1,8 +1,20 @@
 import { useEffect, useRef, useState } from "react";
 import { searchBorrowers, type LookupResult } from "@/lib/people/lookup";
 import { Badge } from "@/components/ui/badge";
-import { User, Globe, Briefcase, Loader2 } from "lucide-react";
+import { User, Globe, Briefcase, Loader2, MapPin, Clock, FileCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+function formatRelative(iso?: string | null): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  const diffMs = Date.now() - d.getTime();
+  const days = Math.floor(diffMs / 86400000);
+  if (days <= 0) return "today";
+  if (days === 1) return "1 day ago";
+  if (days < 30) return `${days} days ago`;
+  const months = Math.floor(days / 30);
+  return months === 1 ? "1 month ago" : `${months} months ago`;
+}
 
 interface Props {
   query: { name?: string; email?: string; phone?: string };
@@ -97,6 +109,27 @@ export function BorrowerLookupDropdown({ query, onPick }: Props) {
               <div className="text-xs text-muted-foreground truncate">
                 {[r.email, r.phone, r.company, r.city].filter(Boolean).join(" · ")}
               </div>
+              {r.source === "portal" && r.meta && (
+                <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
+                  {r.meta.last_login_at && (
+                    <span className="inline-flex items-center gap-1">
+                      <Clock className="h-3 w-3" /> Last login {formatRelative(r.meta.last_login_at)}
+                    </span>
+                  )}
+                  {typeof r.meta.documents_uploaded === "number" && (
+                    <span className="inline-flex items-center gap-1">
+                      <FileCheck className="h-3 w-3" />
+                      {r.meta.documents_uploaded}/{r.meta.documents_required} docs
+                    </span>
+                  )}
+                  {r.meta.property_address && (
+                    <span className="inline-flex items-center gap-1 truncate max-w-[18rem]">
+                      <MapPin className="h-3 w-3" /> {r.meta.property_address}
+                    </span>
+                  )}
+                  {r.meta.loan_type && <span>{r.meta.loan_type}</span>}
+                </div>
+              )}
             </div>
             <span className="text-[11px] text-primary self-center shrink-0">Use</span>
           </button>

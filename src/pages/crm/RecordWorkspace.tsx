@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { LeftRail } from "@/components/crm/LeftRail";
 import { RightRail } from "@/components/crm/RightRail";
+import { PortalIntelligencePanel } from "@/components/crm/PortalIntelligencePanel";
 import AriveExportCard from "@/components/crm/AriveExportCard";
 import LosSyncCard from "@/components/crm/LosSyncCard";
 import { CatchUpTab } from "@/components/crm/tabs/CatchUpTab";
@@ -539,7 +540,11 @@ export default function RecordWorkspace({ kind }: Props) {
         </main>
 
         <aside className="col-span-12 lg:col-span-3">
-          <RightRail
+          <div className="space-y-4 sticky top-4 self-start">
+            {kind === "lead" && id && (
+              <PortalIntelligencePanel leadId={id} />
+            )}
+            <RightRail
             companies={companies}
             deals={kind === "lead" ? opportunities : deals}
             contacts={(() => {
@@ -560,7 +565,8 @@ export default function RecordWorkspace({ kind }: Props) {
             onSignedUrl={onSignedUrl}
             onRemoveContact={handleRemoveContact}
             onRemoveCompany={handleRemoveCompany}
-          />
+            />
+          </div>
         </aside>
       </div>
 

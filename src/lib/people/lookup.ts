@@ -119,48 +119,45 @@ export async function searchBorrowers(input: {
 
   // 3. Borrower Portal users — join via lead.email/phone since portal_users keys to deals/leads
   try {
-    if (email || phone) {
-      let lq = supabase.from("leads").select("id, first_name, last_name, email, phone").limit(8);
-      const ors: string[] = [];
-      if (email) ors.push(`email.ilike.${email}`);
-      if (phone) ors.push(`phone.ilike.%${phone.slice(-7)}%`);
-      if (ors.length) lq = lq.or(ors.join(","));
-      const { data: leadRows } = await lq;
-      const leadIds = (leadRows ?? []).map((l: any) => l.id);
-      if (leadIds.length > 0) {
-        const { data: pus } = await supabase
-          .from("portal_users")
-          .select("user_id, deal_id, lead_id, created_at")
-          .in("lead_id", leadIds);
-        for (const pu of pus ?? []) {
-          const lead = (leadRows ?? []).find((l: any) => l.id === (pu as any).lead_id);
-          if (!lead) continue;
-          const full = `${(lead as any).first_name ?? ""} ${(lead as any).last_name ?? ""}`.trim();
-          const r: LookupResult = {
-            source: "portal",
-            personId: null,
-            leadId: (lead as any).id,
-            fullName: full || "(portal user)",
-            firstName: (lead as any).first_name ?? "",
-            lastName: (lead as any).last_name ?? "",
-            email: (lead as any).email ?? null,
-            phone: (lead as any).phone ?? null,
-            company: null,
-            city: null,
-            zip: null,
-            confidence: "High",
-            matchReason: "portal_user",
-            badge: "Borrower Portal",
-            meta: {
-              deal_id: (pu as any).deal_id,
-              portal_user_id: (pu as any).user_id,
-              joined_at: (pu as any).created_at,
-            },
-          };
-          const key = dedupeKey(r);
-          if (!seen.has(key)) { seen.add(key); out.push(r); }
-        }
-      }
+    const { data: portal } = await (supabase as any).rpc("search_portal_applicants", {
+      _email: email ?? null,
+      _phone: phone ?? null,
+      _name: name || null,
+    });
+    for (const p of (portal ?? []) as any[]) {
+      const split = splitName(p.full_name ?? "");
+      const pct = Number(p.completion_pct ?? 0);
+      const r: LookupResult = {
+        source: "portal",
+        personId: p.person_id ?? null,
+        leadId: p.lead_id ?? null,
+        fullName: p.full_name || p.email || "(portal applicant)",
+        firstName: split.first,
+        lastName: split.last,
+        email: p.email ?? null,
+        phone: p.phone ?? null,
+        company: null,
+        city: null,
+        zip: null,
+        confidence: (p.confidence ?? "Medium") as LookupResult["confidence"],
+        matchReason: p.match_reason ?? "portal",
+        badge: `Borrower Portal · ${pct}% complete`,
+        meta: {
+          portal_user_id: p.portal_user_id,
+          deal_id: p.deal_id,
+          completion_pct: pct,
+          documents_uploaded: p.documents_uploaded,
+          documents_required: p.documents_required,
+          last_login_at: p.last_login_at,
+          started_at: p.started_at,
+          property_address: p.property_address,
+          loan_amount: p.loan_amount,
+          loan_type: p.loan_type,
+          stage: p.stage,
+        },
+      };
+      const key = dedupeKey(r);
+      if (!seen.has(key)) { seen.add(key); out.push(r); }
     }
   } catch {/* ignore */}
 
