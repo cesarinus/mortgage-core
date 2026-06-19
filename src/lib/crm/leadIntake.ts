@@ -34,6 +34,8 @@ export interface IntakeData {
   company_id?: string | null;
   /** When the lead was created from / linked to an existing People record. */
   person_id?: string | null;
+  /** When the lead was created from / linked to a Borrower Portal applicant. */
+  portal_user_id?: string | null;
   // Intent
   loan_purpose?: LoanPurpose | "";
   loan_type?: LoanTypeOpt | "";
