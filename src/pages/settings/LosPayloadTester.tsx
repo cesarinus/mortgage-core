@@ -8,6 +8,7 @@ import { Loader2, Play, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { loadMappings, type LosFieldMapping } from "@/lib/los/mappings";
 import { buildLosPayload } from "@/lib/los/buildPayload";
 import { computeReadiness } from "@/lib/los/readiness";
+import { buildLeadContext, type LeadContext } from "@/lib/los/leadContext";
 import { fireZapier } from "@/lib/integrations/zapier";
 import { useToast } from "@/hooks/use-toast";
 
@@ -16,6 +17,8 @@ export default function LosPayloadTester() {
   const [leads, setLeads] = useState<any[]>([]);
   const [leadId, setLeadId] = useState<string>("");
   const [mappings, setMappings] = useState<LosFieldMapping[]>([]);
+  const [context, setContext] = useState<LeadContext | null>(null);
+  const [resolving, setResolving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
 
@@ -32,8 +35,25 @@ export default function LosPayloadTester() {
   }, []);
 
   const lead = useMemo(() => leads.find((l) => l.id === leadId), [leads, leadId]);
-  const built = useMemo(() => (lead ? buildLosPayload(lead, mappings) : null), [lead, mappings]);
-  const readiness = useMemo(() => (lead ? computeReadiness(lead, mappings) : null), [lead, mappings]);
+
+  useEffect(() => {
+    if (!leadId) { setContext(null); return; }
+    let cancelled = false;
+    setResolving(true);
+    buildLeadContext(leadId)
+      .then((ctx) => { if (!cancelled) setContext(ctx); })
+      .finally(() => { if (!cancelled) setResolving(false); });
+    return () => { cancelled = true; };
+  }, [leadId]);
+
+  const built = useMemo(
+    () => (context ? buildLosPayload(context, mappings) : null),
+    [context, mappings],
+  );
+  const readiness = useMemo(
+    () => (context ? computeReadiness(context, mappings) : null),
+    [context, mappings],
+  );
 
   const handleSend = async () => {
     if (!built || !lead) return;
@@ -52,7 +72,7 @@ export default function LosPayloadTester() {
     <div className="space-y-4 max-w-5xl">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">LOS Payload Tester</h1>
-        <p className="text-muted-foreground text-sm">Pick any lead, preview the generated payload, see validation issues, and optionally send a test fire to Zapier.</p>
+        <p className="text-muted-foreground text-sm">Pick any lead, preview the generated payload, see validation issues, and optionally send a test fire to Zapier. Field values are resolved through the canonical lead context (leads + mortgage profile + loan scenario + assigned LO profile).</p>
       </div>
 
       <Card>
@@ -72,6 +92,7 @@ export default function LosPayloadTester() {
             {sending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Play className="h-4 w-4 mr-1" />}
             Send test payload
           </Button>
+          {resolving && <span className="text-xs text-muted-foreground flex items-center gap-1"><Loader2 className="h-3 w-3 animate-spin" /> Resolving lead context…</span>}
         </CardContent>
       </Card>
 

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -7,6 +7,7 @@ import SendToLosButton from "./SendToLosButton";
 import AriveExportPreviewDialog from "./AriveExportPreviewDialog";
 import ExportDebugPanel from "./ExportDebugPanel";
 import { validateAriveLead } from "@/lib/los/ariveValidate";
+import { buildLeadContext, type LeadContext } from "@/lib/los/leadContext";
 
 interface Props {
   lead: any;
@@ -16,8 +17,21 @@ interface Props {
 }
 
 export default function AriveExportCard({ lead, opportunity, mortgageProfile, onSent }: Props) {
-  const validation = useMemo(() => validateAriveLead(lead, mortgageProfile), [lead, mortgageProfile]);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [context, setContext] = useState<LeadContext | null>(null);
+
+  useEffect(() => {
+    if (!lead?.id) return;
+    let cancelled = false;
+    buildLeadContext(lead.id).then((ctx) => { if (!cancelled) setContext(ctx); });
+    return () => { cancelled = true; };
+  }, [lead?.id, refreshKey]);
+
+  // Validate against the canonical context (falls back to raw lead while resolving).
+  const validation = useMemo(
+    () => validateAriveLead(context ?? lead, mortgageProfile),
+    [context, lead, mortgageProfile],
+  );
 
   const blockers = validation.errors.slice(0, 4);
 
@@ -53,13 +67,13 @@ export default function AriveExportCard({ lead, opportunity, mortgageProfile, on
           )}
           <div className="space-y-2">
             <SendToLosButton
-              lead={lead}
+              lead={context ?? lead}
               opportunity={opportunity}
               mortgageProfile={mortgageProfile}
               onSent={() => { setRefreshKey((k) => k + 1); onSent?.(); }}
             />
             <AriveExportPreviewDialog
-              lead={lead}
+              lead={context ?? lead}
               mortgageProfile={mortgageProfile}
               onConfirm={() => { /* SendToLosButton handles confirmation flow */ }}
               triggerLabel="Preview ARIVE payload"
