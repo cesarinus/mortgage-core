@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { LeftRail } from "@/components/crm/LeftRail";
 import { RightRail } from "@/components/crm/RightRail";
+import { PortalIntelligencePanel } from "@/components/crm/PortalIntelligencePanel";
 import AriveExportCard from "@/components/crm/AriveExportCard";
 import LosSyncCard from "@/components/crm/LosSyncCard";
 import { CatchUpTab } from "@/components/crm/tabs/CatchUpTab";
