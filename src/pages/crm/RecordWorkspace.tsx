@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { LeftRail } from "@/components/crm/LeftRail";
 import { RightRail } from "@/components/crm/RightRail";
 import { PortalIntelligencePanel } from "@/components/crm/PortalIntelligencePanel";
+import { MortgageSnapshotCard } from "@/components/crm/MortgageSnapshotCard";
 import AriveExportCard from "@/components/crm/AriveExportCard";
 import LosSyncCard from "@/components/crm/LosSyncCard";
 import { CatchUpTab } from "@/components/crm/tabs/CatchUpTab";
@@ -543,6 +544,9 @@ export default function RecordWorkspace({ kind }: Props) {
           <div className="space-y-4 sticky top-4 self-start">
             {kind === "lead" && id && (
               <PortalIntelligencePanel leadId={id} />
+            )}
+            {kind === "lead" && id && (
+              <MortgageSnapshotCard personId={(record as any)?.person_id ?? null} leadId={id} />
             )}
             <RightRail
             companies={companies}
