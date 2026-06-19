@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -23,9 +24,10 @@ type UnifiedEvent = {
 const FILTERS = [
   { key: "all", label: "All" },
   { key: "status", label: "Status changes" },
-  { key: "email", label: "Emails" },
+  { key: "portal", label: "Portal" },
   { key: "document", label: "Documents" },
   { key: "note", label: "Notes" },
+  { key: "task", label: "Tasks" },
 ];
 
 const ICON: Record<string, any> = {
@@ -37,10 +39,11 @@ const ICON: Record<string, any> = {
 
 function matchesFilter(e: UnifiedEvent, key: string) {
   if (key === "all") return true;
-  if (key === "status") return e.type === "status_change";
-  if (key === "email") return e.type === "email";
+  if (key === "status") return e.type === "status_change" || e.type === "lead_event" || e.type === "deal_event";
+  if (key === "portal") return (e as any).eventSource === "portal";
   if (key === "document") return e.type === "attachment" || e.type === "document";
   if (key === "note") return e.type === "note";
+  if (key === "task") return e.type === "task";
   return true;
 }
 
@@ -64,6 +67,22 @@ export function UnifiedTimelineTab({
   contactId?: string;
 }) {
   const [filter, setFilter] = useState("all");
+  const [timelineRows, setTimelineRows] = useState<any[] | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!leadId && !contactId) { setTimelineRows([]); return; }
+      let q = supabase.from("timeline_events" as any)
+        .select("id, event_type, event_source, title, description, metadata, actor_id, created_at, lead_id, deal_id")
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (leadId) q = q.eq("lead_id", leadId);
+      const { data } = await q;
+      if (!cancelled) setTimelineRows((data as any[]) ?? []);
+    })();
+    return () => { cancelled = true; };
+  }, [leadId, contactId]);
 
   const dealLabelById = useMemo(() => {
     const m = new Map<string, string>();
@@ -78,6 +97,54 @@ export function UnifiedTimelineTab({
 
   const events: UnifiedEvent[] = useMemo(() => {
     const out: UnifiedEvent[] = [];
+
+    // Primary source: timeline_events
+    if (timelineRows && timelineRows.length > 0) {
+      for (const r of timelineRows) {
+        const et: string = r.event_type;
+        const t = et === "NOTE_ADDED" ? "note"
+          : et === "TASK_CREATED" || et === "TASK_COMPLETED" ? "task"
+          : et === "CALL_LOGGED" ? "call"
+          : et === "MEETING_LOGGED" ? "meeting"
+          : et === "DOCUMENT_UPLOADED" ? "attachment"
+          : et === "LEAD_STAGE_CHANGED" || et === "DEAL_STAGE_CHANGED" || et === "LEAD_CREATED" ? "status_change"
+          : et.startsWith("PORTAL_") ? "system"
+          : "system";
+        out.push({
+          id: `tl-${r.id}`,
+          source: r.event_source === "portal" ? "lead_event"
+                 : r.event_source === "deal" ? "deal_event"
+                 : r.event_source === "crm" ? "activity"
+                 : "lead_event",
+          type: t,
+          created_at: r.created_at,
+          title: r.title,
+          body: r.description,
+          related: r.lead_id
+            ? { kind: "lead", id: r.lead_id, label: "Open lead", href: `/crm/leads/${r.lead_id}` }
+            : r.deal_id
+            ? { kind: "deal", id: r.deal_id, label: "Open in pipeline", href: `/pipeline` }
+            : null,
+        });
+        (out[out.length - 1] as any).eventSource = r.event_source;
+        (out[out.length - 1] as any).eventType = et;
+      }
+      // sentiment is not in timeline_events; keep it as before
+      if (sentiment?.generated_at) {
+        out.push({
+          id: `sn-${sentiment.id ?? sentiment.lead_id}`,
+          source: "sentiment",
+          type: "sentiment",
+          created_at: sentiment.generated_at,
+          title: `Sentiment refreshed · ${sentiment.temperature ?? "n/a"}`,
+          body: sentiment.summary ?? null,
+          related: leadHref ? { kind: "lead", id: leadId!, label: "Open lead", href: leadHref } : null,
+        });
+      }
+      return out.sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at));
+    }
+
+    // Fallback: legacy merged event sources (used when timeline_events is empty for this record)
 
     (activities ?? []).forEach((a: any) => {
       const t = a.activity_type === "status_change" ? "status_change" : a.activity_type;
@@ -150,7 +217,7 @@ export function UnifiedTimelineTab({
     }
 
     return out.sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at));
-  }, [activities, leadEvents, dealEvents, attachments, sentiment, dealLabelById, leadHref, leadId]);
+  }, [timelineRows, activities, leadEvents, dealEvents, attachments, sentiment, dealLabelById, leadHref, leadId]);
 
   const filtered = events.filter((e) => matchesFilter(e, filter));
 
