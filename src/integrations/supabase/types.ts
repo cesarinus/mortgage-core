@@ -3682,6 +3682,143 @@ export type Database = {
           },
         ]
       }
+      mortgage_snapshots: {
+        Row: {
+          application_started_at: string | null
+          application_updated_at: string | null
+          assigned_lo_id: string | null
+          borrower_email: string | null
+          borrower_name: string | null
+          borrower_phone: string | null
+          completion_pct: number | null
+          created_at: string
+          deal_id: string | null
+          documents_required: number | null
+          documents_uploaded: number | null
+          down_payment: number | null
+          down_payment_pct: number | null
+          dti: number | null
+          estimated_value: number | null
+          generated_at: string
+          id: string
+          interest_rate: number | null
+          lead_id: string | null
+          loan_amount: number | null
+          loan_program: string | null
+          loan_purpose: string | null
+          loan_term_years: number | null
+          ltv: number | null
+          monthly_income: number | null
+          monthly_payment: number | null
+          occupancy: string | null
+          opportunity_id: string | null
+          person_id: string | null
+          property_address: string | null
+          property_type: string | null
+          purchase_price: number | null
+          updated_at: string
+        }
+        Insert: {
+          application_started_at?: string | null
+          application_updated_at?: string | null
+          assigned_lo_id?: string | null
+          borrower_email?: string | null
+          borrower_name?: string | null
+          borrower_phone?: string | null
+          completion_pct?: number | null
+          created_at?: string
+          deal_id?: string | null
+          documents_required?: number | null
+          documents_uploaded?: number | null
+          down_payment?: number | null
+          down_payment_pct?: number | null
+          dti?: number | null
+          estimated_value?: number | null
+          generated_at?: string
+          id?: string
+          interest_rate?: number | null
+          lead_id?: string | null
+          loan_amount?: number | null
+          loan_program?: string | null
+          loan_purpose?: string | null
+          loan_term_years?: number | null
+          ltv?: number | null
+          monthly_income?: number | null
+          monthly_payment?: number | null
+          occupancy?: string | null
+          opportunity_id?: string | null
+          person_id?: string | null
+          property_address?: string | null
+          property_type?: string | null
+          purchase_price?: number | null
+          updated_at?: string
+        }
+        Update: {
+          application_started_at?: string | null
+          application_updated_at?: string | null
+          assigned_lo_id?: string | null
+          borrower_email?: string | null
+          borrower_name?: string | null
+          borrower_phone?: string | null
+          completion_pct?: number | null
+          created_at?: string
+          deal_id?: string | null
+          documents_required?: number | null
+          documents_uploaded?: number | null
+          down_payment?: number | null
+          down_payment_pct?: number | null
+          dti?: number | null
+          estimated_value?: number | null
+          generated_at?: string
+          id?: string
+          interest_rate?: number | null
+          lead_id?: string | null
+          loan_amount?: number | null
+          loan_program?: string | null
+          loan_purpose?: string | null
+          loan_term_years?: number | null
+          ltv?: number | null
+          monthly_income?: number | null
+          monthly_payment?: number | null
+          occupancy?: string | null
+          opportunity_id?: string | null
+          person_id?: string | null
+          property_address?: string | null
+          property_type?: string | null
+          purchase_price?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mortgage_snapshots_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mortgage_snapshots_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mortgage_snapshots_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mortgage_snapshots_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: true
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_digests: {
         Row: {
           created_at: string
@@ -5322,6 +5459,10 @@ export type Database = {
           similarity: number
           zip: string
         }[]
+      }
+      generate_mortgage_snapshot: {
+        Args: { _person_id: string }
+        Returns: string
       }
       get_available_slots: { Args: { p_date: string }; Returns: string[] }
       get_portal_applicant_summary: {
