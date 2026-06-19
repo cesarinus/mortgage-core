@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { splitAddress } from "./format";
 import {
   translateLienPosition,
   translateLoanPurpose,
@@ -92,6 +93,8 @@ export async function buildLeadContext(leadId: string): Promise<LeadContext | nu
     ? [profile.first_name, profile.last_name].filter(Boolean).join(" ").trim() || null
     : null;
 
+  const addr = splitAddress(lead.property_address ?? scn?.property_address ?? null);
+
   const ctx: LeadContext = {
     ...lead,
     id: lead.id,
@@ -104,9 +107,9 @@ export async function buildLeadContext(leadId: string): Promise<LeadContext | nu
     phone: lead.phone ?? person?.phone ?? null,
 
     property_address: lead.property_address ?? scn?.property_address ?? null,
-    property_city: lead.property_city ?? null,
-    property_state: lead.property_state ?? null,
-    property_zip: lead.property_zip ?? null,
+    property_city: addr.city,
+    property_state: addr.state,
+    property_zip: addr.zip,
     property_type: lead.property_type ?? mp?.property_type ?? null,
     property_value: lead.property_value ?? scn?.purchase_price ?? null,
     loan_amount: lead.loan_amount ?? scn?.loan_amount ?? null,
