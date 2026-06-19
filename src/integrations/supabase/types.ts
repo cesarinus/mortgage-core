@@ -2944,6 +2944,7 @@ export type Database = {
           notes: string | null
           person_id: string | null
           phone: string | null
+          portal_user_id: string | null
           property_address: string | null
           property_type: string | null
           property_value: number | null
@@ -2987,6 +2988,7 @@ export type Database = {
           notes?: string | null
           person_id?: string | null
           phone?: string | null
+          portal_user_id?: string | null
           property_address?: string | null
           property_type?: string | null
           property_value?: number | null
@@ -3030,6 +3032,7 @@ export type Database = {
           notes?: string | null
           person_id?: string | null
           phone?: string | null
+          portal_user_id?: string | null
           property_address?: string | null
           property_type?: string | null
           property_value?: number | null
@@ -5214,6 +5217,14 @@ export type Database = {
           was_existing: boolean
         }[]
       }
+      convert_portal_applicant_to_lead: {
+        Args: { _portal_user_id: string }
+        Returns: {
+          lead_id: string
+          person_id: string
+          was_existing: boolean
+        }[]
+      }
       crm_format_option_label: { Args: { _raw: string }; Returns: string }
       current_portal_user_deal: { Args: never; Returns: string }
       find_person_matches: {
@@ -5233,6 +5244,22 @@ export type Database = {
         }[]
       }
       get_available_slots: { Args: { p_date: string }; Returns: string[] }
+      get_portal_applicant_summary: {
+        Args: { _lead_id: string }
+        Returns: {
+          completion_pct: number
+          deal_id: string
+          documents_required: number
+          documents_uploaded: number
+          email: string
+          invite_accepted_at: string
+          invite_sent_at: string
+          last_login_at: string
+          missing_items: string[]
+          portal_user_id: string
+          stage: string
+        }[]
+      }
       has_permission: {
         Args: { _action: string; _resource: string; _user_id: string }
         Returns: boolean
@@ -5246,6 +5273,30 @@ export type Database = {
       normalize_email: { Args: { _email: string }; Returns: string }
       normalize_phone: { Args: { _phone: string }; Returns: string }
       run_document_reminders: { Args: never; Returns: number }
+      search_portal_applicants: {
+        Args: { _email?: string; _name?: string; _phone?: string }
+        Returns: {
+          completion_pct: number
+          confidence: string
+          deal_id: string
+          documents_required: number
+          documents_uploaded: number
+          email: string
+          full_name: string
+          invite_accepted_at: string
+          last_login_at: string
+          lead_id: string
+          loan_amount: number
+          loan_type: string
+          match_reason: string
+          person_id: string
+          phone: string
+          portal_user_id: string
+          property_address: string
+          stage: string
+          started_at: string
+        }[]
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       user_owns_contact: { Args: { _contact_id: string }; Returns: boolean }
