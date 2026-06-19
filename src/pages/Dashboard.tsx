@@ -129,23 +129,33 @@ export default function Dashboard() {
 
       {/* KPI cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {kpis.map((k) => (
-          <div key={k.label} className="kpi-card group">
-            <div className={`absolute -right-10 -top-10 h-32 w-32 rounded-full bg-gradient-to-br ${k.accent} blur-2xl`} />
-            <div className="relative flex items-start justify-between">
-              <div>
-                <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{k.label}</p>
-                <p className="mt-2 font-display text-3xl font-bold tracking-tight">{k.value}</p>
-                <p className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-emerald-500">
-                  <ArrowUpRight className="h-3 w-3" /> {k.delta} vs last month
-                </p>
-              </div>
-              <div className="rounded-xl border border-border/60 bg-background/50 p-2 text-primary transition-transform group-hover:scale-110">
-                <k.icon className="h-4 w-4" />
+        {metrics.kpis.map((k) => {
+          const Icon = ICONS_BY_KPI[k.key] ?? DollarSign;
+          const accent = ACCENTS_BY_KPI[k.key] ?? "from-primary/20 to-primary/0";
+          const positive = (k.delta ?? 0) >= 0;
+          return (
+            <div key={k.key} className="kpi-card group">
+              <div className={`absolute -right-10 -top-10 h-32 w-32 rounded-full bg-gradient-to-br ${accent} blur-2xl`} />
+              <div className="relative flex items-start justify-between">
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{k.label}</p>
+                  <p className="mt-2 font-display text-3xl font-bold tracking-tight">{k.value}</p>
+                  {k.delta === null ? (
+                    <p className="mt-2 text-xs text-muted-foreground">No prior period</p>
+                  ) : (
+                    <p className={`mt-2 inline-flex items-center gap-1 text-xs font-medium ${positive ? "text-emerald-500" : "text-rose-500"}`}>
+                      {positive ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
+                      {positive ? "+" : ""}{k.delta}% vs last month
+                    </p>
+                  )}
+                </div>
+                <div className="rounded-xl border border-border/60 bg-background/50 p-2 text-primary transition-transform group-hover:scale-110">
+                  <Icon className="h-4 w-4" />
+                </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* AI Copilot + Funnel */}
@@ -167,22 +177,21 @@ export default function Dashboard() {
             <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
               Today's Priorities
             </p>
-            <ul className="space-y-2.5">
-              {[
-                { t: "Call Carlos Betancourt", s: "Missing income docs", c: "text-rose-400" },
-                { t: "Follow up with Realtor", s: "Guadalupe Martinez file", c: "text-amber-400" },
-                { t: "Reprice FHA file", s: "Rates dropped 0.25%", c: "text-emerald-400" },
-                { t: "2 leads likely to convert", s: "High intent · Last 24h", c: "text-sky-400" },
-              ].map((p) => (
-                <li key={p.t} className="flex gap-3 rounded-lg border border-border/60 bg-background/40 p-2.5">
-                  <div className={`mt-1 h-1.5 w-1.5 shrink-0 rounded-full ${p.c.replace("text-", "bg-")}`} />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium">{p.t}</p>
-                    <p className="text-xs text-muted-foreground">{p.s}</p>
-                  </div>
-                </li>
-              ))}
-            </ul>
+            {metrics.copilot.length === 0 ? (
+              <p className="py-4 text-center text-sm text-muted-foreground">No priorities — you're all caught up.</p>
+            ) : (
+              <ul className="space-y-2.5">
+                {metrics.copilot.map((p) => (
+                  <li key={p.id} className="flex gap-3 rounded-lg border border-border/60 bg-background/40 p-2.5">
+                    <div className={`mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-${p.tone}-400`} />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium">{p.title}</p>
+                      <p className="text-xs text-muted-foreground">{p.subtitle}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
             <Button asChild className="mt-2 w-full gap-2 bg-gradient-to-r from-violet-600 to-primary text-white shadow-lg hover:opacity-95">
               <Link to="/ask">
                 <Sparkles className="h-4 w-4" /> Ask AI Assistant
