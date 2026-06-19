@@ -5148,6 +5148,86 @@ export type Database = {
           },
         ]
       }
+      timeline_events: {
+        Row: {
+          actor_id: string | null
+          application_id: string | null
+          created_at: string
+          deal_id: string | null
+          description: string | null
+          event_source: string
+          event_type: string
+          id: string
+          lead_id: string | null
+          metadata: Json
+          opportunity_id: string | null
+          person_id: string | null
+          source_ref_id: string | null
+          title: string
+        }
+        Insert: {
+          actor_id?: string | null
+          application_id?: string | null
+          created_at?: string
+          deal_id?: string | null
+          description?: string | null
+          event_source: string
+          event_type: string
+          id?: string
+          lead_id?: string | null
+          metadata?: Json
+          opportunity_id?: string | null
+          person_id?: string | null
+          source_ref_id?: string | null
+          title: string
+        }
+        Update: {
+          actor_id?: string | null
+          application_id?: string | null
+          created_at?: string
+          deal_id?: string | null
+          description?: string | null
+          event_source?: string
+          event_type?: string
+          id?: string
+          lead_id?: string | null
+          metadata?: Json
+          opportunity_id?: string | null
+          person_id?: string | null
+          source_ref_id?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "timeline_events_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timeline_events_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timeline_events_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timeline_events_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -5299,6 +5379,24 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      timeline_log: {
+        Args: {
+          _actor_id?: string
+          _application_id?: string
+          _created_at?: string
+          _deal_id?: string
+          _description?: string
+          _event_source: string
+          _event_type: string
+          _lead_id?: string
+          _metadata?: Json
+          _opportunity_id?: string
+          _person_id?: string
+          _source_ref_id?: string
+          _title: string
+        }
+        Returns: string
+      }
       user_owns_contact: { Args: { _contact_id: string }; Returns: boolean }
       user_owns_lead: { Args: { _lead_id: string }; Returns: boolean }
     }
