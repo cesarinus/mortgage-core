@@ -10,11 +10,12 @@ import { Progress } from "@/components/ui/progress";
 import {
   DollarSign, TrendingUp, CheckCircle2, Wallet, Sparkles, ArrowRight,
   Phone, FileText, Mail, Lock, AlertTriangle, Activity, Trophy, Target,
-  Flame, ArrowUpRight, Plus,
+  Flame, ArrowUpRight, ArrowDownRight, Plus,
 } from "lucide-react";
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid,
 } from "recharts";
+import { useDashboardMetrics } from "@/hooks/useDashboardMetrics";
 
 type Stage = "application_sent" | "underwriting" | "approved" | "clear_to_close" | "closed" | "lost";
 
@@ -32,6 +33,19 @@ const fmtMoney = (n: number) =>
   n >= 1_000     ? `$${(n / 1_000).toFixed(1)}K`     :
   `$${n.toLocaleString()}`;
 
+const ICONS_BY_KPI: Record<string, any> = {
+  pipeline: DollarSign,
+  expected_revenue: TrendingUp,
+  closing_month: CheckCircle2,
+  funded_month: Wallet,
+};
+const ACCENTS_BY_KPI: Record<string, string> = {
+  pipeline: "from-orange-500/20 to-orange-500/0",
+  expected_revenue: "from-emerald-500/20 to-emerald-500/0",
+  closing_month: "from-violet-500/20 to-violet-500/0",
+  funded_month: "from-sky-500/20 to-sky-500/0",
+};
+
 export default function Dashboard() {
   const { user } = useAuth();
   const [firstName, setFirstName] = useState<string>("");
@@ -39,6 +53,7 @@ export default function Dashboard() {
   const [opps, setOpps] = useState<any[]>([]);
   const [tasks, setTasks] = useState<any[]>([]);
   const [activities, setActivities] = useState<any[]>([]);
+  const metrics = useDashboardMetrics();
 
   useEffect(() => {
     if (!user) return;
@@ -75,58 +90,8 @@ export default function Dashboard() {
     });
   }, [leads, oppsByLead]);
 
-  const pipelineValue = useMemo(
-    () => opps.filter((o) => o.stage !== "closed" && o.stage !== "lost").reduce((s, o) => s + Number(o.loan_amount || 0), 0),
-    [opps],
-  );
-  const expectedRevenue = Math.round(pipelineValue * 0.0125); // 1.25% commission baseline
-  const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0,0,0,0);
-  const closingThisMonth = opps.filter((o) => o.close_date && new Date(o.close_date) >= monthStart && o.stage !== "closed" && o.stage !== "lost");
-  const fundedThisMonth = opps.filter((o) => o.stage === "closed" && o.close_date && new Date(o.close_date) >= monthStart);
-  const fundedAmount = fundedThisMonth.reduce((s, o) => s + Number(o.loan_amount || 0), 0);
-
-  const kpis = [
-    { label: "Pipeline Value",       value: fmtMoney(pipelineValue),    delta: "+12.5%", icon: DollarSign, accent: "from-orange-500/20 to-orange-500/0" },
-    { label: "Expected Revenue",     value: fmtMoney(expectedRevenue),  delta: "+8.3%",  icon: TrendingUp, accent: "from-emerald-500/20 to-emerald-500/0" },
-    { label: "Closing This Month",   value: String(closingThisMonth.length), delta: "+20%", icon: CheckCircle2, accent: "from-violet-500/20 to-violet-500/0" },
-    { label: "Funded This Month",    value: fmtMoney(fundedAmount),     delta: "+15.7%", icon: Wallet, accent: "from-sky-500/20 to-sky-500/0" },
-  ];
-
   const hotLeads = leads.filter((l) => (l.lead_score ?? 0) >= 70).slice(0, 4);
   const stuckBorrowers = leads.filter((l) => l.is_stuck).slice(0, 4);
-
-  // mock data (not yet backed by real sources, per scope decision)
-  const rates = [
-    { label: "Conventional 30Y", value: 6.625, delta: -0.05 },
-    { label: "FHA 30Y",          value: 6.250, delta: -0.10 },
-    { label: "VA 30Y",           value: 6.125, delta: -0.05 },
-    { label: "USDA 30Y",         value: 6.375, delta:  0.00 },
-  ];
-  const aiOpportunities = [
-    { label: "Refinance opportunities",        count: 3, revenue: 14_400 },
-    { label: "HELOC opportunities",            count: 2, revenue:  6_200 },
-    { label: "FHA streamline opportunities",   count: 5, revenue: 18_750 },
-    { label: "Cash-out refinance",             count: 4, revenue: 22_800 },
-  ];
-  const partners = [
-    { name: "Maria Gonzalez", company: "Coldwell Banker", loans: 14, volume: 4_820_000 },
-    { name: "John Smith",     company: "Independent",     loans:  9, volume: 3_140_000 },
-    { name: "ABC Realty",     company: "ABC Realty",      loans:  7, volume: 2_460_000 },
-  ];
-  const scorecard = [
-    { label: "Calls Made",     value: 48,  target: 60 },
-    { label: "Applications",   value: 22,  target: 25 },
-    { label: "Pre-Approvals",  value: 17,  target: 20 },
-    { label: "Loans Funded",   value: fundedThisMonth.length, target: 15 },
-  ];
-  const forecast = [
-    { m: "Aug", revenue: 42_000 },
-    { m: "Sep", revenue: 51_200 },
-    { m: "Oct", revenue: 58_400 },
-    { m: "Nov", revenue: 64_800 },
-    { m: "Dec", revenue: 72_500 },
-    { m: "Jan", revenue: 81_000 },
-  ];
 
   const greeting = (() => {
     const h = new Date().getHours();
