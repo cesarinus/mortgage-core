@@ -40,7 +40,7 @@ const ICON: Record<string, any> = {
 function matchesFilter(e: UnifiedEvent, key: string) {
   if (key === "all") return true;
   if (key === "status") return e.type === "status_change" || e.type === "lead_event" || e.type === "deal_event";
-  if (key === "portal") return e.source === "lead_event" && (e.type === "system" || e.type === "status_change") ? false : (e as any).eventSource === "portal";
+  if (key === "portal") return (e as any).eventSource === "portal";
   if (key === "document") return e.type === "attachment" || e.type === "document";
   if (key === "note") return e.type === "note";
   if (key === "task") return e.type === "task";
