@@ -1,146 +1,68 @@
+## Mock Data Elimination & Live Data Wiring
 
-## Root cause (confirmed)
+### Audit summary
 
-The five "missing required" errors are **not data problems** — the values are in the database. They're caused by three structural defects in the LOS mapping/validation layer:
+A full scan of `src/` was performed against patterns: `mock`, `dummy`, `sample`, `fake`, `placeholder`, `hardcoded`, plus inline literal arrays in dashboard/widget files.
 
-### 1. Duplicate / typo'd mapping rows
+**Mock data is concentrated almost entirely in `src/pages/Dashboard.tsx`.** Everywhere else (Leads, Pipeline, People, Contacts, AskHub, CRM workspace, Reports) already reads from Supabase. The remaining cleanup items are small and listed below.
 
-In `los_field_mappings` (integration `arive`, active) two pairs collide on the same external field and a third is a typo:
+| # | Component | File | Mock source | Real data source |
+|---|---|---|---|---|
+| 1 | KPI deltas (`+12.5%`, `+8.3%`, `+20%`, `+15.7%`) | `Dashboard.tsx:88-93` | Hardcoded strings | Period-over-period diff from `pipeline_opportunities` / `deals` (prior 30d vs current 30d) |
+| 2 | AI Copilot "Today's Priorities" | `Dashboard.tsx:206-219` | Inline list of 4 fake borrowers | Derived from real signals: stuck leads, missing income conditions (`loan_conditions` where `category='income' AND status='missing'`), rate-drop repricing candidates, high-score leads |
+| 3 | Rate Monitor | `Dashboard.tsx:99-104` | Hardcoded 4 rows | `mortgage_market_rates` table (already exists, already powers `RateDecision`) |
+| 4 | Top Referral Partners | `Dashboard.tsx:111-115` | Hardcoded 3 partners | `people` joined to `person_roles` (`role_type='ReferralPartner'`) joined to linked leads → opportunities → `loan_amount` sums |
+| 5 | Loan Officer Scorecard | `Dashboard.tsx:116-121` | Calls/Apps/Pre-Approvals hardcoded | `crm_calls` count this month, `pipeline_opportunities` by stage, `deals` closed |
+| 6 | Alerts & Tasks | `Dashboard.tsx:366-384` | Hardcoded 4 alerts | `loan_conditions` (missing/expired) + `leads.is_stuck` |
+| 7 | AI Opportunities | `Dashboard.tsx:105-110` | Hardcoded 4 buckets | Derived from `mortgage_profiles` + `loan_scenarios`: refi candidates (current rate > 0.5% above market), HELOC eligible (equity > X%), FHA streamline eligible. If no eligible records → empty state. |
+| 8 | Revenue Forecast chart | `Dashboard.tsx:122-129` | Hardcoded 6 months | Sum of `pipeline_opportunities.loan_amount × 0.0125` grouped by `close_date` month for next 6 months (expected commission). |
+| 9 | KPI `Mock` badges | `Dashboard.tsx:393, 513` | Visual label | Remove once wired |
+| 10 | `RecommendedBusinesses` blog widget | `src/components/blog/RecommendedBusinesses.tsx` | Static recommendations | Out of scope — these are intentional editorial recommendations, not metrics. **Leave as-is** unless you tell us otherwise. |
 
-```text
-loan_purpose        → loanPurpose      (required) ✓ data lives on leads.loan_purpose
-transaction_type    → loanPurpose      (required) ✗ no such CRM column — always missing
+### What to build
 
-loan_officer_name   → assigneeEmail    (required) ✗ name, not email
-loan_officer_email  → assigneeEmail    (required) ✗ no such column on leads
-
-lien_positon        → lienPosition     (not required, typo)
-lien_position       → lienPosition     (required) ✗ no such column on leads
-```
-
-Because each row is processed independently, the second row overwrites the first in `resolved`, and any row whose `crm_field` doesn't exist on the lead object reports "missing required".
-
-### 2. Validator only inspects the flat `leads` row
-
-`validateAgainstMappings` does `lead[m.crm_field]`. The tester loads `supabase.from("leads").select("*")` with no joins, so fields that live elsewhere are invisible:
-
-| External field        | Actually lives on                                      |
-| --------------------- | ------------------------------------------------------ |
-| `borrower_occupancy`  | `mortgage_profiles.occupancy_type` (lead → mp)         |
-| `assigneeEmail`       | `profiles.email` via `leads.assigned_to`               |
-| `lienPosition`        | `loan_scenarios.lien_position` (constant "First Lien") |
-| `loanPurpose`         | `leads.loan_purpose` (works) — but duplicate row breaks it |
-
-### 3. No canonical "lead context" for outbound mappers
-
-Snapshot, Zapier, and Arive each re-derive these joins (or don't). There's no single resolver, so each integration drifts.
-
----
-
-## Plan
+**Phase A — `src/lib/dashboard/metrics.ts` (new, single source of truth):**
 
 ```text
-Phase A — Mapping table cleanup (data only, no schema change)
-Phase B — Canonical Lead Context resolver (one source of truth)
-Phase C — Validator + Tester use the resolver
-Phase D — Enum translation table
-Phase E — Pre-flight + Send-to-LOS use the same resolver
-Phase F — Backfill / repair report
+DashboardMetricsService
+  getKpiCards(userId?)        → pipeline value, expected rev, closing/funded this month + WoW/MoM deltas
+  getRateMonitor()             → mortgage_market_rates
+  getReferralPartners(limit)   → top partners by attached loan volume
+  getScorecard(userId, month)  → calls / apps / pre-approvals / funded vs targets
+  getAiOpportunities(userId?)  → derived refi/HELOC/streamline candidate counts + est. revenue
+  getRevenueForecast(months)   → next-N-month projected commissions
+  getAlerts(userId?)           → loan_condition + stuck-lead alerts
+  getCopilotPriorities(userId) → real action items
+  getFunnel()                  → already-computed funnel (moved off Dashboard.tsx)
 ```
 
-### Phase A — Clean up `los_field_mappings`
+All other dashboards (Pipeline summary, Reports, future Mortgage dashboard) will consume these same functions — no duplicated SQL.
 
-One UPDATE/DELETE migration to fix the duplicates and typo. Final required rows for the four problem fields:
+**Phase B — Refactor `Dashboard.tsx`:**
+- Replace every hardcoded array with a hook reading from `DashboardMetricsService`.
+- Remove the "Mock" badges.
+- Each section shows a proper empty state when its query returns nothing.
 
-```text
-occupancy_type      → borrower_occupancy   required  string  (resolved via context)
-loan_officer_email  → assigneeEmail        required  email   (resolved via context)
-lien_position       → lienPosition         required  string  (resolved via context, default "First Lien")
-loan_purpose        → loanPurpose          required  string
+**Phase C — Targets (scorecard):**
+- New `user_targets` table or `profiles.monthly_targets jsonb` (calls/apps/pre-approvals/funded). Defaults to zeros so the scorecard shows real progress with no fake targets. Surfaced in Settings → Profile.
 
-Delete: transaction_type→loanPurpose, loan_officer_name→assigneeEmail, lien_positon→lienPosition
-```
+**Phase D — Validation:**
+- Smoke check that an empty database renders empty states everywhere on `/` with no console errors.
+- Verify against current production data (1 admin, 1 portal user, leads/opps in db) that numbers match raw SQL counts.
 
-### Phase B — `buildLeadContext(leadId)` (`src/lib/los/leadContext.ts`)
+### Explicit non-goals (will NOT do unless requested)
 
-One function returning a flat dictionary keyed by **canonical CRM field names**. It joins:
+- **Phase 9's full DashboardMetricsService for every module** — only the methods listed above; we will not pre-build placeholder services for screens that don't exist yet.
+- **Phase 10 materialized views / caching** — current volume doesn't justify it; queries are indexed already. Revisit when row counts cross ~50k.
+- **Phase 11 Admin Validation Mode** (showing the SQL behind each card) — separate feature. Quote separately.
+- **`RecommendedBusinesses` blog widget** — editorial, not metrics.
+- **Renaming, schema changes to `leads`/`pipeline_opportunities`/`deals`** — extension-only per the change-control rule. The targets table is additive.
 
-- `leads`            (base)
-- `mortgage_profiles` by `lead_id` → `occupancy_type`, `property_type` fallback
-- `loan_scenarios`   latest by `lead_id` → `lien_position`, `loan_program`, `purchase_price`
-- `profiles`         by `leads.assigned_to` → `loan_officer_name`, `loan_officer_email`
-- `people`           by `leads.person_id`   → name/email/phone fallback
+### Deliverables
 
-Defaults applied here (e.g. `lien_position ?? "First Lien"`), so downstream mappers stay dumb.
+- New: `src/lib/dashboard/metrics.ts`, `src/hooks/useDashboardMetrics.ts`
+- Migration: `user_targets` (or `profiles.monthly_targets` column) with RLS + GRANTs
+- Edited: `src/pages/Dashboard.tsx` (all 9 mock blocks replaced)
+- No other component is changed.
 
-Canonical field list documented inline:
-
-```text
-first_name, last_name, email, phone,
-property_address, property_city, property_state, property_zip,
-property_type, property_value, loan_amount, loan_purpose,
-occupancy_type, lien_position, loan_program,
-loan_officer_id, loan_officer_name, loan_officer_email,
-person_id, assigned_to
-```
-
-### Phase C — Validator + Tester
-
-- `LosPayloadTester.tsx`: replace the bare `lead` with `await buildLeadContext(leadId)` before calling `buildLosPayload` / `computeReadiness`.
-- `SendToLosButton.tsx` + `AriveExportCard.tsx`: same swap (one helper call).
-- `validate.ts` unchanged — it already works once the input is correct.
-
-### Phase D — Enum translation (`src/lib/los/enums.ts`)
-
-Centralised maps applied inside `buildLeadContext` *before* validation:
-
-```text
-occupancy_type:
-  "Primary Residence" → "PRIMARY"
-  "Second Home"       → "SECONDARY"
-  "Investment"        → "INVESTMENT"
-loan_purpose:
-  "Purchase"   → "Purchase"
-  "Refinance"  → "Refinance"
-  "Cash-Out"   → "Refinance"
-lien_position:
-  "First Lien" → "FirstLien"
-```
-
-(Exact LOS vocab pulled from Arive's existing `ariveFieldMap.ts` where defined; otherwise left pass-through with a TODO.)
-
-### Phase E — Pre-flight gate
-
-`SendToLosButton` already calls `validateAriveLead`. Switch it to the mapping-driven validator on the resolved context, so the dialog blocks send when any canonical field is missing and shows the human label, not the LOS field name.
-
-### Phase F — Backfill report (read-only)
-
-A `scripts/audit-los-readiness.ts` SQL view (or one-off psql query) that lists every lead with `assigned_to IS NULL`, `mortgage_profiles` missing, or `loan_scenarios` missing — so we can see how much real data is incomplete vs. resolver-fixable. **No silent UPDATEs**; the report is the deliverable.
-
----
-
-## Technical notes
-
-- No schema migrations except the mapping-row cleanup in Phase A.
-- `mortgage_profiles.occupancy_type` already exists and is written by `leadIntake.ts:319`.
-- `loan_scenarios.lien_position` already defaults to "First Lien" in `autoScenarios.ts`.
-- `profiles.email` is populated by `handle_new_user()`.
-- All resolver joins are by indexed FKs; performance is fine for the tester (single lead).
-
----
-
-## Out of scope (explicitly)
-
-- Renaming columns or moving data between tables.
-- New UI for the intake form.
-- Touching the portal, snapshot, or timeline subsystems.
-- Phase 2D (Lead Wizard) — still deferred per earlier guardrail.
-
-## Deliverables
-
-1. Migration: clean `los_field_mappings`.
-2. New: `src/lib/los/leadContext.ts`, `src/lib/los/enums.ts`.
-3. Edits: `LosPayloadTester.tsx`, `SendToLosButton.tsx`, `AriveExportCard.tsx`.
-4. New: `scripts/audit-los-readiness.sql` (read-only).
-
-After this, selecting any lead in the tester that has an assigned LO + a mortgage profile will pass validation without per-field patching, and the same resolver is reused by every outbound integration.
+Approve and I'll implement Phases A–D in one pass.
