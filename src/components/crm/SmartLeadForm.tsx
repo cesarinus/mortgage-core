@@ -266,6 +266,7 @@ export function SmartLeadForm({ leadId, initial, sources = [], onSaved, onCancel
                         email: resolved.email ?? r.email ?? d.email,
                         phone: resolved.phone ?? r.phone ?? d.phone,
                         person_id: resolved.id,
+                        portal_user_id: r.source === "portal" ? (r.meta?.portal_user_id ?? null) : d.portal_user_id,
                       }));
                       setLinkedPersonLabel(resolved.full_name || `${resolved.first_name} ${resolved.last_name}`.trim());
                       toast({
