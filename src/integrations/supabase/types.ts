@@ -5422,6 +5422,36 @@ export type Database = {
         }
         Relationships: []
       }
+      user_targets: {
+        Row: {
+          applications_target: number
+          calls_target: number
+          created_at: string
+          funded_target: number
+          preapprovals_target: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          applications_target?: number
+          calls_target?: number
+          created_at?: string
+          funded_target?: number
+          preapprovals_target?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          applications_target?: number
+          calls_target?: number
+          created_at?: string
+          funded_target?: number
+          preapprovals_target?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
