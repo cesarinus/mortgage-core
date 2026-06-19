@@ -539,7 +539,11 @@ export default function RecordWorkspace({ kind }: Props) {
         </main>
 
         <aside className="col-span-12 lg:col-span-3">
-          <RightRail
+          <div className="space-y-4 sticky top-4 self-start">
+            {kind === "lead" && id && (
+              <PortalIntelligencePanel leadId={id} />
+            )}
+            <RightRail
             companies={companies}
             deals={kind === "lead" ? opportunities : deals}
             contacts={(() => {
@@ -560,7 +564,8 @@ export default function RecordWorkspace({ kind }: Props) {
             onSignedUrl={onSignedUrl}
             onRemoveContact={handleRemoveContact}
             onRemoveCompany={handleRemoveCompany}
-          />
+            />
+          </div>
         </aside>
       </div>
 
