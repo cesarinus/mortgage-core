@@ -16,6 +16,7 @@ type Role = { id: string; key: string; name: string; description: string | null;
 type Permission = { id: string; resource: string; action: string };
 
 const RESOURCES = ["leads", "borrowers", "loans", "pipeline", "documents", "reports", "settings"];
+const INTERNAL_ROLES = new Set(["admin", "loan_officer", "processor", "assistant"]);
 const ACTIONS = ["view", "create", "edit", "delete", "export", "manage"];
 const SCOPES = ["none", "own", "team", "branch", "company"];
 
@@ -30,13 +31,21 @@ export default function TeamManagement() {
 
   async function load() {
     const sb: any = supabase;
-    const [p, r, pm, rp] = await Promise.all([
+    const [p, r, pm, rp, ur] = await Promise.all([
       sb.from("profiles").select("id, email, first_name, last_name"),
       sb.from("roles").select("*").order("is_system", { ascending: false }),
       sb.from("permissions").select("*"),
       sb.from("role_permissions").select("role_id, scope, permissions(resource, action)"),
+      sb.from("user_roles").select("user_id, role"),
     ]);
-    setMembers(p.data || []);
+    const roleByUser = new Map<string, string>();
+    (ur.data || []).forEach((u: any) => {
+      if (INTERNAL_ROLES.has(u.role)) roleByUser.set(u.user_id, u.role);
+    });
+    const internalMembers = (p.data || [])
+      .filter((m: any) => roleByUser.has(m.id))
+      .map((m: any) => ({ ...m, role: roleByUser.get(m.id) }));
+    setMembers(internalMembers);
     setRoles(r.data || []);
     setPerms(pm.data || []);
     const map: Record<string, Record<string, string>> = {};
@@ -46,9 +55,6 @@ export default function TeamManagement() {
     });
     setRolePerms(map);
     if (!activeRole && r.data?.[0]) setActiveRole(r.data[0].id);
-
-    const userRoles = await sb.from("user_roles").select("user_id, role");
-    setMembers(prev => prev.map(m => ({ ...m, role: userRoles.data?.find((u: any) => u.user_id === m.id)?.role })));
   }
 
   useEffect(() => { load(); }, []);
