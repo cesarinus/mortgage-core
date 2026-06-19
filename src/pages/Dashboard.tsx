@@ -280,27 +280,31 @@ export default function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ul className="space-y-3">
-              {partners.map((p, i) => (
-                <li key={p.name} className="flex items-center gap-3 rounded-lg border border-border/60 bg-background/40 p-2.5">
-                  <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-                    i === 0 ? "bg-amber-500/20 text-amber-500" :
-                    i === 1 ? "bg-slate-400/20 text-slate-300" :
-                              "bg-orange-700/20 text-orange-400"
-                  }`}>
-                    #{i + 1}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">{p.name}</p>
-                    <p className="truncate text-xs text-muted-foreground">{p.company}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-mono text-sm font-medium">{p.loans}</p>
-                    <p className="text-[10px] text-muted-foreground">{fmtMoney(p.volume)}</p>
-                  </div>
-                </li>
-              ))}
-            </ul>
+            {metrics.partners.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">No referral partners with loans yet.</p>
+            ) : (
+              <ul className="space-y-3">
+                {metrics.partners.map((p, i) => (
+                  <li key={p.id} className="flex items-center gap-3 rounded-lg border border-border/60 bg-background/40 p-2.5">
+                    <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                      i === 0 ? "bg-amber-500/20 text-amber-500" :
+                      i === 1 ? "bg-slate-400/20 text-slate-300" :
+                                "bg-orange-700/20 text-orange-400"
+                    }`}>
+                      #{i + 1}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">{p.name}</p>
+                      <p className="truncate text-xs text-muted-foreground">{p.company ?? "—"}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-mono text-sm font-medium">{p.loans}</p>
+                      <p className="text-[10px] text-muted-foreground">{fmtMoney(p.volume)}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
           </CardContent>
         </Card>
 
@@ -311,13 +315,20 @@ export default function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {scorecard.map((s) => {
-              const pct = Math.min(100, Math.round((s.value / s.target) * 100));
+            {metrics.scorecard.every((s) => s.target === 0) && (
+              <p className="text-xs text-muted-foreground">
+                Set monthly targets in Settings → Profile to track progress.
+              </p>
+            )}
+            {metrics.scorecard.map((s) => {
+              const pct = s.target > 0 ? Math.min(100, Math.round((s.value / s.target) * 100)) : 0;
               return (
                 <div key={s.label}>
                   <div className="mb-1 flex items-center justify-between text-sm">
                     <span>{s.label}</span>
-                    <span className="font-mono text-muted-foreground">{s.value}/{s.target}</span>
+                    <span className="font-mono text-muted-foreground">
+                      {s.value}{s.target > 0 ? `/${s.target}` : ""}
+                    </span>
                   </div>
                   <Progress value={pct} className="h-1.5" />
                 </div>
@@ -336,27 +347,26 @@ export default function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ul className="space-y-2.5">
-              {[
-                { sev: "high", t: "VOE expired",         s: "Carlos Betancourt · loan #2841" },
-                { sev: "high", t: "Missing W2",          s: "Guadalupe Martinez · loan #2839" },
-                { sev: "med",  t: "DTI exceeds guidelines", s: "Julien Rodrigues · loan #2832" },
-                { sev: "low",  t: "COE not uploaded",    s: "John Pierre · loan #2829" },
-              ].map((a) => (
-                <li key={a.t} className="flex items-start gap-3 rounded-lg border border-border/60 bg-background/40 p-2.5">
-                  <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
-                    a.sev === "high" ? "bg-rose-500" : a.sev === "med" ? "bg-amber-500" : "bg-sky-500"
-                  }`} />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium">{a.t}</p>
-                    <p className="text-xs text-muted-foreground">{a.s}</p>
-                  </div>
-                  <Badge variant="outline" className="text-[10px] uppercase tracking-wider">
-                    {a.sev}
-                  </Badge>
-                </li>
-              ))}
-            </ul>
+            {metrics.alerts.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">No alerts.</p>
+            ) : (
+              <ul className="space-y-2.5">
+                {metrics.alerts.map((a) => (
+                  <li key={a.id} className="flex items-start gap-3 rounded-lg border border-border/60 bg-background/40 p-2.5">
+                    <span className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${
+                      a.sev === "high" ? "bg-rose-500" : a.sev === "med" ? "bg-amber-500" : "bg-sky-500"
+                    }`} />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium">{a.title}</p>
+                      <p className="text-xs text-muted-foreground">{a.subject}</p>
+                    </div>
+                    <Badge variant="outline" className="text-[10px] uppercase tracking-wider">
+                      {a.sev}
+                    </Badge>
+                  </li>
+                ))}
+              </ul>
+            )}
           </CardContent>
         </Card>
 
@@ -364,25 +374,28 @@ export default function Dashboard() {
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
               <Lock className="h-4 w-4 text-primary" /> Rate Monitor
-              <Badge variant="outline" className="ml-auto text-[10px] uppercase tracking-wider text-muted-foreground">Mock</Badge>
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ul className="space-y-3">
-              {rates.map((r) => (
-                <li key={r.label} className="flex items-center justify-between rounded-lg border border-border/60 bg-background/40 p-2.5">
-                  <span className="text-sm">{r.label}</span>
-                  <div className="flex items-baseline gap-2">
-                    <span className="font-mono text-base font-bold">{r.value.toFixed(3)}%</span>
-                    <span className={`text-xs font-medium ${
-                      r.delta < 0 ? "text-emerald-500" : r.delta > 0 ? "text-rose-500" : "text-muted-foreground"
-                    }`}>
-                      {r.delta === 0 ? "—" : `${r.delta > 0 ? "+" : ""}${r.delta.toFixed(2)}`}
-                    </span>
-                  </div>
-                </li>
-              ))}
-            </ul>
+            {metrics.rates.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">No market rate data.</p>
+            ) : (
+              <ul className="space-y-3">
+                {metrics.rates.map((r) => (
+                  <li key={r.label} className="flex items-center justify-between rounded-lg border border-border/60 bg-background/40 p-2.5">
+                    <span className="text-sm">{r.label}</span>
+                    <div className="flex items-baseline gap-2">
+                      <span className="font-mono text-base font-bold">{r.value.toFixed(3)}%</span>
+                      <span className={`text-xs font-medium ${
+                        r.delta < 0 ? "text-emerald-500" : r.delta > 0 ? "text-rose-500" : "text-muted-foreground"
+                      }`}>
+                        {r.delta === 0 ? "—" : `${r.delta > 0 ? "+" : ""}${r.delta.toFixed(3)}`}
+                      </span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
           </CardContent>
         </Card>
 
@@ -431,19 +444,23 @@ export default function Dashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ul className="space-y-2.5">
-              {aiOpportunities.map((o) => (
-                <li key={o.label} className="flex items-center justify-between rounded-lg border border-border/60 bg-gradient-to-r from-background/40 to-primary/5 p-2.5">
-                  <div>
-                    <p className="text-sm font-medium">{o.count} {o.label}</p>
-                    <p className="text-xs text-muted-foreground">Est. revenue {fmtMoney(o.revenue)}</p>
-                  </div>
-                  <Button size="sm" variant="ghost" className="gap-1 text-xs text-primary hover:bg-primary/10">
-                    Review <ArrowRight className="h-3 w-3" />
-                  </Button>
-                </li>
-              ))}
-            </ul>
+            {metrics.aiOpps.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">No AI-identified opportunities yet.</p>
+            ) : (
+              <ul className="space-y-2.5">
+                {metrics.aiOpps.map((o) => (
+                  <li key={o.key} className="flex items-center justify-between rounded-lg border border-border/60 bg-gradient-to-r from-background/40 to-primary/5 p-2.5">
+                    <div>
+                      <p className="text-sm font-medium">{o.count} {o.label}</p>
+                      <p className="text-xs text-muted-foreground">Est. revenue {fmtMoney(o.revenue)}</p>
+                    </div>
+                    <Button asChild size="sm" variant="ghost" className="gap-1 text-xs text-primary hover:bg-primary/10">
+                      <Link to="/crm/leads">Review <ArrowRight className="h-3 w-3" /></Link>
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            )}
           </CardContent>
         </Card>
 
@@ -484,12 +501,16 @@ export default function Dashboard() {
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-base">
               <TrendingUp className="h-4 w-4 text-emerald-500" /> Revenue Forecast
-              <Badge variant="outline" className="ml-auto text-[10px] uppercase tracking-wider text-muted-foreground">Mock</Badge>
             </CardTitle>
           </CardHeader>
           <CardContent>
+            {metrics.forecast.every((f) => f.revenue === 0) ? (
+              <p className="py-12 text-center text-sm text-muted-foreground">
+                No projected closings in the next 6 months.
+              </p>
+            ) : (
             <ResponsiveContainer width="100%" height={180}>
-              <AreaChart data={forecast} margin={{ left: -20, right: 0, top: 10, bottom: 0 }}>
+              <AreaChart data={metrics.forecast} margin={{ left: -20, right: 0, top: 10, bottom: 0 }}>
                 <defs>
                   <linearGradient id="revG" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.5} />
@@ -506,6 +527,7 @@ export default function Dashboard() {
                 <Area type="monotone" dataKey="revenue" stroke="hsl(var(--primary))" strokeWidth={2} fill="url(#revG)" />
               </AreaChart>
             </ResponsiveContainer>
+            )}
           </CardContent>
         </Card>
       </div>
