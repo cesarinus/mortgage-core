@@ -14,6 +14,7 @@ import {
   getPerson, getPersonAuditLog, getPersonRoles, removePersonRole, updatePerson,
   type Person, type PersonRoleType,
 } from "@/lib/people/api";
+import { TaskListPanel } from "@/components/tasks/TaskListPanel";
 
 export default function PersonDetail() {
   const { id } = useParams<{ id: string }>();
@@ -179,6 +180,10 @@ export default function PersonDetail() {
           ))}
           {audit.length === 0 && <div className="text-muted-foreground">No activity yet.</div>}
         </div>
+      </Card>
+
+      <Card className="p-4">
+        <TaskListPanel related={{ type: "person", id: person.id, label: person.full_name ?? "" }} />
       </Card>
     </div>
   );
