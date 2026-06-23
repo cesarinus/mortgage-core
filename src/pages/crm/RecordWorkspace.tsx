@@ -17,6 +17,7 @@ import { MessagesTab } from "@/components/crm/tabs/MessagesTab";
 import { DocumentsTab } from "@/components/crm/tabs/DocumentsTab";
 import { RelationshipsTab } from "@/components/crm/tabs/RelationshipsTab";
 import { TasksTab } from "@/components/crm/tabs/TasksTab";
+import { TaskListPanel } from "@/components/tasks/TaskListPanel";
 import { ConditionsTab } from "@/components/crm/tabs/ConditionsTab";
 import CustomFieldsRenderer from "@/components/crm/CustomFieldsRenderer";
 import { BarChart2, MessageSquare, FileCheck2, Users, CheckSquare, Mail, ClipboardCheck } from "lucide-react";
@@ -498,12 +499,13 @@ export default function RecordWorkspace({ kind }: Props) {
             <TabsContent value="messages" className="mt-4">
               <MessagesTab deals={deals} />
             </TabsContent>
-            <TabsContent value="tasks" className="mt-4">
-              <TasksTab
-                leadId={kind === "lead" ? id : (record as any)?.lead_id ?? undefined}
-                dealId={deals?.[0]?.id}
-                stage={kind === "lead" ? record?.status : deals?.[0]?.stage}
-              />
+            <TabsContent value="tasks" className="mt-4 space-y-6">
+              {kind === "lead" && id && (
+                <TaskListPanel related={{ type: "lead", id, label: `${record?.first_name ?? ""} ${record?.last_name ?? ""}`.trim() }} title="Lead Tasks" />
+              )}
+              {deals?.[0]?.id && (
+                <TaskListPanel related={{ type: "opportunity", id: deals[0].id, label: deals[0].property_address ?? "Opportunity" }} title="Opportunity Tasks" />
+              )}
             </TabsContent>
             {kind === "lead" && (
               <TabsContent value="conditions" className="mt-4">

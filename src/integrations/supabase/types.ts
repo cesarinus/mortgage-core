@@ -5192,8 +5192,16 @@ export type Database = {
           due_at: string | null
           id: string
           lead_id: string | null
+          notes: string | null
+          opportunity_id: string | null
+          person_id: string | null
           priority: string
+          related_id: string | null
+          related_type: string | null
+          reminded_at: string | null
+          reminder_at: string | null
           status: string
+          task_type: string
           title: string
         }
         Insert: {
@@ -5206,8 +5214,16 @@ export type Database = {
           due_at?: string | null
           id?: string
           lead_id?: string | null
+          notes?: string | null
+          opportunity_id?: string | null
+          person_id?: string | null
           priority?: string
+          related_id?: string | null
+          related_type?: string | null
+          reminded_at?: string | null
+          reminder_at?: string | null
           status?: string
+          task_type?: string
           title: string
         }
         Update: {
@@ -5220,8 +5236,16 @@ export type Database = {
           due_at?: string | null
           id?: string
           lead_id?: string | null
+          notes?: string | null
+          opportunity_id?: string | null
+          person_id?: string | null
           priority?: string
+          related_id?: string | null
+          related_type?: string | null
+          reminded_at?: string | null
+          reminder_at?: string | null
           status?: string
+          task_type?: string
           title?: string
         }
         Relationships: [
@@ -5237,6 +5261,20 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
             referencedColumns: ["id"]
           },
         ]
