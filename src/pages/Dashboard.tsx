@@ -16,6 +16,7 @@ import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid,
 } from "recharts";
 import { useDashboardMetrics } from "@/hooks/useDashboardMetrics";
+import { TasksWidget } from "@/components/dashboard/TasksWidget";
 
 type Stage = "application_sent" | "underwriting" | "approved" | "clear_to_close" | "closed" | "lost";
 
@@ -464,38 +465,7 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-3">
-            <CardTitle className="flex items-center gap-2 text-base">
-              <CheckCircle2 className="h-4 w-4 text-emerald-500" /> Tasks & Follow-Ups
-            </CardTitle>
-            <Button size="sm" variant="ghost" className="h-7 gap-1 text-xs">
-              <Plus className="h-3 w-3" /> Add
-            </Button>
-          </CardHeader>
-          <CardContent>
-            {tasks.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">All clear — no open tasks.</p>
-            ) : (
-              <ul className="space-y-2">
-                {tasks.map((t) => (
-                  <li key={t.id} className="flex items-start gap-3 rounded-lg border border-border/60 bg-background/40 p-2.5">
-                    <Checkbox className="mt-0.5" />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm">{t.title}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {t.due_at ? `Due ${new Date(t.due_at).toLocaleDateString()}` : "No due date"}
-                      </p>
-                    </div>
-                    <Badge variant={t.priority === "high" ? "destructive" : "outline"} className="text-[10px] uppercase">
-                      {t.priority}
-                    </Badge>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
+        <TasksWidget />
 
         <Card>
           <CardHeader className="pb-3">
