@@ -422,7 +422,7 @@ export function LoanScenariosTab({ leadId, lead, onActivity }: Props) {
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
           <div>
             <CardTitle className="flex items-center gap-2 text-base">
-              <BarChart2 className="h-4 w-4" /> Loan Scenarios
+              <BarChart2 className="h-4 w-4" /> Scenarios
             </CardTitle>
             <p className="text-xs text-muted-foreground mt-1">
               {leadName}{propAddress ? ` • ${propAddress}` : ""} • Prepared {new Date().toLocaleDateString()}
