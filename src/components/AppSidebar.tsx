@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Users, Building2, Contact as ContactIcon, Kanban, TrendingUp,
-  FileText, Share2, Mail, MailOpen, Settings, LogOut, ChevronDown, UserRound,
+  FileText, Share2, Mail, MailOpen, Settings, LogOut, ChevronDown, UserRound, CheckSquare,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
@@ -24,6 +24,7 @@ type NavItem = {
 const navItems: NavItem[] = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Leads", url: "/leads", icon: Users },
+  { title: "Tasks", url: "/tasks", icon: CheckSquare },
   {
     title: "Contacts",
     url: "/contacts",
