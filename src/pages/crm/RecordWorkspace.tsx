@@ -430,7 +430,7 @@ export default function RecordWorkspace({ kind }: Props) {
               </TabsTrigger>
               {kind === "lead" && (
                 <TabsTrigger value="scenarios" className="flex items-center gap-1.5">
-                  <BarChart2 className="h-3.5 w-3.5" /> Loan Scenarios
+                  <BarChart2 className="h-3.5 w-3.5" /> Scenarios
                 </TabsTrigger>
               )}
               <TabsTrigger value="messages" className="flex items-center gap-1.5">
