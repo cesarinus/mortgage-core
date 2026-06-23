@@ -50,6 +50,7 @@ import Book from "@/pages/Book";
 import AdminSocialMedia from "@/pages/AdminSocialMedia";
 import Subscribers from "@/pages/Subscribers";
 import EmailTemplates from "@/pages/EmailTemplates";
+import Tasks from "@/pages/Tasks";
 import NotFound from "@/pages/NotFound";
 import RecordWorkspace from "@/pages/crm/RecordWorkspace";
 import AskHub from "@/pages/crm/AskHub";
@@ -97,6 +98,7 @@ const App = () => (
               >
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/leads" element={<Leads />} />
+                <Route path="/tasks" element={<Tasks />} />
                 <Route path="/contacts" element={<Navigate to="/contacts/people" replace />} />
                 <Route path="/contacts/people" element={<People />} />
                 <Route path="/contacts/companies" element={<Companies />} />
