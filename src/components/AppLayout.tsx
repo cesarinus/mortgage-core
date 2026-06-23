@@ -5,10 +5,12 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Bell, CheckSquare, Plus, Search, Sparkles } from "lucide-react";
+import { TaskDrawer } from "@/components/tasks/TaskDrawer";
 
 export default function AppLayout() {
   const navigate = useNavigate();
   const [now, setNow] = useState(new Date());
+  const [taskOpen, setTaskOpen] = useState(false);
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 60_000);
@@ -53,7 +55,13 @@ export default function AppLayout() {
               <div className="hidden rounded-full border border-border/60 bg-background/60 px-3 py-1.5 text-xs font-medium text-muted-foreground lg:block">
                 {dateLabel}
               </div>
-              <Button variant="ghost" size="icon" className="hidden sm:inline-flex rounded-full" title="Tasks">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="hidden sm:inline-flex rounded-full"
+                title="Tasks"
+                onClick={() => navigate("/tasks")}
+              >
                 <CheckSquare className="h-4 w-4" />
               </Button>
               <Button variant="ghost" size="icon" className="relative rounded-full" title="Notifications">
@@ -64,9 +72,9 @@ export default function AppLayout() {
                 size="sm"
                 variant="outline"
                 className="hidden gap-1.5 rounded-full md:inline-flex"
-                onClick={() => navigate("/leads?new=1")}
+                onClick={() => setTaskOpen(true)}
               >
-                <Plus className="h-3.5 w-3.5" /> Quick Add
+                <Plus className="h-3.5 w-3.5" /> Task
               </Button>
               <Button
                 size="sm"
@@ -82,6 +90,7 @@ export default function AppLayout() {
           </main>
         </div>
       </div>
+      <TaskDrawer open={taskOpen} onOpenChange={setTaskOpen} />
     </SidebarProvider>
   );
 }
