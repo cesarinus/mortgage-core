@@ -4124,15 +4124,21 @@ export type Database = {
         Row: {
           arive_loan_id: string | null
           close_date: string | null
+          contact_id: string | null
           created_at: string
           created_by: string | null
           id: string
-          lead_id: string
+          lead_id: string | null
+          legacy_deal_id: string | null
           lender_company_id: string | null
           loan_amount: number | null
+          loan_officer_id: string | null
+          loan_type: string | null
+          name: string | null
           notes: string | null
           primary_contact_id: string | null
           property_address: string | null
+          source_system: string
           stage: string
           title_company_id: string | null
           updated_at: string
@@ -4140,15 +4146,21 @@ export type Database = {
         Insert: {
           arive_loan_id?: string | null
           close_date?: string | null
+          contact_id?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
-          lead_id: string
+          lead_id?: string | null
+          legacy_deal_id?: string | null
           lender_company_id?: string | null
           loan_amount?: number | null
+          loan_officer_id?: string | null
+          loan_type?: string | null
+          name?: string | null
           notes?: string | null
           primary_contact_id?: string | null
           property_address?: string | null
+          source_system?: string
           stage?: string
           title_company_id?: string | null
           updated_at?: string
@@ -4156,24 +4168,37 @@ export type Database = {
         Update: {
           arive_loan_id?: string | null
           close_date?: string | null
+          contact_id?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
-          lead_id?: string
+          lead_id?: string | null
+          legacy_deal_id?: string | null
           lender_company_id?: string | null
           loan_amount?: number | null
+          loan_officer_id?: string | null
+          loan_type?: string | null
+          name?: string | null
           notes?: string | null
           primary_contact_id?: string | null
           property_address?: string | null
+          source_system?: string
           stage?: string
           title_company_id?: string | null
           updated_at?: string
         }
         Relationships: [
           {
+            foreignKeyName: "pipeline_opportunities_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "pipeline_opportunities_lead_id_fkey"
             columns: ["lead_id"]
-            isOneToOne: true
+            isOneToOne: false
             referencedRelation: "leads"
             referencedColumns: ["id"]
           },
