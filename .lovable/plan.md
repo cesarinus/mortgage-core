@@ -1,68 +1,155 @@
-## Mock Data Elimination & Live Data Wiring
 
-### Audit summary
+# Mortgage Core – Lifecycle Consolidation (Option C, Opportunity-Canonical)
 
-A full scan of `src/` was performed against patterns: `mock`, `dummy`, `sample`, `fake`, `placeholder`, `hardcoded`, plus inline literal arrays in dashboard/widget files.
+Canonical entity: **Opportunity** (table `pipeline_opportunities`). `deals` becomes a backward-compat view. Zero React page edits on cutover day. Every step is additive and reversible until Phase F.
 
-**Mock data is concentrated almost entirely in `src/pages/Dashboard.tsx`.** Everywhere else (Leads, Pipeline, People, Contacts, AskHub, CRM workspace, Reports) already reads from Supabase. The remaining cleanup items are small and listed below.
+---
 
-| # | Component | File | Mock source | Real data source |
-|---|---|---|---|---|
-| 1 | KPI deltas (`+12.5%`, `+8.3%`, `+20%`, `+15.7%`) | `Dashboard.tsx:88-93` | Hardcoded strings | Period-over-period diff from `pipeline_opportunities` / `deals` (prior 30d vs current 30d) |
-| 2 | AI Copilot "Today's Priorities" | `Dashboard.tsx:206-219` | Inline list of 4 fake borrowers | Derived from real signals: stuck leads, missing income conditions (`loan_conditions` where `category='income' AND status='missing'`), rate-drop repricing candidates, high-score leads |
-| 3 | Rate Monitor | `Dashboard.tsx:99-104` | Hardcoded 4 rows | `mortgage_market_rates` table (already exists, already powers `RateDecision`) |
-| 4 | Top Referral Partners | `Dashboard.tsx:111-115` | Hardcoded 3 partners | `people` joined to `person_roles` (`role_type='ReferralPartner'`) joined to linked leads → opportunities → `loan_amount` sums |
-| 5 | Loan Officer Scorecard | `Dashboard.tsx:116-121` | Calls/Apps/Pre-Approvals hardcoded | `crm_calls` count this month, `pipeline_opportunities` by stage, `deals` closed |
-| 6 | Alerts & Tasks | `Dashboard.tsx:366-384` | Hardcoded 4 alerts | `loan_conditions` (missing/expired) + `leads.is_stuck` |
-| 7 | AI Opportunities | `Dashboard.tsx:105-110` | Hardcoded 4 buckets | Derived from `mortgage_profiles` + `loan_scenarios`: refi candidates (current rate > 0.5% above market), HELOC eligible (equity > X%), FHA streamline eligible. If no eligible records → empty state. |
-| 8 | Revenue Forecast chart | `Dashboard.tsx:122-129` | Hardcoded 6 months | Sum of `pipeline_opportunities.loan_amount × 0.0125` grouped by `close_date` month for next 6 months (expected commission). |
-| 9 | KPI `Mock` badges | `Dashboard.tsx:393, 513` | Visual label | Remove once wired |
-| 10 | `RecommendedBusinesses` blog widget | `src/components/blog/RecommendedBusinesses.tsx` | Static recommendations | Out of scope — these are intentional editorial recommendations, not metrics. **Leave as-is** unless you tell us otherwise. |
+## Stage 0 — Safety & Snapshots (no schema changes)
 
-### What to build
+Produce a single audit bundle under `/mnt/documents/lifecycle-consolidation/`:
 
-**Phase A — `src/lib/dashboard/metrics.ts` (new, single source of truth):**
+- `snapshot_schema.sql` — `pg_dump --schema-only` of `public`.
+- `snapshot_deals.csv`, `snapshot_pipeline_opportunities.csv`, `snapshot_deal_documents.csv`, `snapshot_deal_stage_history.csv`, `snapshot_loan_conditions.csv`, `snapshot_crm_field_values.csv` (filtered to lifecycle entities), `snapshot_los_sync_queue.csv`, `snapshot_tasks.csv`.
+- `relationship_map.md` — FK graph for the 4 lifecycle entities + children.
+- `field_map_deals_to_opportunities.md` — column-by-column mapping table (gaps highlighted).
+- `code_dependency_map.md` — every `from("deals")`, `from("pipeline_opportunities")`, `deal_id`, `opportunity_id` reference, with file:line.
+- `rollback.sql` — per-migration DOWN scripts saved alongside each UP.
 
-```text
-DashboardMetricsService
-  getKpiCards(userId?)        → pipeline value, expected rev, closing/funded this month + WoW/MoM deltas
-  getRateMonitor()             → mortgage_market_rates
-  getReferralPartners(limit)   → top partners by attached loan volume
-  getScorecard(userId, month)  → calls / apps / pre-approvals / funded vs targets
-  getAiOpportunities(userId?)  → derived refi/HELOC/streamline candidate counts + est. revenue
-  getRevenueForecast(months)   → next-N-month projected commissions
-  getAlerts(userId?)           → loan_condition + stuck-lead alerts
-  getCopilotPriorities(userId) → real action items
-  getFunnel()                  → already-computed funnel (moved off Dashboard.tsx)
+No code or schema mutations in this stage.
+
+---
+
+## Stage A — Extend `pipeline_opportunities` (additive only)
+
+One migration adding the columns needed to absorb `deals`:
+
+- `lead_id uuid` (already present — verify)
+- `contact_id uuid REFERENCES contacts(id)` — for legacy deals tied to a contact, not a lead
+- `loan_officer_id uuid`
+- `created_by uuid`
+- `loan_amount numeric`, `loan_type text`, `property_address text`, `interest_rate numeric`, `close_date date`, `notes text`, `name text` — any missing from current schema
+- `legacy_deal_id uuid UNIQUE` — provenance pointer for back-mapping
+- `source_system text DEFAULT 'opportunity'` (`'opportunity' | 'deal_migrated'`)
+
+No drops. No renames. RLS policies extended only where new columns require it (e.g. allow access via `contact_id` ownership the same way `deals` does today).
+
+---
+
+## Stage B — Canonical Stage Lifecycle
+
+New table `lifecycle_stages` (single source of truth) seeded with:
+
+```
+prospect, application_started, application_submitted, processing,
+underwriting, conditional_approval, clear_to_close, funded, lost
 ```
 
-All other dashboards (Pipeline summary, Reports, future Mortgage dashboard) will consume these same functions — no duplicated SQL.
+Columns: `key`, `label`, `sort`, `is_terminal`, `color`, `probability_pct`, `expected_days`.
 
-**Phase B — Refactor `Dashboard.tsx`:**
-- Replace every hardcoded array with a hook reading from `DashboardMetricsService`.
-- Remove the "Mock" badges.
-- Each section shows a proper empty state when its query returns nothing.
+Add `pipeline_opportunities.lifecycle_stage text` (nullable initially). Backfill from existing `stage` via a deterministic mapping function `map_legacy_stage(text) → text`:
 
-**Phase C — Targets (scorecard):**
-- New `user_targets` table or `profiles.monthly_targets jsonb` (calls/apps/pre-approvals/funded). Defaults to zeros so the scorecard shows real progress with no fake targets. Surfaced in Settings → Profile.
+| Legacy (deal_stage / pipeline) | Canonical |
+|---|---|
+| application_sent, application_started | application_submitted |
+| underwriting | underwriting |
+| approved | conditional_approval |
+| clear_to_close | clear_to_close |
+| closed, funded | funded |
+| lost | lost |
+| (lead-only stages) | prospect |
 
-**Phase D — Validation:**
-- Smoke check that an empty database renders empty states everywhere on `/` with no console errors.
-- Verify against current production data (1 admin, 1 portal user, leads/opps in db) that numbers match raw SQL counts.
+`pipeline_stages` table is kept but marked `legacy = true`; admin UI starts reading `lifecycle_stages`. State machine in `src/lib/crm/stateMachine.ts` gets a new `lifecycle` entity type alongside existing `deal`/`lead`; old types remain functional.
 
-### Explicit non-goals (will NOT do unless requested)
+---
 
-- **Phase 9's full DashboardMetricsService for every module** — only the methods listed above; we will not pre-build placeholder services for screens that don't exist yet.
-- **Phase 10 materialized views / caching** — current volume doesn't justify it; queries are indexed already. Revisit when row counts cross ~50k.
-- **Phase 11 Admin Validation Mode** (showing the SQL behind each card) — separate feature. Quote separately.
-- **`RecommendedBusinesses` blog widget** — editorial, not metrics.
-- **Renaming, schema changes to `leads`/`pipeline_opportunities`/`deals`** — extension-only per the change-control rule. The targets table is additive.
+## Stage C — Data Migration: deals → pipeline_opportunities
 
-### Deliverables
+One idempotent migration:
 
-- New: `src/lib/dashboard/metrics.ts`, `src/hooks/useDashboardMetrics.ts`
-- Migration: `user_targets` (or `profiles.monthly_targets` column) with RLS + GRANTs
-- Edited: `src/pages/Dashboard.tsx` (all 9 mock blocks replaced)
-- No other component is changed.
+1. For each row in `deals` with no matching `pipeline_opportunities.legacy_deal_id`, insert a new opportunity copying mapped fields and storing `legacy_deal_id = deals.id`, `source_system = 'deal_migrated'`, `lifecycle_stage = map_legacy_stage(deals.stage)`.
+2. Build a `deal_to_opportunity` mapping table (`deal_id PK`, `opportunity_id`) for FK rewiring and rollback.
+3. Re-point child rows by adding `opportunity_id` to children that today only have `deal_id`: `deal_documents`, `deal_stage_history`, `deal_events`, `tasks` (already has both — backfill where null), `crm_field_values` (remap `record_type='deals'` → `record_type='opportunities'`, `record_id` via the map). All done with `UPDATE … FROM deal_to_opportunity`. Original `deal_id` columns are **kept** for rollback.
+4. Verification queries written to `/mnt/documents/lifecycle-consolidation/migration_report.md`: row counts before/after, orphan check, stage distribution, sample diffs.
 
-Approve and I'll implement Phases A–D in one pass.
+Zero rows deleted. Fully reversible by truncating rows where `source_system='deal_migrated'` and dropping the mapping table.
+
+---
+
+## Stage D — Compatibility Layer
+
+Replace `deals` **table** with a `deals` **view** in two sub-steps to stay reversible:
+
+D1. Rename `deals` → `deals_legacy` (kept as physical table, read-only triggers added).
+D2. Create `CREATE VIEW public.deals AS SELECT … FROM pipeline_opportunities WHERE source_system IN ('deal_migrated','opportunity')` exposing the exact column set the existing app expects (id = `legacy_deal_id` when present, else opportunity id; stage = legacy form via `map_canonical_to_legacy_stage`).
+D3. `INSTEAD OF INSERT/UPDATE/DELETE` triggers on the view that write through to `pipeline_opportunities`, so existing code paths (Dashboard, TasksWidget, RecordWorkspace, queries.ts `fetchDeals`, etc.) keep working unmodified.
+
+Smoke-test surface that **must** keep working untouched:
+- `src/pages/Dashboard.tsx`, `src/components/dashboard/TasksWidget.tsx`
+- `src/pages/Pipeline.tsx`, `src/pages/crm/RecordWorkspace.tsx`
+- `src/lib/crm/queries.ts` (`fetchDeals`)
+- `src/lib/tasks/api.ts`, `src/components/tasks/*`
+- Portal pages, LOS sync (`los_sync_queue`, `loan_conditions`)
+- Timeline triggers (`tlg_deal_stage`, `tlg_task_event`, etc.)
+
+---
+
+## Stage E — CRM Fields Cleanup (non-destructive)
+
+- Mark `crm_modules` rows for `applications` and `loans` as `is_active=false` (don't delete).
+- Rename `opportunities` module label to "Opportunity" and ensure `entity_table='pipeline_opportunities'`.
+- Remap any `crm_field_values.record_type='deals'` rows already covered in Stage C step 3.
+- Field history preserved 1:1.
+
+---
+
+## Stage F — Self-Healing Integrity Layer
+
+New tables (all RLS-protected, admin-only read):
+
+- `entity_registry(entity_key, table_name, canonical, parent_entity, is_active)` — seeded with the canonical map.
+- `system_integrity_checks(id, check_key, severity, last_run_at, status, summary, details jsonb)`.
+- `entity_health_report(id, run_at, entity_key, issue_type, record_id, details jsonb, resolved_at)`.
+
+Edge function `integrity-scan` (cron nightly) runs:
+1. **Orphans**: tasks/notes/documents/conditions/los_loans with no resolvable opportunity.
+2. **Duplicates**: same `(lead_id, property_address, loan_amount)` within 30 days.
+3. **Stage integrity**: detect transitions violating allowlist; flag `funded → *` reversals.
+4. **Schema governance**: `crm_modules` rows with no backing table or zero fields; duplicate stage definitions; modules flagged active but `is_active=false` in registry.
+
+Admin UI: new `Settings → System Integrity` page surfacing the report (separate change, not blocking).
+
+---
+
+## Stage G — Final Cutover (deferred, only after ≥2 weeks of green integrity scans)
+
+- Migrate the ~6 known React reads off the `deals` view to `pipeline_opportunities` directly.
+- Drop the `deals` view + `deals_legacy` table + `deal_id` columns on children.
+- Drop `deal_stage` enum.
+- This stage is out of scope for this plan — gated on user approval after stabilization.
+
+---
+
+## Deliverables produced by this plan
+
+1. `migration_report.md` (Stage 0 + Stage C output)
+2. SQL migrations: `A_extend_opportunities.sql`, `B_lifecycle_stages.sql`, `C_migrate_deals.sql`, `D_compat_view.sql`, `E_crm_fields_cleanup.sql`, `F_integrity_layer.sql` — each with paired `*_rollback.sql`.
+3. Updated `relationship_map.md` (post-migration).
+4. Risk assessment + tech-debt reduction summary (1 table eliminated as concept, 4 stage sources → 1, 2 phantom modules deactivated).
+5. Edge function `supabase/functions/integrity-scan/index.ts`.
+
+---
+
+## Mandatory invariants (verified at every stage)
+
+- Every migration ships with rollback SQL.
+- No `DROP TABLE`, no `DROP COLUMN`, no destructive `UPDATE` without a mapping table in Stages A–F.
+- `deals_legacy` retained until Stage G.
+- Row-count parity check after Stage C: `count(deals_legacy) == count(pipeline_opportunities WHERE source_system='deal_migrated')`.
+- Smoke test: load Dashboard, Pipeline, a RecordWorkspace, and create a Task after each stage.
+
+---
+
+## Approval requested
+
+Confirm to proceed and I will execute **Stage 0 → Stage F** sequentially, pausing after each migration for review. Stage G stays gated.
