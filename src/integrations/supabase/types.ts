@@ -2332,6 +2332,78 @@ export type Database = {
         }
         Relationships: []
       }
+      entity_health_report: {
+        Row: {
+          check_key: string
+          created_at: string
+          details: Json | null
+          entity_key: string
+          id: string
+          issue_count: number
+          scan_run_id: string | null
+          scanned_at: string
+          status: string
+        }
+        Insert: {
+          check_key: string
+          created_at?: string
+          details?: Json | null
+          entity_key: string
+          id?: string
+          issue_count?: number
+          scan_run_id?: string | null
+          scanned_at?: string
+          status: string
+        }
+        Update: {
+          check_key?: string
+          created_at?: string
+          details?: Json | null
+          entity_key?: string
+          id?: string
+          issue_count?: number
+          scan_run_id?: string | null
+          scanned_at?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      entity_registry: {
+        Row: {
+          created_at: string
+          description: string | null
+          display_name: string
+          entity_key: string
+          id: string
+          is_active: boolean
+          owner_module: string | null
+          table_name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          display_name: string
+          entity_key: string
+          id?: string
+          is_active?: boolean
+          owner_module?: string | null
+          table_name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          display_name?: string
+          entity_key?: string
+          id?: string
+          is_active?: boolean
+          owner_module?: string | null
+          table_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       financial_statements: {
         Row: {
           contact_id: string | null
@@ -5342,6 +5414,50 @@ export type Database = {
         }
         Relationships: []
       }
+      system_integrity_checks: {
+        Row: {
+          check_key: string
+          created_at: string
+          description: string
+          entity_key: string
+          id: string
+          is_active: boolean
+          severity: string
+          sql_probe: string
+          updated_at: string
+        }
+        Insert: {
+          check_key: string
+          created_at?: string
+          description: string
+          entity_key: string
+          id?: string
+          is_active?: boolean
+          severity?: string
+          sql_probe: string
+          updated_at?: string
+        }
+        Update: {
+          check_key?: string
+          created_at?: string
+          description?: string
+          entity_key?: string
+          id?: string
+          is_active?: boolean
+          severity?: string
+          sql_probe?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "system_integrity_checks_entity_key_fkey"
+            columns: ["entity_key"]
+            isOneToOne: false
+            referencedRelation: "entity_registry"
+            referencedColumns: ["entity_key"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           completed_at: string | null
@@ -5776,6 +5892,7 @@ export type Database = {
       normalize_email: { Args: { _email: string }; Returns: string }
       normalize_phone: { Args: { _phone: string }; Returns: string }
       run_document_reminders: { Args: never; Returns: number }
+      run_integrity_scan: { Args: never; Returns: string }
       search_portal_applicants: {
         Args: { _email?: string; _name?: string; _phone?: string }
         Returns: {
