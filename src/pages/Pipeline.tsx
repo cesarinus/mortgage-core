@@ -507,12 +507,13 @@ export default function Pipeline() {
                       Close date <ArrowUpDown className="h-3 w-3" />
                     </button>
                   </TableHead>
+                  <TableHead className="w-10 text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {sorted.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground py-12">
+                    <TableCell colSpan={9} className="text-center text-muted-foreground py-12">
                       No opportunities yet. Move a Qualified lead from the Leads page to start the pipeline.
                     </TableCell>
                   </TableRow>
@@ -525,7 +526,9 @@ export default function Pipeline() {
                       className="cursor-pointer hover:bg-muted/40"
                       onClick={() => navigate(`/crm/leads/${a.opp.lead_id}`, { state: { from: "pipeline" } })}
                     >
-                      <TableCell className="font-medium">{opportunityName(a.lead)}</TableCell>
+                      <TableCell className="font-medium">
+                        {opportunityName(a.lead) || a.primary.name || "Untitled opportunity"}
+                      </TableCell>
                       <TableCell>{fmtCurrency(a.opp.loan_amount)}</TableCell>
                       <TableCell>
                         <div className="text-sm">{a.primary.name || "—"}</div>
@@ -544,6 +547,19 @@ export default function Pipeline() {
                         </StageHoldButton>
                       </TableCell>
                       <TableCell>{fmtDate(a.opp.close_date ?? a.opp.created_at)}</TableCell>
+                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                        <RecordActionMenu
+                          entityType="opportunity"
+                          record={{
+                            id: a.opp.id,
+                            email: a.primary.email,
+                            phone: a.primary.phone,
+                            address: a.opp.property_address,
+                            workspaceHref: `/opportunities/${a.opp.id}`,
+                            viewHref: `/crm/leads/${a.opp.lead_id}`,
+                          }}
+                        />
+                      </TableCell>
                     </TableRow>
                   );
                 })}
