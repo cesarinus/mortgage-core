@@ -919,6 +919,7 @@ export type Database = {
           id: string
           lead_id: string | null
           metadata: Json | null
+          opportunity_id: string | null
           ref_id: string | null
           title: string | null
         }
@@ -932,6 +933,7 @@ export type Database = {
           id?: string
           lead_id?: string | null
           metadata?: Json | null
+          opportunity_id?: string | null
           ref_id?: string | null
           title?: string | null
         }
@@ -945,6 +947,7 @@ export type Database = {
           id?: string
           lead_id?: string | null
           metadata?: Json | null
+          opportunity_id?: string | null
           ref_id?: string | null
           title?: string | null
         }
@@ -970,6 +973,13 @@ export type Database = {
             referencedRelation: "leads"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "crm_activities_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_opportunities"
+            referencedColumns: ["id"]
+          },
         ]
       }
       crm_attachments: {
@@ -984,6 +994,7 @@ export type Database = {
           id: string
           lead_id: string | null
           mime_type: string | null
+          opportunity_id: string | null
           size_bytes: number | null
           uploaded_by: string | null
           version: number
@@ -999,6 +1010,7 @@ export type Database = {
           id?: string
           lead_id?: string | null
           mime_type?: string | null
+          opportunity_id?: string | null
           size_bytes?: number | null
           uploaded_by?: string | null
           version?: number
@@ -1014,6 +1026,7 @@ export type Database = {
           id?: string
           lead_id?: string | null
           mime_type?: string | null
+          opportunity_id?: string | null
           size_bytes?: number | null
           uploaded_by?: string | null
           version?: number
@@ -1038,6 +1051,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_attachments_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_opportunities"
             referencedColumns: ["id"]
           },
         ]
@@ -1983,6 +2003,7 @@ export type Database = {
           from_status: string | null
           id: string
           metadata: Json
+          opportunity_id: string | null
           to_status: string | null
         }
         Insert: {
@@ -1993,6 +2014,7 @@ export type Database = {
           from_status?: string | null
           id?: string
           metadata?: Json
+          opportunity_id?: string | null
           to_status?: string | null
         }
         Update: {
@@ -2003,9 +2025,18 @@ export type Database = {
           from_status?: string | null
           id?: string
           metadata?: Json
+          opportunity_id?: string | null
           to_status?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "deal_events_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_opportunities"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       deal_stage_history: {
         Row: {
@@ -2015,6 +2046,7 @@ export type Database = {
           id: string
           new_stage: Database["public"]["Enums"]["deal_stage"]
           old_stage: Database["public"]["Enums"]["deal_stage"] | null
+          opportunity_id: string | null
         }
         Insert: {
           changed_at?: string
@@ -2023,6 +2055,7 @@ export type Database = {
           id?: string
           new_stage: Database["public"]["Enums"]["deal_stage"]
           old_stage?: Database["public"]["Enums"]["deal_stage"] | null
+          opportunity_id?: string | null
         }
         Update: {
           changed_at?: string
@@ -2031,6 +2064,7 @@ export type Database = {
           id?: string
           new_stage?: Database["public"]["Enums"]["deal_stage"]
           old_stage?: Database["public"]["Enums"]["deal_stage"] | null
+          opportunity_id?: string | null
         }
         Relationships: [
           {
@@ -2038,6 +2072,46 @@ export type Database = {
             columns: ["deal_id"]
             isOneToOne: false
             referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_stage_history_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_opportunities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deal_to_opportunity: {
+        Row: {
+          deal_id: string
+          migrated_at: string
+          opportunity_id: string
+        }
+        Insert: {
+          deal_id: string
+          migrated_at?: string
+          opportunity_id: string
+        }
+        Update: {
+          deal_id?: string
+          migrated_at?: string
+          opportunity_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_to_opportunity_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: true
+            referencedRelation: "deals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_to_opportunity_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: true
+            referencedRelation: "pipeline_opportunities"
             referencedColumns: ["id"]
           },
         ]
@@ -2318,6 +2392,7 @@ export type Database = {
           id: string
           lead_id: string | null
           model: string | null
+          opportunity_id: string | null
           period_ending_date: string | null
           status: Database["public"]["Enums"]["income_extraction_status"]
           tax_year: number | null
@@ -2337,6 +2412,7 @@ export type Database = {
           id?: string
           lead_id?: string | null
           model?: string | null
+          opportunity_id?: string | null
           period_ending_date?: string | null
           status?: Database["public"]["Enums"]["income_extraction_status"]
           tax_year?: number | null
@@ -2356,6 +2432,7 @@ export type Database = {
           id?: string
           lead_id?: string | null
           model?: string | null
+          opportunity_id?: string | null
           period_ending_date?: string | null
           status?: Database["public"]["Enums"]["income_extraction_status"]
           tax_year?: number | null
@@ -2388,6 +2465,13 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "income_document_extractions_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_opportunities"
             referencedColumns: ["id"]
           },
         ]
