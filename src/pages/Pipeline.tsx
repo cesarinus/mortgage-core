@@ -68,7 +68,7 @@ function initials(name: string) {
 type Assembled = {
   opp: Opportunity;
   lead: Lead | undefined;
-  primary: { name: string; email: string | null };
+  primary: { name: string; email: string | null; phone: string | null };
   titleCompany: Company | null;
   lender: Company | null;
 };
