@@ -3078,6 +3078,48 @@ export type Database = {
           },
         ]
       }
+      lifecycle_stages: {
+        Row: {
+          color: string | null
+          created_at: string
+          description: string | null
+          expected_days: number | null
+          id: string
+          is_terminal: boolean
+          key: string
+          label: string
+          probability_pct: number | null
+          sort: number
+          updated_at: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          expected_days?: number | null
+          id?: string
+          is_terminal?: boolean
+          key: string
+          label: string
+          probability_pct?: number | null
+          sort: number
+          updated_at?: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          description?: string | null
+          expected_days?: number | null
+          id?: string
+          is_terminal?: boolean
+          key?: string
+          label?: string
+          probability_pct?: number | null
+          sort?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       loan_conditions: {
         Row: {
           category: string
@@ -4131,6 +4173,7 @@ export type Database = {
           lead_id: string | null
           legacy_deal_id: string | null
           lender_company_id: string | null
+          lifecycle_stage: string | null
           loan_amount: number | null
           loan_officer_id: string | null
           loan_type: string | null
@@ -4153,6 +4196,7 @@ export type Database = {
           lead_id?: string | null
           legacy_deal_id?: string | null
           lender_company_id?: string | null
+          lifecycle_stage?: string | null
           loan_amount?: number | null
           loan_officer_id?: string | null
           loan_type?: string | null
@@ -4175,6 +4219,7 @@ export type Database = {
           lead_id?: string | null
           legacy_deal_id?: string | null
           lender_company_id?: string | null
+          lifecycle_stage?: string | null
           loan_amount?: number | null
           loan_officer_id?: string | null
           loan_type?: string | null
@@ -4208,6 +4253,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "crm_companies"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pipeline_opportunities_lifecycle_stage_fkey"
+            columns: ["lifecycle_stage"]
+            isOneToOne: false
+            referencedRelation: "lifecycle_stages"
+            referencedColumns: ["key"]
           },
           {
             foreignKeyName: "pipeline_opportunities_primary_contact_id_fkey"
@@ -5587,6 +5639,7 @@ export type Database = {
       }
       is_admin: { Args: never; Returns: boolean }
       is_portal_user_for_deal: { Args: { _deal_id: string }; Returns: boolean }
+      map_legacy_stage: { Args: { _raw: string }; Returns: string }
       normalize_email: { Args: { _email: string }; Returns: string }
       normalize_phone: { Args: { _phone: string }; Returns: string }
       run_document_reminders: { Args: never; Returns: number }
