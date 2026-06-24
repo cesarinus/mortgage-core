@@ -963,7 +963,7 @@ export type Database = {
             foreignKeyName: "crm_activities_deal_id_fkey"
             columns: ["deal_id"]
             isOneToOne: false
-            referencedRelation: "deals"
+            referencedRelation: "deals_legacy"
             referencedColumns: ["id"]
           },
           {
@@ -1043,7 +1043,7 @@ export type Database = {
             foreignKeyName: "crm_attachments_deal_id_fkey"
             columns: ["deal_id"]
             isOneToOne: false
-            referencedRelation: "deals"
+            referencedRelation: "deals_legacy"
             referencedColumns: ["id"]
           },
           {
@@ -2071,7 +2071,7 @@ export type Database = {
             foreignKeyName: "deal_stage_history_deal_id_fkey"
             columns: ["deal_id"]
             isOneToOne: false
-            referencedRelation: "deals"
+            referencedRelation: "deals_legacy"
             referencedColumns: ["id"]
           },
           {
@@ -2104,7 +2104,7 @@ export type Database = {
             foreignKeyName: "deal_to_opportunity_deal_id_fkey"
             columns: ["deal_id"]
             isOneToOne: true
-            referencedRelation: "deals"
+            referencedRelation: "deals_legacy"
             referencedColumns: ["id"]
           },
           {
@@ -2116,7 +2116,7 @@ export type Database = {
           },
         ]
       }
-      deals: {
+      deals_legacy: {
         Row: {
           contact_id: string | null
           created_at: string
@@ -2457,7 +2457,7 @@ export type Database = {
             foreignKeyName: "income_document_extractions_deal_id_fkey"
             columns: ["deal_id"]
             isOneToOne: false
-            referencedRelation: "deals"
+            referencedRelation: "deals_legacy"
             referencedColumns: ["id"]
           },
           {
@@ -3919,7 +3919,7 @@ export type Database = {
             foreignKeyName: "mortgage_snapshots_deal_id_fkey"
             columns: ["deal_id"]
             isOneToOne: false
-            referencedRelation: "deals"
+            referencedRelation: "deals_legacy"
             referencedColumns: ["id"]
           },
           {
@@ -5417,7 +5417,7 @@ export type Database = {
             foreignKeyName: "tasks_deal_id_fkey"
             columns: ["deal_id"]
             isOneToOne: false
-            referencedRelation: "deals"
+            referencedRelation: "deals_legacy"
             referencedColumns: ["id"]
           },
           {
@@ -5541,7 +5541,7 @@ export type Database = {
             foreignKeyName: "timeline_events_deal_id_fkey"
             columns: ["deal_id"]
             isOneToOne: false
-            referencedRelation: "deals"
+            referencedRelation: "deals_legacy"
             referencedColumns: ["id"]
           },
           {
@@ -5656,7 +5656,56 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      deals: {
+        Row: {
+          contact_id: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string | null
+          loan_amount: number | null
+          loan_officer_id: string | null
+          loan_type: string | null
+          notes: string | null
+          property_address: string | null
+          stage: Database["public"]["Enums"]["deal_stage"] | null
+          updated_at: string | null
+        }
+        Insert: {
+          contact_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: never
+          loan_amount?: number | null
+          loan_officer_id?: string | null
+          loan_type?: string | null
+          notes?: string | null
+          property_address?: string | null
+          stage?: never
+          updated_at?: string | null
+        }
+        Update: {
+          contact_id?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: never
+          loan_amount?: number | null
+          loan_officer_id?: string | null
+          loan_type?: string | null
+          notes?: string | null
+          property_address?: string | null
+          stage?: never
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pipeline_opportunities_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       convert_person_to_lead: {
@@ -5753,6 +5802,10 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      stage_to_deal_enum: {
+        Args: { _raw: string }
+        Returns: Database["public"]["Enums"]["deal_stage"]
+      }
       timeline_log: {
         Args: {
           _actor_id?: string
