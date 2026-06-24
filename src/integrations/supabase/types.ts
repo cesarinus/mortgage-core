@@ -3237,8 +3237,39 @@ export type Database = {
           },
         ]
       }
+      lifecycle_override_log: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          from_stage: string | null
+          id: string
+          opportunity_id: string
+          override_reason: string
+          to_stage: string
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          from_stage?: string | null
+          id?: string
+          opportunity_id: string
+          override_reason: string
+          to_stage: string
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          from_stage?: string | null
+          id?: string
+          opportunity_id?: string
+          override_reason?: string
+          to_stage?: string
+        }
+        Relationships: []
+      }
       lifecycle_stages: {
         Row: {
+          automation_triggers: Json
           color: string | null
           created_at: string
           description: string | null
@@ -3248,10 +3279,13 @@ export type Database = {
           key: string
           label: string
           probability_pct: number | null
+          required_documents: Json
+          required_fields: Json
           sort: number
           updated_at: string
         }
         Insert: {
+          automation_triggers?: Json
           color?: string | null
           created_at?: string
           description?: string | null
@@ -3261,10 +3295,13 @@ export type Database = {
           key: string
           label: string
           probability_pct?: number | null
+          required_documents?: Json
+          required_fields?: Json
           sort: number
           updated_at?: string
         }
         Update: {
+          automation_triggers?: Json
           color?: string | null
           created_at?: string
           description?: string | null
@@ -3274,8 +3311,40 @@ export type Database = {
           key?: string
           label?: string
           probability_pct?: number | null
+          required_documents?: Json
+          required_fields?: Json
           sort?: number
           updated_at?: string
+        }
+        Relationships: []
+      }
+      lifecycle_transitions: {
+        Row: {
+          created_at: string
+          from_stage: string
+          id: string
+          is_allowed: boolean
+          notes: string | null
+          requires_override: boolean
+          to_stage: string
+        }
+        Insert: {
+          created_at?: string
+          from_stage: string
+          id?: string
+          is_allowed?: boolean
+          notes?: string | null
+          requires_override?: boolean
+          to_stage: string
+        }
+        Update: {
+          created_at?: string
+          from_stage?: string
+          id?: string
+          is_allowed?: boolean
+          notes?: string | null
+          requires_override?: boolean
+          to_stage?: string
         }
         Relationships: []
       }
@@ -4167,6 +4236,33 @@ export type Database = {
           subject?: string | null
           updated_at?: string
           variables?: Json
+        }
+        Relationships: []
+      }
+      opportunity_events: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          event_type: string
+          id: string
+          opportunity_id: string
+          payload: Json
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          opportunity_id: string
+          payload?: Json
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          opportunity_id?: string
+          payload?: Json
         }
         Relationships: []
       }
@@ -5893,6 +5989,15 @@ export type Database = {
       }
     }
     Functions: {
+      assert_lifecycle_transition: {
+        Args: {
+          _from: string
+          _opportunity_id: string
+          _override_reason?: string
+          _to: string
+        }
+        Returns: boolean
+      }
       convert_person_to_lead: {
         Args: { _person_id: string }
         Returns: {
