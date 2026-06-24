@@ -2370,6 +2370,7 @@ export type Database = {
       }
       entity_registry: {
         Row: {
+          canonical: boolean
           created_at: string
           description: string | null
           display_name: string
@@ -2381,6 +2382,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          canonical?: boolean
           created_at?: string
           description?: string | null
           display_name: string
@@ -2392,6 +2394,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          canonical?: boolean
           created_at?: string
           description?: string | null
           display_name?: string
@@ -4322,9 +4325,15 @@ export type Database = {
         Row: {
           arive_loan_id: string | null
           close_date: string | null
+          cltv: number | null
           contact_id: string | null
           created_at: string
           created_by: string | null
+          down_payment: number | null
+          dti: number | null
+          funded_at: string | null
+          health_calculated_at: string | null
+          health_score: number | null
           id: string
           lead_id: string | null
           legacy_deal_id: string | null
@@ -4332,22 +4341,44 @@ export type Database = {
           lifecycle_stage: string | null
           loan_amount: number | null
           loan_officer_id: string | null
+          loan_program: string | null
           loan_type: string | null
+          lock_expires_at: string | null
+          lock_status: string | null
+          los_last_synced_at: string | null
+          los_loan_number: string | null
+          los_status: string | null
+          lost_at: string | null
+          lost_reason: string | null
+          ltv: number | null
           name: string | null
           notes: string | null
+          occupancy_type: string | null
           primary_contact_id: string | null
           property_address: string | null
+          property_type: string | null
+          property_use: string | null
+          purchase_price: number | null
+          rate_locked_at: string | null
           source_system: string
           stage: string
+          subject_property_value: number | null
           title_company_id: string | null
+          transaction_type: string | null
           updated_at: string
         }
         Insert: {
           arive_loan_id?: string | null
           close_date?: string | null
+          cltv?: number | null
           contact_id?: string | null
           created_at?: string
           created_by?: string | null
+          down_payment?: number | null
+          dti?: number | null
+          funded_at?: string | null
+          health_calculated_at?: string | null
+          health_score?: number | null
           id?: string
           lead_id?: string | null
           legacy_deal_id?: string | null
@@ -4355,22 +4386,44 @@ export type Database = {
           lifecycle_stage?: string | null
           loan_amount?: number | null
           loan_officer_id?: string | null
+          loan_program?: string | null
           loan_type?: string | null
+          lock_expires_at?: string | null
+          lock_status?: string | null
+          los_last_synced_at?: string | null
+          los_loan_number?: string | null
+          los_status?: string | null
+          lost_at?: string | null
+          lost_reason?: string | null
+          ltv?: number | null
           name?: string | null
           notes?: string | null
+          occupancy_type?: string | null
           primary_contact_id?: string | null
           property_address?: string | null
+          property_type?: string | null
+          property_use?: string | null
+          purchase_price?: number | null
+          rate_locked_at?: string | null
           source_system?: string
           stage?: string
+          subject_property_value?: number | null
           title_company_id?: string | null
+          transaction_type?: string | null
           updated_at?: string
         }
         Update: {
           arive_loan_id?: string | null
           close_date?: string | null
+          cltv?: number | null
           contact_id?: string | null
           created_at?: string
           created_by?: string | null
+          down_payment?: number | null
+          dti?: number | null
+          funded_at?: string | null
+          health_calculated_at?: string | null
+          health_score?: number | null
           id?: string
           lead_id?: string | null
           legacy_deal_id?: string | null
@@ -4378,14 +4431,30 @@ export type Database = {
           lifecycle_stage?: string | null
           loan_amount?: number | null
           loan_officer_id?: string | null
+          loan_program?: string | null
           loan_type?: string | null
+          lock_expires_at?: string | null
+          lock_status?: string | null
+          los_last_synced_at?: string | null
+          los_loan_number?: string | null
+          los_status?: string | null
+          lost_at?: string | null
+          lost_reason?: string | null
+          ltv?: number | null
           name?: string | null
           notes?: string | null
+          occupancy_type?: string | null
           primary_contact_id?: string | null
           property_address?: string | null
+          property_type?: string | null
+          property_use?: string | null
+          purchase_price?: number | null
+          rate_locked_at?: string | null
           source_system?: string
           stage?: string
+          subject_property_value?: number | null
           title_company_id?: string | null
+          transaction_type?: string | null
           updated_at?: string
         }
         Relationships: [
