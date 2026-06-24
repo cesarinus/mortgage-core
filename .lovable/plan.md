@@ -1,155 +1,148 @@
+# Mortgage Core – Phases G → K Execution Plan
 
-# Mortgage Core – Lifecycle Consolidation (Option C, Opportunity-Canonical)
+This continues the lifecycle consolidation work. Phases A–F shipped: `pipeline_opportunities` is extended, `lifecycle_stages` seeded, `deals` is a compat view over `pipeline_opportunities`, and the self-healing integrity layer (`entity_registry`, `system_integrity_checks`, `entity_health_report`, `run_integrity_scan()` + nightly cron) is live.
 
-Canonical entity: **Opportunity** (table `pipeline_opportunities`). `deals` becomes a backward-compat view. Zero React page edits on cutover day. Every step is additive and reversible until Phase F.
-
----
-
-## Stage 0 — Safety & Snapshots (no schema changes)
-
-Produce a single audit bundle under `/mnt/documents/lifecycle-consolidation/`:
-
-- `snapshot_schema.sql` — `pg_dump --schema-only` of `public`.
-- `snapshot_deals.csv`, `snapshot_pipeline_opportunities.csv`, `snapshot_deal_documents.csv`, `snapshot_deal_stage_history.csv`, `snapshot_loan_conditions.csv`, `snapshot_crm_field_values.csv` (filtered to lifecycle entities), `snapshot_los_sync_queue.csv`, `snapshot_tasks.csv`.
-- `relationship_map.md` — FK graph for the 4 lifecycle entities + children.
-- `field_map_deals_to_opportunities.md` — column-by-column mapping table (gaps highlighted).
-- `code_dependency_map.md` — every `from("deals")`, `from("pipeline_opportunities")`, `deal_id`, `opportunity_id` reference, with file:line.
-- `rollback.sql` — per-migration DOWN scripts saved alongside each UP.
-
-No code or schema mutations in this stage.
+Phases G–K finish the canonicalization, build the lifecycle engine, add mortgage-specific integrity, deliver the unified Opportunity workspace, and stand up the AI context layer. Each phase produces audit artifacts in `/mnt/documents/mortgage-core/` and ships its own rollback SQL. Nothing destructive lands until Phase G's deferred cleanup, which stays gated behind two weeks of green integrity scans (carry-over of the Stage G rule).
 
 ---
 
-## Stage A — Extend `pipeline_opportunities` (additive only)
+## Phase G — Opportunity Consolidation
 
-One migration adding the columns needed to absorb `deals`:
+**G1. Schema diff report** → `/mnt/documents/mortgage-core/G1_field_map.md`
+Column-by-column comparison of `deals_legacy` vs `pipeline_opportunities`. Each row: field name, source table, target column, migration strategy (already-migrated / merge / deprecate / new), risk level. Produced by reading `information_schema.columns` and the Stage C `deal_to_opportunity` map.
 
-- `lead_id uuid` (already present — verify)
-- `contact_id uuid REFERENCES contacts(id)` — for legacy deals tied to a contact, not a lead
-- `loan_officer_id uuid`
-- `created_by uuid`
-- `loan_amount numeric`, `loan_type text`, `property_address text`, `interest_rate numeric`, `close_date date`, `notes text`, `name text` — any missing from current schema
-- `legacy_deal_id uuid UNIQUE` — provenance pointer for back-mapping
-- `source_system text DEFAULT 'opportunity'` (`'opportunity' | 'deal_migrated'`)
+**G2. Canonical Opportunity schema (additive migration)**
+One migration adding any gaps surfaced by G1 so Opportunity covers Purchase / Refi / HELOC / Cash-out / FHA / VA / Conv / USDA / Non-QM and is future-ready:
+- `transaction_type text` (purchase | refinance | cash_out_refi | heloc)
+- `loan_program text` (conventional | fha | va | usda | non_qm | jumbo | heloc)
+- `occupancy_type text`, `property_type text`, `property_use text`
+- `subject_property_value numeric`, `purchase_price numeric`, `down_payment numeric`, `ltv numeric`, `cltv numeric`, `dti numeric`
+- `lock_status text`, `lock_expires_at timestamptz`, `rate_locked_at timestamptz`
+- `los_loan_number text`, `los_status text`, `los_last_synced_at timestamptz`
+- `funded_at timestamptz`, `lost_reason text`, `lost_at timestamptz`
+- `health_score int`, `health_calculated_at timestamptz` (populated in Phase I)
+All nullable. No drops, no renames.
 
-No drops. No renames. RLS policies extended only where new columns require it (e.g. allow access via `contact_id` ownership the same way `deals` does today).
+**G3. Pre-cutover validation** → `/mnt/documents/mortgage-core/G3_validation.md`
+- Row counts: `deals_legacy` vs `pipeline_opportunities WHERE source_system='deal_migrated'`
+- FK comparison: child counts (`deal_documents`, `deal_stage_history`, `tasks`, `loan_conditions`, `los_sync_queue`) per parent
+- Orphan scan via existing `run_integrity_scan()`
+- Duplicate scan: `(lead_id, property_address, loan_amount)` within 30d
 
----
-
-## Stage B — Canonical Stage Lifecycle
-
-New table `lifecycle_stages` (single source of truth) seeded with:
-
-```
-prospect, application_started, application_submitted, processing,
-underwriting, conditional_approval, clear_to_close, funded, lost
-```
-
-Columns: `key`, `label`, `sort`, `is_terminal`, `color`, `probability_pct`, `expected_days`.
-
-Add `pipeline_opportunities.lifecycle_stage text` (nullable initially). Backfill from existing `stage` via a deterministic mapping function `map_legacy_stage(text) → text`:
-
-| Legacy (deal_stage / pipeline) | Canonical |
-|---|---|
-| application_sent, application_started | application_submitted |
-| underwriting | underwriting |
-| approved | conditional_approval |
-| clear_to_close | clear_to_close |
-| closed, funded | funded |
-| lost | lost |
-| (lead-only stages) | prospect |
-
-`pipeline_stages` table is kept but marked `legacy = true`; admin UI starts reading `lifecycle_stages`. State machine in `src/lib/crm/stateMachine.ts` gets a new `lifecycle` entity type alongside existing `deal`/`lead`; old types remain functional.
+**G4. Canonicalization step**
+- Mark `deals_legacy` triggers read-only (already done in Stage D)
+- Add `entity_registry` flag `canonical=true` for `pipeline_opportunities`, `canonical=false` for `deals_legacy`
+- Compat view + INSTEAD-OF triggers stay in place
+- Deferred drop of `deals` view / `deals_legacy` / `deal_id` child columns / `deal_stage` enum stays gated (Stage G rule from plan).
 
 ---
 
-## Stage C — Data Migration: deals → pipeline_opportunities
+## Phase H — Mortgage Lifecycle Engine
 
-One idempotent migration:
+**H1. Canonical lifecycle** — `lifecycle_stages` already seeded in Stage B with the 9 stages. Verify; add any missing rows.
 
-1. For each row in `deals` with no matching `pipeline_opportunities.legacy_deal_id`, insert a new opportunity copying mapped fields and storing `legacy_deal_id = deals.id`, `source_system = 'deal_migrated'`, `lifecycle_stage = map_legacy_stage(deals.stage)`.
-2. Build a `deal_to_opportunity` mapping table (`deal_id PK`, `opportunity_id`) for FK rewiring and rollback.
-3. Re-point child rows by adding `opportunity_id` to children that today only have `deal_id`: `deal_documents`, `deal_stage_history`, `deal_events`, `tasks` (already has both — backfill where null), `crm_field_values` (remap `record_type='deals'` → `record_type='opportunities'`, `record_id` via the map). All done with `UPDATE … FROM deal_to_opportunity`. Original `deal_id` columns are **kept** for rollback.
-4. Verification queries written to `/mnt/documents/lifecycle-consolidation/migration_report.md`: row counts before/after, orphan check, stage distribution, sample diffs.
+**H2. Stage metadata** — extend `lifecycle_stages` (additive):
+- `required_fields jsonb` (array of opportunity column names)
+- `required_documents jsonb` (array of `stage_documents.key`)
+- `automation_triggers jsonb` (array of event names)
+- existing: `color`, `sort`, `is_terminal`, `probability_pct`, `expected_days`, `description`
 
-Zero rows deleted. Fully reversible by truncating rows where `source_system='deal_migrated'` and dropping the mapping table.
+**H3. Transition rules** — new table `lifecycle_transitions`:
+- `from_stage text`, `to_stage text`, `is_allowed boolean`, `requires_override boolean`
+- Seed full matrix (forbid `funded→*`, `ctc→application_started`, etc.)
+- `lifecycle_override_log` table for admin overrides
+- DB function `assert_lifecycle_transition(opp_id, from, to, actor, override_reason)` raising on invalid + writing override log
+- Wire into existing `pipeline_opportunities` BEFORE UPDATE trigger
 
----
-
-## Stage D — Compatibility Layer
-
-Replace `deals` **table** with a `deals` **view** in two sub-steps to stay reversible:
-
-D1. Rename `deals` → `deals_legacy` (kept as physical table, read-only triggers added).
-D2. Create `CREATE VIEW public.deals AS SELECT … FROM pipeline_opportunities WHERE source_system IN ('deal_migrated','opportunity')` exposing the exact column set the existing app expects (id = `legacy_deal_id` when present, else opportunity id; stage = legacy form via `map_canonical_to_legacy_stage`).
-D3. `INSTEAD OF INSERT/UPDATE/DELETE` triggers on the view that write through to `pipeline_opportunities`, so existing code paths (Dashboard, TasksWidget, RecordWorkspace, queries.ts `fetchDeals`, etc.) keep working unmodified.
-
-Smoke-test surface that **must** keep working untouched:
-- `src/pages/Dashboard.tsx`, `src/components/dashboard/TasksWidget.tsx`
-- `src/pages/Pipeline.tsx`, `src/pages/crm/RecordWorkspace.tsx`
-- `src/lib/crm/queries.ts` (`fetchDeals`)
-- `src/lib/tasks/api.ts`, `src/components/tasks/*`
-- Portal pages, LOS sync (`los_sync_queue`, `loan_conditions`)
-- Timeline triggers (`tlg_deal_stage`, `tlg_task_event`, etc.)
+**H4. Lifecycle event bus** — new table `opportunity_events`:
+- `event_type text` (`stage.changed`, `created`, `updated`, `document.added`, `condition.added`, `funded`)
+- `opportunity_id uuid`, `payload jsonb`, `actor_id`, `created_at`
+- AFTER UPDATE/INSERT triggers on `pipeline_opportunities` + child tables emit events
+- Existing `pg_net` notify hooks (email triggers) keep working; this is additive
 
 ---
 
-## Stage E — CRM Fields Cleanup (non-destructive)
+## Phase I — Mortgage Integrity Framework
 
-- Mark `crm_modules` rows for `applications` and `loans` as `is_active=false` (don't delete).
-- Rename `opportunities` module label to "Opportunity" and ensure `entity_table='pipeline_opportunities'`.
-- Remap any `crm_field_values.record_type='deals'` rows already covered in Stage C step 3.
-- Field history preserved 1:1.
+Extends the Phase F integrity layer by inserting new rows into `system_integrity_checks`:
 
----
+| check_key | severity | probe |
+|---|---|---|
+| `dup_loan_file_30d` | warning | same `(lead_id, property_address, loan_amount)` within 30d |
+| `missing_primary_borrower` | critical | opportunity with no `contact_id` and no `lead.person_id` |
+| `missing_property_address` | warning | non-prospect opportunity with NULL `property_address` |
+| `stage_out_of_order` | critical | stage in {processing, underwriting, ctc} without prior `application_submitted` event in `deal_stage_history` |
+| `los_status_mismatch` | warning | `los_status` ≠ expected map for `lifecycle_stage` |
 
-## Stage F — Self-Healing Integrity Layer
-
-New tables (all RLS-protected, admin-only read):
-
-- `entity_registry(entity_key, table_name, canonical, parent_entity, is_active)` — seeded with the canonical map.
-- `system_integrity_checks(id, check_key, severity, last_run_at, status, summary, details jsonb)`.
-- `entity_health_report(id, run_at, entity_key, issue_type, record_id, details jsonb, resolved_at)`.
-
-Edge function `integrity-scan` (cron nightly) runs:
-1. **Orphans**: tasks/notes/documents/conditions/los_loans with no resolvable opportunity.
-2. **Duplicates**: same `(lead_id, property_address, loan_amount)` within 30 days.
-3. **Stage integrity**: detect transitions violating allowlist; flag `funded → *` reversals.
-4. **Schema governance**: `crm_modules` rows with no backing table or zero fields; duplicate stage definitions; modules flagged active but `is_active=false` in registry.
-
-Admin UI: new `Settings → System Integrity` page surfacing the report (separate change, not blocking).
+**I6. Health score** — new function `recalc_opportunity_health(opp_id)` returning 0-100:
+- Completeness (borrower, property, loan details): 40 pts
+- Document completeness vs `required_documents`: 25 pts
+- Open critical integrity issues: −20 pts each
+- Stage consistency: 15 pts
+- LOS sync freshness: 10 pts
+- Wired into nightly scan; writes `pipeline_opportunities.health_score` + `health_calculated_at`
 
 ---
 
-## Stage G — Final Cutover (deferred, only after ≥2 weeks of green integrity scans)
+## Phase J — Opportunity Workspace
 
-- Migrate the ~6 known React reads off the `deals` view to `pipeline_opportunities` directly.
-- Drop the `deals` view + `deals_legacy` table + `deal_id` columns on children.
-- Drop `deal_stage` enum.
-- This stage is out of scope for this plan — gated on user approval after stabilization.
+Frontend only. No schema changes.
 
----
+**J1. Workspace shell** — `src/pages/crm/OpportunityWorkspace.tsx`
+Single-page workspace with section tabs: Overview, Borrowers, Property, Loan Details, Tasks, Notes, Activities, Timeline, Documents, Conditions, Loan Scenarios, LOS Status, Custom Fields. Route `/opportunities/:id`. Reuses existing components from `RecordWorkspace.tsx`, `TasksWidget`, deal documents UI.
 
-## Deliverables produced by this plan
+**J2. Related records panel** — sidebar showing Lead / People / Companies / Referral Partner / Loan Officer / Processor / Realtor / Title / Lender, sourced from `lead_contacts`, `crm_contact_companies`, `pipeline_opportunities.loan_officer_id`.
 
-1. `migration_report.md` (Stage 0 + Stage C output)
-2. SQL migrations: `A_extend_opportunities.sql`, `B_lifecycle_stages.sql`, `C_migrate_deals.sql`, `D_compat_view.sql`, `E_crm_fields_cleanup.sql`, `F_integrity_layer.sql` — each with paired `*_rollback.sql`.
-3. Updated `relationship_map.md` (post-migration).
-4. Risk assessment + tech-debt reduction summary (1 table eliminated as concept, 4 stage sources → 1, 2 phantom modules deactivated).
-5. Edge function `supabase/functions/integrity-scan/index.ts`.
+**J3. Unified timeline** — reads existing `timeline_events` (already aggregating activities/tasks/stage/notes/docs/emails/calls) filtered by `opportunity_id`. Adds LOS update events from new `opportunity_events` table.
 
----
-
-## Mandatory invariants (verified at every stage)
-
-- Every migration ships with rollback SQL.
-- No `DROP TABLE`, no `DROP COLUMN`, no destructive `UPDATE` without a mapping table in Stages A–F.
-- `deals_legacy` retained until Stage G.
-- Row-count parity check after Stage C: `count(deals_legacy) == count(pipeline_opportunities WHERE source_system='deal_migrated')`.
-- Smoke test: load Dashboard, Pipeline, a RecordWorkspace, and create a Task after each stage.
+**J4. Performance**
+- React Query with `staleTime: 30s`
+- Section data lazy-loaded per tab
+- Timeline paginated (50/page, infinite scroll)
+- Index audit: confirm `(opportunity_id, created_at desc)` on hot tables
 
 ---
 
-## Approval requested
+## Phase K — AI Readiness Layer
 
-Confirm to proceed and I will execute **Stage 0 → Stage F** sequentially, pausing after each migration for review. Stage G stays gated.
+**K1. `opportunity_context_view`** — Postgres VIEW (or materialized view if perf demands) joining opportunity + borrowers + lead + property + tasks (open) + notes (latest 10) + timeline (latest 25) + documents metadata + conditions + scenarios + los status + custom fields. SECURITY INVOKER + RLS-respecting.
+
+**K2. `opportunity_summary(opp_id)`** — RPC returning JSON: `{ stage, open_tasks, pending_conditions, missing_documents, los_status, recent_activity[], health_score }`. Cheap, single round-trip, AI-shaped.
+
+**K3. AI memory optimization** — `opportunity_context_view` deliberately denormalizes so an assistant fetches one row. Add `GRANT SELECT` to `authenticated`.
+
+**K4. Event stream** — `opportunity_events` (Phase H4) is the canonical event log. Add a Realtime publication so AI agents can subscribe via Supabase Realtime without schema work. Document event shapes in `/mnt/documents/mortgage-core/K4_event_schemas.md`.
+
+---
+
+## Execution order & gates
+
+1. Phase G migrations + report → pause for review
+2. Phase H migrations → pause
+3. Phase I check seeds + health function → pause
+4. Phase J frontend → pause
+5. Phase K view + RPC + realtime → pause
+6. Stage G cleanup (drop legacy) stays gated until ≥2 weeks of green integrity scans + sign-off.
+
+## Deliverables
+
+Under `/mnt/documents/mortgage-core/`:
+- `G1_field_map.md`, `G2_canonical_schema.sql`, `G3_validation.md`, `G4_canonicalization.md`
+- `H_lifecycle_engine.md`
+- `I_integrity_framework.md`
+- `J_workspace_architecture.md`
+- `K_ai_context.md`, `K4_event_schemas.md`
+- `rollback/` with paired DOWN SQL per migration
+- `risk_assessment.md`, `tech_debt_reduction.md`, `performance_impact.md`
+
+## Invariants (unchanged from earlier phases)
+
+- Every migration ships with rollback SQL
+- No DROP TABLE / DROP COLUMN / destructive UPDATE
+- `deals_legacy` retained through Phase K
+- Row-count parity verified after each migration
+- Smoke: Dashboard, Pipeline, RecordWorkspace, Tasks load + create after every phase
+
+---
+
+**Approval requested.** Confirm and I will execute G1 → K4 sequentially, pausing for review after each phase. The deferred legacy drop stays gated.
