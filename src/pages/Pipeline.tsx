@@ -209,10 +209,11 @@ export default function Pipeline() {
         ? `${contact.first_name} ${contact.last_name}`.trim()
         : opportunityName(lead);
       const primaryEmail = contact?.email ?? lead?.email ?? null;
+      const primaryPhone = (contact as any)?.phone ?? (lead as any)?.phone ?? null;
       return {
         opp,
         lead,
-        primary: { name: primaryName, email: primaryEmail },
+        primary: { name: primaryName, email: primaryEmail, phone: primaryPhone },
         titleCompany: opp.title_company_id ? companiesById.get(opp.title_company_id) ?? null : null,
         lender: opp.lender_company_id ? companiesById.get(opp.lender_company_id) ?? null : null,
       };
