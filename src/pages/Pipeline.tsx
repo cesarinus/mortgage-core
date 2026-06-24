@@ -21,6 +21,7 @@ import {
   recordDealTransition,
 } from "@/lib/crm/stateMachine";
 import { PIPELINE_STAGES, PIPELINE_STAGE_LABELS, PIPELINE_STAGE_BADGE } from "@/lib/crm/stages";
+import { RecordActionMenu } from "@/components/crm/RecordActionMenu";
 
 type Opportunity = {
   id: string;
@@ -41,11 +42,12 @@ type Lead = {
   last_name: string;
   name: string | null;
   email: string | null;
+  phone?: string | null;
   source?: string | null;
   intent_tag?: string | null;
 };
 
-type Contact = { id: string; first_name: string; last_name: string; email: string | null };
+type Contact = { id: string; first_name: string; last_name: string; email: string | null; phone?: string | null };
 type Company = { id: string; name: string };
 
 const fmtCurrency = (n: number | null | undefined) =>
@@ -66,7 +68,7 @@ function initials(name: string) {
 type Assembled = {
   opp: Opportunity;
   lead: Lead | undefined;
-  primary: { name: string; email: string | null };
+  primary: { name: string; email: string | null; phone: string | null };
   titleCompany: Company | null;
   lender: Company | null;
 };
@@ -171,10 +173,16 @@ export default function Pipeline() {
 
     const [{ data: l }, { data: c }, { data: co }] = await Promise.all([
       leadIds.length
-        ? supabase.from("leads").select("id,first_name,last_name,name,email,source,intent_tag").in("id", leadIds)
+        ? supabase
+            .from("leads")
+            .select("id,first_name,last_name,name,email,phone,source,intent_tag")
+            .in("id", leadIds)
         : Promise.resolve({ data: [] as Lead[] } as any),
       contactIds.length
-        ? supabase.from("contacts").select("id,first_name,last_name,email").in("id", contactIds)
+        ? supabase
+            .from("contacts")
+            .select("id,first_name,last_name,email,phone")
+            .in("id", contactIds)
         : Promise.resolve({ data: [] as Contact[] } as any),
       companyIds.length
         ? supabase.from("crm_companies").select("id,name").in("id", companyIds)
@@ -201,10 +209,11 @@ export default function Pipeline() {
         ? `${contact.first_name} ${contact.last_name}`.trim()
         : opportunityName(lead);
       const primaryEmail = contact?.email ?? lead?.email ?? null;
+      const primaryPhone = (contact as any)?.phone ?? (lead as any)?.phone ?? null;
       return {
         opp,
         lead,
-        primary: { name: primaryName, email: primaryEmail },
+        primary: { name: primaryName, email: primaryEmail, phone: primaryPhone },
         titleCompany: opp.title_company_id ? companiesById.get(opp.title_company_id) ?? null : null,
         lender: opp.lender_company_id ? companiesById.get(opp.lender_company_id) ?? null : null,
       };
@@ -498,12 +507,13 @@ export default function Pipeline() {
                       Close date <ArrowUpDown className="h-3 w-3" />
                     </button>
                   </TableHead>
+                  <TableHead className="w-10 text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {sorted.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-muted-foreground py-12">
+                    <TableCell colSpan={9} className="text-center text-muted-foreground py-12">
                       No opportunities yet. Move a Qualified lead from the Leads page to start the pipeline.
                     </TableCell>
                   </TableRow>
@@ -516,7 +526,9 @@ export default function Pipeline() {
                       className="cursor-pointer hover:bg-muted/40"
                       onClick={() => navigate(`/crm/leads/${a.opp.lead_id}`, { state: { from: "pipeline" } })}
                     >
-                      <TableCell className="font-medium">{opportunityName(a.lead)}</TableCell>
+                      <TableCell className="font-medium">
+                        {opportunityName(a.lead) || a.primary.name || "Untitled opportunity"}
+                      </TableCell>
                       <TableCell>{fmtCurrency(a.opp.loan_amount)}</TableCell>
                       <TableCell>
                         <div className="text-sm">{a.primary.name || "—"}</div>
@@ -535,6 +547,19 @@ export default function Pipeline() {
                         </StageHoldButton>
                       </TableCell>
                       <TableCell>{fmtDate(a.opp.close_date ?? a.opp.created_at)}</TableCell>
+                      <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                        <RecordActionMenu
+                          entityType="opportunity"
+                          record={{
+                            id: a.opp.id,
+                            email: a.primary.email,
+                            phone: a.primary.phone,
+                            address: a.opp.property_address,
+                            workspaceHref: `/opportunities/${a.opp.id}`,
+                            viewHref: `/crm/leads/${a.opp.lead_id}`,
+                          }}
+                        />
+                      </TableCell>
                     </TableRow>
                   );
                 })}
