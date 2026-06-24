@@ -664,18 +664,30 @@ function iconFor(type: string) {
   if (type === "meeting") return <CalendarDays className="h-3.5 w-3.5" />;
   return <FileText className="h-3.5 w-3.5" />;
 }
+/**
+ * Mortgage-risk flags only. Data-hygiene flags (missing email/phone, stuck > 72h)
+ * belong to the lifecycle/health surfaces, not this card.
+ */
 function deriveChallenges(r: any): string[] {
   const out: string[] = [];
-  if (r?.credit_range && /<\s*620|under|low/i.test(r.credit_range)) out.push("Low credit range");
-  if (!r?.email) out.push("Missing email");
-  if (!r?.phone) out.push("Missing phone");
-  if (r?.is_stuck) out.push("Stuck > 72h");
+  if (r?.credit_range && /<\s*620|under|low/i.test(r.credit_range)) out.push("Low credit");
+  if (r?.dti && Number(r.dti) >= 0.45) out.push("High DTI");
+  if (r?.missing_documents_count && Number(r.missing_documents_count) > 0) out.push("Missing documents");
+  if (r?.cash_to_close && Number(r.cash_to_close) > 50000) out.push("Large cash-to-close");
+  if (r?.employment_gap_months && Number(r.employment_gap_months) > 0) out.push("Employment gap");
   return out;
 }
+
+/**
+ * Mortgage strengths only. Lead-quality signals (high lead score, etc.)
+ * belong on the sentiment/health surfaces.
+ */
 function derivePositives(r: any): string[] {
   const out: string[] = [];
-  if ((r?.lead_score ?? 0) >= 60) out.push("High lead score");
-  if (r?.annual_income && r.annual_income > 100000) out.push("Strong income");
-  if (r?.credit_range && /740|750|excellent|Excellent|strong/i.test(r.credit_range)) out.push("Strong credit");
+  if (r?.credit_range && /740|750|760|780|800|excellent|strong/i.test(r.credit_range)) out.push("Strong credit");
+  if (r?.dti && Number(r.dti) > 0 && Number(r.dti) < 0.36) out.push("Low DTI");
+  if (r?.down_payment_pct && Number(r.down_payment_pct) >= 20) out.push("Large down payment");
+  if (r?.reserves_months && Number(r.reserves_months) >= 6) out.push("Cash reserves");
+  if (r?.employment_years && Number(r.employment_years) >= 2) out.push("Stable employment");
   return out;
 }
