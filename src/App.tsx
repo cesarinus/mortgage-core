@@ -53,6 +53,7 @@ import EmailTemplates from "@/pages/EmailTemplates";
 import Tasks from "@/pages/Tasks";
 import NotFound from "@/pages/NotFound";
 import RecordWorkspace from "@/pages/crm/RecordWorkspace";
+import OpportunityWorkspace from "@/pages/crm/OpportunityWorkspace";
 import AskHub from "@/pages/crm/AskHub";
 import PortalLayout from "@/components/portal/PortalLayout";
 import PortalLogin from "@/pages/portal/PortalLogin";
@@ -154,6 +155,7 @@ const App = () => (
                 <Route path="/email/templates" element={<EmailTemplates />} />
                 <Route path="/crm/leads/:id" element={<RecordWorkspace kind="lead" />} />
                 <Route path="/crm/contacts/:id" element={<RecordWorkspace kind="contact" />} />
+                <Route path="/opportunities/:id" element={<OpportunityWorkspace />} />
                 <Route path="/ask" element={<AskHub />} />
               </Route>
               <Route path="*" element={<NotFound />} />
