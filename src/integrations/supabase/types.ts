@@ -262,6 +262,13 @@ export type Database = {
             referencedRelation: "leads"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "blog_sessions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["lead_id"]
+          },
         ]
       }
       blog_variant_metrics: {
@@ -464,6 +471,13 @@ export type Database = {
             referencedRelation: "leads"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "bookings_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["lead_id"]
+          },
         ]
       }
       borrower_income_calculations: {
@@ -554,11 +568,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "borrower_income_calculations_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["borrower_contact_id"]
+          },
+          {
             foreignKeyName: "borrower_income_calculations_lead_id_fkey"
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "borrower_income_calculations_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["lead_id"]
           },
         ]
       }
@@ -656,11 +684,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "borrower_payment_details_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["borrower_contact_id"]
+          },
+          {
             foreignKeyName: "borrower_payment_details_lead_id_fkey"
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "borrower_payment_details_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["lead_id"]
           },
         ]
       }
@@ -737,6 +779,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "leads"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_sessions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["lead_id"]
           },
         ]
       }
@@ -960,6 +1009,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "crm_activities_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["borrower_contact_id"]
+          },
+          {
             foreignKeyName: "crm_activities_deal_id_fkey"
             columns: ["deal_id"]
             isOneToOne: false
@@ -972,6 +1028,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "leads"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_activities_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["lead_id"]
+          },
+          {
+            foreignKeyName: "crm_activities_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["opportunity_id"]
           },
           {
             foreignKeyName: "crm_activities_opportunity_id_fkey"
@@ -1040,6 +1110,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "crm_attachments_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["borrower_contact_id"]
+          },
+          {
             foreignKeyName: "crm_attachments_deal_id_fkey"
             columns: ["deal_id"]
             isOneToOne: false
@@ -1052,6 +1129,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "leads"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_attachments_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["lead_id"]
+          },
+          {
+            foreignKeyName: "crm_attachments_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["opportunity_id"]
           },
           {
             foreignKeyName: "crm_attachments_opportunity_id_fkey"
@@ -1155,11 +1246,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "crm_calls_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["borrower_contact_id"]
+          },
+          {
             foreignKeyName: "crm_calls_lead_id_fkey"
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_calls_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["lead_id"]
           },
         ]
       }
@@ -1261,11 +1366,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "crm_contact_companies_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["borrower_contact_id"]
+          },
+          {
             foreignKeyName: "crm_contact_companies_lead_id_fkey"
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_contact_companies_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["lead_id"]
           },
         ]
       }
@@ -1710,11 +1829,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "crm_meetings_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["borrower_contact_id"]
+          },
+          {
             foreignKeyName: "crm_meetings_lead_id_fkey"
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_meetings_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["lead_id"]
           },
         ]
       }
@@ -1794,11 +1927,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "crm_notes_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["borrower_contact_id"]
+          },
+          {
             foreignKeyName: "crm_notes_lead_id_fkey"
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_notes_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["lead_id"]
           },
         ]
       }
@@ -1945,11 +2092,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "crm_tasks_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["borrower_contact_id"]
+          },
+          {
             foreignKeyName: "crm_tasks_lead_id_fkey"
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_tasks_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["lead_id"]
           },
         ]
       }
@@ -2033,6 +2194,13 @@ export type Database = {
             foreignKeyName: "deal_events_opportunity_id_fkey"
             columns: ["opportunity_id"]
             isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["opportunity_id"]
+          },
+          {
+            foreignKeyName: "deal_events_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
             referencedRelation: "pipeline_opportunities"
             referencedColumns: ["id"]
           },
@@ -2078,6 +2246,13 @@ export type Database = {
             foreignKeyName: "deal_stage_history_opportunity_id_fkey"
             columns: ["opportunity_id"]
             isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["opportunity_id"]
+          },
+          {
+            foreignKeyName: "deal_stage_history_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
             referencedRelation: "pipeline_opportunities"
             referencedColumns: ["id"]
           },
@@ -2106,6 +2281,13 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "deals_legacy"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_to_opportunity_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: true
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["opportunity_id"]
           },
           {
             foreignKeyName: "deal_to_opportunity_opportunity_id_fkey"
@@ -2164,6 +2346,13 @@ export type Database = {
             referencedRelation: "contacts"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "deals_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["borrower_contact_id"]
+          },
         ]
       }
       email_logs: {
@@ -2219,6 +2408,13 @@ export type Database = {
           template_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "email_logs_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["opportunity_id"]
+          },
           {
             foreignKeyName: "email_logs_opportunity_id_fkey"
             columns: ["opportunity_id"]
@@ -2529,6 +2725,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "income_document_extractions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["borrower_contact_id"]
+          },
+          {
             foreignKeyName: "income_document_extractions_deal_id_fkey"
             columns: ["deal_id"]
             isOneToOne: false
@@ -2541,6 +2744,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "leads"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "income_document_extractions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["lead_id"]
+          },
+          {
+            foreignKeyName: "income_document_extractions_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["opportunity_id"]
           },
           {
             foreignKeyName: "income_document_extractions_opportunity_id_fkey"
@@ -2750,6 +2967,13 @@ export type Database = {
             referencedRelation: "leads"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "lead_events_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["lead_id"]
+          },
         ]
       }
       lead_export_logs: {
@@ -2793,6 +3017,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "leads"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_export_logs_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["lead_id"]
           },
         ]
       }
@@ -2864,6 +3095,13 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "leads"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_sentiment_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: true
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["lead_id"]
           },
         ]
       }
@@ -3042,6 +3280,13 @@ export type Database = {
             referencedRelation: "leads"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "lead_stage_history_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["lead_id"]
+          },
         ]
       }
       lead_tags: {
@@ -3070,6 +3315,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "leads"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_tags_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["lead_id"]
           },
         ]
       }
@@ -3213,6 +3465,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "contacts"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leads_co_borrower_id_fkey"
+            columns: ["co_borrower_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["borrower_contact_id"]
           },
           {
             foreignKeyName: "leads_company_id_fkey"
@@ -3424,6 +3683,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "loan_conditions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["lead_id"]
+          },
+          {
+            foreignKeyName: "loan_conditions_pipeline_opportunity_id_fkey"
+            columns: ["pipeline_opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["opportunity_id"]
+          },
+          {
             foreignKeyName: "loan_conditions_pipeline_opportunity_id_fkey"
             columns: ["pipeline_opportunity_id"]
             isOneToOne: false
@@ -3582,6 +3855,13 @@ export type Database = {
             referencedRelation: "leads"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "loan_scenarios_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["lead_id"]
+          },
         ]
       }
       los_field_mappings: {
@@ -3712,6 +3992,13 @@ export type Database = {
             referencedRelation: "leads"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "los_integration_logs_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["lead_id"]
+          },
         ]
       }
       los_loans: {
@@ -3774,6 +4061,13 @@ export type Database = {
             foreignKeyName: "los_loans_deal_id_fkey"
             columns: ["deal_id"]
             isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["opportunity_id"]
+          },
+          {
+            foreignKeyName: "los_loans_deal_id_fkey"
+            columns: ["deal_id"]
+            isOneToOne: false
             referencedRelation: "pipeline_opportunities"
             referencedColumns: ["id"]
           },
@@ -3783,6 +4077,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "leads"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "los_loans_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["lead_id"]
           },
         ]
       }
@@ -3818,6 +4119,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "los_sync_queue_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["opportunity_id"]
+          },
           {
             foreignKeyName: "los_sync_queue_opportunity_id_fkey"
             columns: ["opportunity_id"]
@@ -3950,6 +4258,13 @@ export type Database = {
             referencedRelation: "leads"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "mortgage_profiles_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: true
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["lead_id"]
+          },
         ]
       }
       mortgage_snapshots: {
@@ -4072,6 +4387,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "leads"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mortgage_snapshots_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["lead_id"]
+          },
+          {
+            foreignKeyName: "mortgage_snapshots_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["opportunity_id"]
           },
           {
             foreignKeyName: "mortgage_snapshots_opportunity_id_fkey"
@@ -4562,11 +4891,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "pipeline_opportunities_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["borrower_contact_id"]
+          },
+          {
             foreignKeyName: "pipeline_opportunities_lead_id_fkey"
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "leads"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pipeline_opportunities_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["lead_id"]
           },
           {
             foreignKeyName: "pipeline_opportunities_lender_company_id_fkey"
@@ -4588,6 +4931,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "contacts"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pipeline_opportunities_primary_contact_id_fkey"
+            columns: ["primary_contact_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["borrower_contact_id"]
           },
           {
             foreignKeyName: "pipeline_opportunities_title_company_id_fkey"
@@ -5313,6 +5663,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "social_media_analytics_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["lead_id"]
+          },
+          {
             foreignKeyName: "social_media_analytics_post_id_fkey"
             columns: ["post_id"]
             isOneToOne: false
@@ -5709,6 +6066,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "tasks_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["lead_id"]
+          },
+          {
+            foreignKeyName: "tasks_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["opportunity_id"]
+          },
+          {
             foreignKeyName: "tasks_opportunity_id_fkey"
             columns: ["opportunity_id"]
             isOneToOne: false
@@ -5831,6 +6202,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "leads"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timeline_events_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["lead_id"]
+          },
+          {
+            foreignKeyName: "timeline_events_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["opportunity_id"]
           },
           {
             foreignKeyName: "timeline_events_opportunity_id_fkey"
@@ -5985,6 +6370,70 @@ export type Database = {
             referencedRelation: "contacts"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "pipeline_opportunities_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["borrower_contact_id"]
+          },
+        ]
+      }
+      opportunity_context_view: {
+        Row: {
+          borrower_contact_id: string | null
+          borrower_email: string | null
+          borrower_first_name: string | null
+          borrower_last_name: string | null
+          borrower_phone: string | null
+          cltv: number | null
+          created_at: string | null
+          down_payment: number | null
+          dti: number | null
+          event_count: number | null
+          funded_at: string | null
+          health_calculated_at: string | null
+          health_score: number | null
+          lead_email: string | null
+          lead_first_name: string | null
+          lead_id: string | null
+          lead_last_name: string | null
+          lead_phone: string | null
+          lead_score: number | null
+          lead_status: Database["public"]["Enums"]["lead_status"] | null
+          legacy_stage: string | null
+          lifecycle_stage: string | null
+          loan_amount: number | null
+          loan_officer_id: string | null
+          loan_program: string | null
+          loan_type: string | null
+          lock_expires_at: string | null
+          lock_status: string | null
+          los_last_synced_at: string | null
+          los_loan_number: string | null
+          los_status: string | null
+          lost_at: string | null
+          lost_reason: string | null
+          ltv: number | null
+          missing_documents_count: number | null
+          occupancy_type: string | null
+          open_tasks_count: number | null
+          opportunity_id: string | null
+          pending_conditions_count: number | null
+          property_address: string | null
+          property_type: string | null
+          purchase_price: number | null
+          transaction_type: string | null
+          updated_at: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pipeline_opportunities_lifecycle_stage_fkey"
+            columns: ["lifecycle_stage"]
+            isOneToOne: false
+            referencedRelation: "lifecycle_stages"
+            referencedColumns: ["key"]
+          },
         ]
       }
     }
@@ -6065,6 +6514,9 @@ export type Database = {
       map_legacy_stage: { Args: { _raw: string }; Returns: string }
       normalize_email: { Args: { _email: string }; Returns: string }
       normalize_phone: { Args: { _phone: string }; Returns: string }
+      opportunity_summary: { Args: { _opp_id: string }; Returns: Json }
+      recalc_all_opportunity_health: { Args: never; Returns: number }
+      recalc_opportunity_health: { Args: { _opp_id: string }; Returns: number }
       run_document_reminders: { Args: never; Returns: number }
       run_integrity_scan: { Args: never; Returns: string }
       search_portal_applicants: {
