@@ -171,10 +171,16 @@ export default function Pipeline() {
 
     const [{ data: l }, { data: c }, { data: co }] = await Promise.all([
       leadIds.length
-        ? supabase.from("leads").select("id,first_name,last_name,name,email,source,intent_tag").in("id", leadIds)
+        ? supabase
+            .from("leads")
+            .select("id,first_name,last_name,name,email,phone,source,intent_tag")
+            .in("id", leadIds)
         : Promise.resolve({ data: [] as Lead[] } as any),
       contactIds.length
-        ? supabase.from("contacts").select("id,first_name,last_name,email").in("id", contactIds)
+        ? supabase
+            .from("contacts")
+            .select("id,first_name,last_name,email,phone")
+            .in("id", contactIds)
         : Promise.resolve({ data: [] as Contact[] } as any),
       companyIds.length
         ? supabase.from("crm_companies").select("id,name").in("id", companyIds)
