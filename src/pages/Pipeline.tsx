@@ -21,6 +21,7 @@ import {
   recordDealTransition,
 } from "@/lib/crm/stateMachine";
 import { PIPELINE_STAGES, PIPELINE_STAGE_LABELS, PIPELINE_STAGE_BADGE } from "@/lib/crm/stages";
+import { RecordActionMenu } from "@/components/crm/RecordActionMenu";
 
 type Opportunity = {
   id: string;
@@ -41,11 +42,12 @@ type Lead = {
   last_name: string;
   name: string | null;
   email: string | null;
+  phone?: string | null;
   source?: string | null;
   intent_tag?: string | null;
 };
 
-type Contact = { id: string; first_name: string; last_name: string; email: string | null };
+type Contact = { id: string; first_name: string; last_name: string; email: string | null; phone?: string | null };
 type Company = { id: string; name: string };
 
 const fmtCurrency = (n: number | null | undefined) =>
