@@ -4748,12 +4748,15 @@ export type Database = {
       }
       pipeline_opportunities: {
         Row: {
+          archived_reason: string | null
           arive_loan_id: string | null
           close_date: string | null
           cltv: number | null
           contact_id: string | null
           created_at: string
           created_by: string | null
+          deleted_at: string | null
+          deleted_by: string | null
           down_payment: number | null
           dti: number | null
           funded_at: string | null
@@ -4787,18 +4790,22 @@ export type Database = {
           rate_locked_at: string | null
           source_system: string
           stage: string
+          status: string
           subject_property_value: number | null
           title_company_id: string | null
           transaction_type: string | null
           updated_at: string
         }
         Insert: {
+          archived_reason?: string | null
           arive_loan_id?: string | null
           close_date?: string | null
           cltv?: number | null
           contact_id?: string | null
           created_at?: string
           created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           down_payment?: number | null
           dti?: number | null
           funded_at?: string | null
@@ -4832,18 +4839,22 @@ export type Database = {
           rate_locked_at?: string | null
           source_system?: string
           stage?: string
+          status?: string
           subject_property_value?: number | null
           title_company_id?: string | null
           transaction_type?: string | null
           updated_at?: string
         }
         Update: {
+          archived_reason?: string | null
           arive_loan_id?: string | null
           close_date?: string | null
           cltv?: number | null
           contact_id?: string | null
           created_at?: string
           created_by?: string | null
+          deleted_at?: string | null
+          deleted_by?: string | null
           down_payment?: number | null
           dti?: number | null
           funded_at?: string | null
@@ -4877,6 +4888,7 @@ export type Database = {
           rate_locked_at?: string | null
           source_system?: string
           stage?: string
+          status?: string
           subject_property_value?: number | null
           title_company_id?: string | null
           transaction_type?: string | null
@@ -6438,6 +6450,10 @@ export type Database = {
       }
     }
     Functions: {
+      archive_opportunity: {
+        Args: { _opp_id: string; _reason?: string }
+        Returns: Json
+      }
       assert_lifecycle_transition: {
         Args: {
           _from: string
@@ -6501,6 +6517,7 @@ export type Database = {
           stage: string
         }[]
       }
+      hard_delete_opportunity: { Args: { _opp_id: string }; Returns: Json }
       has_permission: {
         Args: { _action: string; _resource: string; _user_id: string }
         Returns: boolean
@@ -6514,9 +6531,15 @@ export type Database = {
       map_legacy_stage: { Args: { _raw: string }; Returns: string }
       normalize_email: { Args: { _email: string }; Returns: string }
       normalize_phone: { Args: { _phone: string }; Returns: string }
+      opportunity_dependency_counts: {
+        Args: { _opp_id: string }
+        Returns: Json
+      }
       opportunity_summary: { Args: { _opp_id: string }; Returns: Json }
       recalc_all_opportunity_health: { Args: never; Returns: number }
       recalc_opportunity_health: { Args: { _opp_id: string }; Returns: number }
+      repair_opportunity_data: { Args: never; Returns: Json }
+      restore_opportunity: { Args: { _opp_id: string }; Returns: Json }
       run_document_reminders: { Args: never; Returns: number }
       run_integrity_scan: { Args: never; Returns: string }
       search_portal_applicants: {

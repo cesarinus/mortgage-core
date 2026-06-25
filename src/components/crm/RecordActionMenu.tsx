@@ -8,6 +8,7 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   ArrowUpRightSquare,
+  Archive,
   Copy,
   Eye,
   Mail,
@@ -34,6 +35,7 @@ export type RecordActionKey =
   | "addNote"
   | "sendEmail"
   | "viewTimeline"
+  | "archive"
   | "delete";
 
 export type RecordEntity = "lead" | "opportunity" | "contact" | "company" | "loan";
@@ -59,6 +61,7 @@ export type RecordActionMenuProps = {
   onAddNote?: () => void;
   onSendEmail?: () => void;
   onViewTimeline?: () => void;
+  onArchive?: () => void;
   onDelete?: () => void;
   size?: "sm" | "icon";
 };
@@ -75,6 +78,8 @@ const DEFAULTS: Record<RecordEntity, RecordActionKey[]> = {
     "addNote",
     "sendEmail",
     "viewTimeline",
+    "archive",
+    "delete",
   ],
   contact: ["view", "edit", "copyEmail", "copyPhone", "createTask", "sendEmail"],
   company: ["view", "edit", "copyAddress"],
@@ -170,8 +175,21 @@ export function RecordActionMenu(props: RecordActionMenuProps) {
         {has("delete") && props.onDelete && (
           <>
             <DropdownMenuSeparator />
+            {has("archive") && props.onArchive && (
+              <DropdownMenuItem onClick={props.onArchive}>
+                <Archive className="h-3.5 w-3.5 mr-2" /> Archive
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={props.onDelete}>
               <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
+            </DropdownMenuItem>
+          </>
+        )}
+        {has("archive") && !has("delete") && props.onArchive && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={props.onArchive}>
+              <Archive className="h-3.5 w-3.5 mr-2" /> Archive
             </DropdownMenuItem>
           </>
         )}

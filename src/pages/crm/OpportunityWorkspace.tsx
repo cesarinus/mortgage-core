@@ -9,6 +9,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
+import { OpportunityEditSheet } from "@/components/crm/OpportunityEditSheet";
+import { OpportunityDeleteDialog } from "@/components/crm/OpportunityDeleteDialog";
+import { useNavigate } from "react-router-dom";
 
 /**
  * Phase J — Unified Opportunity Workspace.
@@ -65,6 +68,9 @@ function HealthBadge({ score }: { score: number | null | undefined }) {
 export default function OpportunityWorkspace() {
   const { id = "" } = useParams<{ id: string }>();
   const [tab, setTab] = useState<TabKey>("overview");
+  const [editOpen, setEditOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const navigate = useNavigate();
 
   const ctxQ = useQuery({
     queryKey: ["opp-context", id],
@@ -113,6 +119,8 @@ export default function OpportunityWorkspace() {
             <HealthBadge score={ctx?.health_score} />
             {ctx?.lifecycle_stage && <Badge variant="outline">{ctx.lifecycle_stage}</Badge>}
             {ctx?.los_status && <Badge variant="secondary">LOS: {ctx.los_status}</Badge>}
+            <Button size="sm" variant="outline" onClick={() => setEditOpen(true)}>Edit</Button>
+            <Button size="sm" variant="outline" onClick={() => setDeleteOpen(true)}>Archive / Delete</Button>
           </div>
         </header>
 
@@ -230,6 +238,18 @@ export default function OpportunityWorkspace() {
           </Button>
         </div>
       </aside>
+      <OpportunityEditSheet
+        opportunityId={id}
+        open={editOpen}
+        onOpenChange={setEditOpen}
+        onSaved={() => ctxQ.refetch()}
+      />
+      <OpportunityDeleteDialog
+        opportunityId={id}
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        onDone={() => navigate("/pipeline")}
+      />
     </div>
   );
 }
