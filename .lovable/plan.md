@@ -1,71 +1,81 @@
-# Opportunity & Lead Workspace UX Cleanup
+# Opportunity Data Recovery, Edit, and Safe Delete
 
-A multi-issue UX refinement sprint. No changes to lifecycle engine, integrity framework, or Opportunity data model — presentation layer only.
+A multi-phase remediation. Audit-first, then schema additions, then UI. No destructive changes to the Opportunity model — only additive fields (`status`, `deleted_at`, `deleted_by`) and recovery RPCs.
 
-## Phase 1 — Audit (read-only, no code changes)
+## Phase 1 — Data Audit (read-only)
 
-Produce written reports under `/mnt/documents/mortgage-core/ux-cleanup/`:
+Run SQL audits against `pipeline_opportunities`, `opportunity_context_view`, `leads`, `people`, `contacts`, `lead_contacts`, legacy `deals_legacy` + `deal_to_opportunity`. Output written to `/mnt/documents/mortgage-core/opps-recovery/`:
 
-1. **`01_duplicate_data_report.md`** — diff fields rendered by `MortgageSnapshotCard`, `ChallengesCard`, `PositiveSignalsCard`, `MortgageMetricsCard`. Identify every overlap (credit, DTI, LTV, loan amount, doc completion, etc.).
-2. **`02_opportunity_table_mapping.md`** — list each column in the Opportunities table, its current binding, the canonical source in `pipeline_opportunities` / `opportunity_context_view`, and why it renders blank.
-3. **`03_action_menu_audit.md`** — compare row actions on Leads, People, Opportunities, Companies. List missing actions per entity.
-4. **`04_workspace_density_review.md`** — map every card in `OpportunityWorkspace` left/center/right regions to the question it answers; flag overlap.
-5. **`05_legacy_dependency_report.md`** — grep for `deals_legacy`, `deal_to_opportunity`, legacy adapters in workspace/table code; list remaining reads.
-6. **`06_regression_risk.md`** — list components touched, blast radius, and validation steps.
+1. `01_field_coverage.md` — per-opportunity report: missing name, missing borrower, missing loan_amount, missing property, with source-data availability flags (migration vs UI vs source-empty).
+2. `02_classification.md` — every opportunity labeled **Valid / Incomplete / Orphan / Migration Artifact** with counts.
+3. `03_binding_diagnostics.md` — diff between what `pipeline_opportunities` row contains, what `opportunity_context_view` returns, and what the table currently renders. Pinpoints which "Untitled" rows are data-empty vs binding-broken.
 
-## Phase 2 — Mortgage Snapshot Consolidation
+## Phase 2 — Schema: Soft Delete + Provenance
 
-Apply the ownership matrix below; remove duplicate fields from each component. Single source of truth per data element.
+Single additive migration:
 
-- **Mortgage Snapshot (right sidebar):** Credit Score, DTI, LTV, Loan Type, Loan Amount, Property Type, Borrower Count only.
-- **Challenges:** risk flags only (High DTI, Low Credit, Missing Docs, Large CTC, Employment Gaps).
-- **Positive Signals:** strengths only (Strong Credit, Low DTI, Large Down Payment, Reserves, Stable Employment).
-- **Mortgage Metrics:** retire or fold into Snapshot if fully duplicate.
+- `pipeline_opportunities.status` (text, default `'active'`, check in `'active'|'archived'`)
+- `pipeline_opportunities.deleted_at` (timestamptz, null)
+- `pipeline_opportunities.deleted_by` (uuid, null)
+- `pipeline_opportunities.archived_reason` (text, null)
+- Partial index on `status = 'active'` for table queries.
+- RPC `opportunity_dependency_counts(_opp_id uuid)` returning `{tasks, notes, activities, documents, conditions, los_records, timeline_events, custom_fields}`.
+- RPC `archive_opportunity(_opp_id uuid, _reason text)` — sets status/deleted_at/deleted_by, writes `opportunity_events` + `timeline_events`.
+- RPC `restore_opportunity(_opp_id uuid)` — reverses archive.
+- RPC `hard_delete_opportunity(_opp_id uuid)` — refuses if dependency counts > 0; otherwise deletes and logs.
+- RPC `repair_opportunity_data()` — backfills `name`, links missing borrower from lead/people, copies `loan_amount` from `mortgage_snapshots` / `loan_scenarios` when null and confidence is high; returns a JSON repair report.
 
-## Phase 3 — Shared `RecordActionMenu`
+All RPCs `security definer`, `set search_path = public`, gated on `has_role(auth.uid(),'admin'|'loan_officer')`.
 
-New `src/components/crm/RecordActionMenu.tsx`:
+## Phase 3 — Table Binding Fix
 
-- Config-driven: takes `entityType`, record object, `availableActions[]`, optional permissions.
-- Built-in actions: `open`, `edit`, `copyEmail`, `copyPhone`, `copyAddress`, `createTask`, `addNote`, `sendEmail`, `viewTimeline`, `openWorkspace`.
-- Each action is a registered handler keyed by entity type; entity-agnostic UI (dropdown-menu).
-- Toast feedback via existing `useToast`.
+`src/pages/Pipeline.tsx`:
 
-Wire into:
-- Leads table (replace existing inline menu).
-- Opportunities table (new — gain parity with Leads).
-- People / Companies tables (replace inline menus if present).
+- Filter rows to `status = 'active'` by default; add an "Archived" toggle.
+- Name resolution hierarchy already added (Lead → Primary contact). Extend to also fall back to Property Address, then a final neutral `"—"` (never "Untitled").
+- Primary Contact column: resolve from `borrower_contact_id → contacts`, then `lead_contacts`, then lead; render `—` if none.
+- Loan Amount: read from `pipeline_opportunities.loan_amount`, fall back to `opportunity_context_view.loan_amount`, format via `formatCurrency`.
+- Property: always render `opportunity_context_view.property_address`.
 
-## Phase 4 — Opportunity Table Data Fix
+## Phase 4 — Edit Opportunity (slide-over)
 
-For each blank column identified in the audit:
-- Repoint query/select to `opportunity_context_view` or correct `pipeline_opportunities` column.
-- Add null-safe rendering (`—` fallback).
-- Confirm sort + filter still work via existing table component.
+New `src/components/crm/OpportunityEditSheet.tsx`:
 
-## Phase 5 — Workspace Density
+- shadcn `Sheet` slide-over.
+- Fields: name, stage (select from `pipeline_stages`), borrower (people picker), loan amount, loan type, property address, title company, lender, close date, assigned user, custom fields region (existing `crm_field_values` editor).
+- Update via `pipeline_opportunities` update; writes `opportunity_events` (`edited`).
 
-Reorganize `OpportunityWorkspace` regions per the ownership matrix:
-- **Left:** identity (Borrower, LO, Stage, Status).
-- **Center:** work (Tasks, Timeline, Notes, Conditions tabs — current structure mostly fits).
-- **Right:** insights (Mortgage Snapshot, Health, AI Insights).
-Remove cards that duplicate region intent.
+## Phase 5 — Safe Delete Flow
 
-## Phase 6 — Validation
+New `src/components/crm/OpportunityDeleteDialog.tsx`:
 
-After each phase:
-- `tsgo` typecheck (auto).
-- Visual spot-check via Playwright on `/opportunities/:id` and `/crm/leads` table.
-- Confirm no console errors, no blank cells in tables for seeded records.
+- On open: call `opportunity_dependency_counts`.
+- If all zero → "Safe to delete" with confirm → `hard_delete_opportunity`.
+- If any > 0 → show dependency summary and offer **Archive Instead** → `archive_opportunity` with optional reason.
+- Toast feedback, refetch table.
 
-## Technical details
+## Phase 6 — RecordActionMenu Standardization
 
-- Files likely touched: `src/components/crm/MortgageSnapshotCard.tsx`, `Challenges*`, `PositiveSignals*`, `MortgageMetrics*`, `src/pages/Pipeline.tsx` (Opps table), `src/pages/Leads.tsx`, `src/pages/crm/OpportunityWorkspace.tsx`, new `src/components/crm/RecordActionMenu.tsx`.
-- No migrations. No edge function changes. No schema changes.
-- Reuse: `dropdown-menu`, `useToast`, existing query helpers in `src/lib/crm/queries.ts`.
+Extend `RecordActionMenu`:
 
-## Out of scope
+- Add `archive` and `delete` action keys.
+- New `onEdit`, `onArchive`, `onDelete` handlers wired in `Pipeline.tsx` and `OpportunityWorkspace.tsx`.
+- Final opportunity menu: Open Workspace, Edit, Copy Email, Copy Phone, Copy Address, Create Task, Add Note, View Timeline, Archive, Delete.
 
-- Lifecycle engine, integrity scans, `opportunity_events` bus.
-- Schema or RLS changes.
-- Backend logic — presentation only.
+## Phase 7 — Recovery Report
+
+After `repair_opportunity_data()` runs, write `/mnt/documents/mortgage-core/opps-recovery/04_repair_report.md` summarizing fields recovered, rows touched, rows still incomplete.
+
+## Out of Scope
+
+- Lifecycle engine, integrity scans, RLS model changes beyond what's required for new RPCs.
+- Cascading destructive deletes — explicitly forbidden.
+- Touching `auth`, `storage`, `realtime`.
+
+## Technical Notes
+
+- Files touched: `src/pages/Pipeline.tsx`, `src/pages/crm/OpportunityWorkspace.tsx`, `src/components/crm/RecordActionMenu.tsx`, new `OpportunityEditSheet.tsx`, new `OpportunityDeleteDialog.tsx`, new SQL migration.
+- Reuses: `dropdown-menu`, `sheet`, `alert-dialog`, `useToast`, existing people/contact pickers, `formatCurrency`.
+- Validation per phase: `tsgo`, Playwright spot-check on `/pipeline` and `/opportunities/:id`, manual audit-report review before any data mutation runs.
+
+Approve to proceed. I'll execute Phase 1 (audit only, no mutations) first and return the reports before touching schema.
