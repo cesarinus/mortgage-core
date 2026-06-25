@@ -22,14 +22,20 @@ import {
 } from "@/lib/crm/stateMachine";
 import { PIPELINE_STAGES, PIPELINE_STAGE_LABELS, PIPELINE_STAGE_BADGE } from "@/lib/crm/stages";
 import { RecordActionMenu } from "@/components/crm/RecordActionMenu";
+import { OpportunityEditSheet } from "@/components/crm/OpportunityEditSheet";
+import { OpportunityDeleteDialog } from "@/components/crm/OpportunityDeleteDialog";
 
 type Opportunity = {
   id: string;
   lead_id: string;
+  name: string | null;
   stage: string;
+  status?: string | null;
   loan_amount: number | null;
+  loan_type: string | null;
   property_address: string | null;
   primary_contact_id: string | null;
+  contact_id: string | null;
   title_company_id: string | null;
   lender_company_id: string | null;
   close_date: string | null;
@@ -54,11 +60,26 @@ const fmtCurrency = (n: number | null | undefined) =>
   n == null ? "—" : `$${Number(n).toLocaleString()}`;
 const fmtDate = (s: string | null | undefined) => (s ? new Date(s).toLocaleDateString() : "—");
 
-function opportunityName(lead: Lead | undefined) {
-  if (!lead) return "Untitled";
-  return (lead.name && lead.name.trim()) ||
-    `${lead.first_name ?? ""} ${lead.last_name ?? ""}`.trim() ||
-    "Untitled";
+function leadDisplayName(lead: Lead | undefined): string {
+  if (!lead) return "";
+  return (
+    (lead.name && lead.name.trim()) ||
+    `${lead.first_name ?? ""} ${lead.last_name ?? ""}`.trim()
+  );
+}
+
+function resolveOpportunityName(
+  opp: { name: string | null; property_address: string | null },
+  lead: Lead | undefined,
+  primaryName: string,
+): string {
+  return (
+    (opp.name && opp.name.trim()) ||
+    leadDisplayName(lead) ||
+    (primaryName && primaryName.trim()) ||
+    (opp.property_address && opp.property_address.trim()) ||
+    "—"
+  );
 }
 
 function initials(name: string) {
@@ -147,21 +168,30 @@ export default function Pipeline() {
   const [search, setSearch] = useState("");
   const [stageFilter, setStageFilter] = useState<string>("all");
   const [sourceFilter, setSourceFilter] = useState<string>("all");
+  const [showArchived, setShowArchived] = useState(false);
+  const [editOppId, setEditOppId] = useState<string | null>(null);
+  const [deleteOppId, setDeleteOppId] = useState<string | null>(null);
   const [smartView, setSmartView] = useState<"all" | "hot" | "ready" | "fha" | "inactive">("all");
   const [sortKey, setSortKey] = useState<"name" | "amount" | "stage" | "close">("close");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
   const load = async () => {
-    const { data: o } = await supabase
+    const query = supabase
       .from("pipeline_opportunities")
       .select("*")
       .order("created_at", { ascending: false });
+    if (!showArchived) query.eq("status", "active");
+    const { data: o } = await query;
     const opportunities = (o ?? []) as Opportunity[];
     setOpps(opportunities);
 
     const leadIds = Array.from(new Set(opportunities.map((x) => x.lead_id)));
     const contactIds = Array.from(
-      new Set(opportunities.map((x) => x.primary_contact_id).filter(Boolean) as string[]),
+      new Set(
+        opportunities
+          .flatMap((x) => [x.primary_contact_id, x.contact_id])
+          .filter(Boolean) as string[],
+      ),
     );
     const companyIds = Array.from(
       new Set(
@@ -195,7 +225,7 @@ export default function Pipeline() {
 
   useEffect(() => {
     load();
-  }, []);
+  }, [showArchived]);
 
   const leadsById = useMemo(() => new Map(leads.map((l) => [l.id, l])), [leads]);
   const contactsById = useMemo(() => new Map(contacts.map((c) => [c.id, c])), [contacts]);
@@ -204,10 +234,11 @@ export default function Pipeline() {
   const assembled: Assembled[] = useMemo(() => {
     return opps.map((opp) => {
       const lead = leadsById.get(opp.lead_id);
-      const contact = opp.primary_contact_id ? contactsById.get(opp.primary_contact_id) : null;
+      const contactId = opp.primary_contact_id ?? opp.contact_id;
+      const contact = contactId ? contactsById.get(contactId) ?? null : null;
       const primaryName = contact
         ? `${contact.first_name} ${contact.last_name}`.trim()
-        : opportunityName(lead);
+        : leadDisplayName(lead);
       const primaryEmail = contact?.email ?? lead?.email ?? null;
       const primaryPhone = (contact as any)?.phone ?? (lead as any)?.phone ?? null;
       return {
@@ -239,7 +270,7 @@ export default function Pipeline() {
       }
       if (!q) return true;
       return (
-        opportunityName(a.lead).toLowerCase().includes(q) ||
+        resolveOpportunityName(a.opp, a.lead, a.primary.name).toLowerCase().includes(q) ||
         a.primary.name.toLowerCase().includes(q) ||
         (a.primary.email ?? "").toLowerCase().includes(q) ||
         (a.opp.property_address ?? "").toLowerCase().includes(q)
@@ -287,7 +318,10 @@ export default function Pipeline() {
     const arr = [...filtered];
     arr.sort((a, b) => {
       let r = 0;
-      if (sortKey === "name") r = opportunityName(a.lead).localeCompare(opportunityName(b.lead));
+      if (sortKey === "name")
+        r = resolveOpportunityName(a.opp, a.lead, a.primary.name).localeCompare(
+          resolveOpportunityName(b.opp, b.lead, b.primary.name),
+        );
       else if (sortKey === "amount") r = (a.opp.loan_amount ?? 0) - (b.opp.loan_amount ?? 0);
       else if (sortKey === "stage") r = a.opp.stage.localeCompare(b.opp.stage);
       else r = +new Date(a.opp.created_at) - +new Date(b.opp.created_at);
@@ -527,7 +561,7 @@ export default function Pipeline() {
                       onClick={() => navigate(`/crm/leads/${a.opp.lead_id}`, { state: { from: "pipeline" } })}
                     >
                       <TableCell className="font-medium">
-                        {opportunityName(a.lead) || a.primary.name || "Untitled opportunity"}
+                        {resolveOpportunityName(a.opp, a.lead, a.primary.name)}
                       </TableCell>
                       <TableCell>{fmtCurrency(a.opp.loan_amount)}</TableCell>
                       <TableCell>
@@ -558,6 +592,9 @@ export default function Pipeline() {
                             workspaceHref: `/opportunities/${a.opp.id}`,
                             viewHref: `/crm/leads/${a.opp.lead_id}`,
                           }}
+                          onEdit={() => setEditOppId(a.opp.id)}
+                          onArchive={() => setDeleteOppId(a.opp.id)}
+                          onDelete={() => setDeleteOppId(a.opp.id)}
                         />
                       </TableCell>
                     </TableRow>
@@ -611,7 +648,7 @@ export default function Pipeline() {
                                 onMouseDown={(e) => e.stopPropagation()}
                                 className="font-semibold text-sm hover:text-primary truncate"
                               >
-                                {opportunityName(a.lead)}
+                                {resolveOpportunityName(a.opp, a.lead, a.primary.name)}
                               </Link>
                               <Badge variant="outline" className={`${PIPELINE_STAGE_BADGE[s] ?? ""} shrink-0 text-[10px]`}>
                                 {PIPELINE_STAGE_LABELS[s] ?? s}
