@@ -509,6 +509,16 @@ export default function Pipeline() {
             ))}
           </SelectContent>
         </Select>
+        <button
+          type="button"
+          onClick={() => setShowArchived((v) => !v)}
+          className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm transition-colors ${
+            showArchived ? "bg-muted font-medium" : "text-muted-foreground hover:bg-muted"
+          }`}
+          aria-pressed={showArchived}
+        >
+          {showArchived ? "Showing archived" : "Show archived"}
+        </button>
       </div>
 
       {view === "table" ? (
@@ -700,6 +710,18 @@ export default function Pipeline() {
       )}
       </div>
       </div>
+      <OpportunityEditSheet
+        opportunityId={editOppId}
+        open={!!editOppId}
+        onOpenChange={(o) => !o && setEditOppId(null)}
+        onSaved={load}
+      />
+      <OpportunityDeleteDialog
+        opportunityId={deleteOppId}
+        open={!!deleteOppId}
+        onOpenChange={(o) => !o && setDeleteOppId(null)}
+        onDone={load}
+      />
     </div>
   );
 }
