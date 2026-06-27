@@ -44,6 +44,22 @@ export function makeParser(cells: CellMap): Parser {
     return v;
   });
 
+  // The SAM worksheet's only VLOOKUP usage is against the LKP_MILEAGE named
+  // range:  =VLOOKUP($I$5, LKP_MILEAGE, 2, FALSE)
+  // The named range isn't resolvable inside hot-formula-parser, so we
+  // implement VLOOKUP via setFunction and route LKP_MILEAGE lookups through
+  // MILEAGE_DEPRECIATION_RATE. Any other VLOOKUP shape returns "" (matches
+  // the worksheet's IFERROR fallback semantics).
+  parser.setFunction("VLOOKUP", (params: unknown[]) => {
+    const key = Number(params[0]);
+    const tableToken = params[1];
+    if (tableToken === "LKP_MILEAGE") {
+      const rate = MILEAGE_DEPRECIATION_RATE[key];
+      return rate ?? "";
+    }
+    return "";
+  });
+
   parser.on("callCellValue", (cellCoord, done) => {
     const key = `${cellCoord.column.label}${cellCoord.row.label}`;
     const v = cells.get(key);
