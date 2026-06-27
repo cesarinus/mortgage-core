@@ -2648,6 +2648,584 @@ export type Database = {
         }
         Relationships: []
       }
+      income_analysis_audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          case_id: string | null
+          created_at: string
+          entity: string | null
+          entity_id: string | null
+          id: string
+          payload: Json
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          case_id?: string | null
+          created_at?: string
+          entity?: string | null
+          entity_id?: string | null
+          id?: string
+          payload?: Json
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          case_id?: string | null
+          created_at?: string
+          entity?: string | null
+          entity_id?: string | null
+          id?: string
+          payload?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "income_analysis_audit_log_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "income_analysis_cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      income_analysis_businesses: {
+        Row: {
+          borrower_contact_id: string | null
+          business_name: string | null
+          business_start_date: string | null
+          case_id: string
+          created_at: string
+          ein: string | null
+          entity_type: Database["public"]["Enums"]["business_entity_type"]
+          id: string
+          is_active: boolean
+          months_in_service: number | null
+          ownership_pct: number | null
+          updated_at: string
+        }
+        Insert: {
+          borrower_contact_id?: string | null
+          business_name?: string | null
+          business_start_date?: string | null
+          case_id: string
+          created_at?: string
+          ein?: string | null
+          entity_type: Database["public"]["Enums"]["business_entity_type"]
+          id?: string
+          is_active?: boolean
+          months_in_service?: number | null
+          ownership_pct?: number | null
+          updated_at?: string
+        }
+        Update: {
+          borrower_contact_id?: string | null
+          business_name?: string | null
+          business_start_date?: string | null
+          case_id?: string
+          created_at?: string
+          ein?: string | null
+          entity_type?: Database["public"]["Enums"]["business_entity_type"]
+          id?: string
+          is_active?: boolean
+          months_in_service?: number | null
+          ownership_pct?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "income_analysis_businesses_borrower_contact_id_fkey"
+            columns: ["borrower_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "income_analysis_businesses_borrower_contact_id_fkey"
+            columns: ["borrower_contact_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["borrower_contact_id"]
+          },
+          {
+            foreignKeyName: "income_analysis_businesses_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "income_analysis_cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      income_analysis_calculations: {
+        Row: {
+          business_id: string | null
+          case_id: string
+          computed_at: string
+          computed_by: string | null
+          formula_version: string
+          id: string
+          inputs: Json
+          is_current: boolean
+          outputs: Json
+          section_code: string
+          subtotal: number | null
+          tax_year: number | null
+        }
+        Insert: {
+          business_id?: string | null
+          case_id: string
+          computed_at?: string
+          computed_by?: string | null
+          formula_version?: string
+          id?: string
+          inputs?: Json
+          is_current?: boolean
+          outputs?: Json
+          section_code: string
+          subtotal?: number | null
+          tax_year?: number | null
+        }
+        Update: {
+          business_id?: string | null
+          case_id?: string
+          computed_at?: string
+          computed_by?: string | null
+          formula_version?: string
+          id?: string
+          inputs?: Json
+          is_current?: boolean
+          outputs?: Json
+          section_code?: string
+          subtotal?: number | null
+          tax_year?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "income_analysis_calculations_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "income_analysis_businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "income_analysis_calculations_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "income_analysis_cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      income_analysis_cases: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          formula_version: string
+          id: string
+          lead_id: string | null
+          opportunity_id: string
+          primary_contact_id: string | null
+          qualifying_income_annual: number | null
+          qualifying_income_monthly: number | null
+          status: Database["public"]["Enums"]["income_analysis_status"]
+          tax_years: number[]
+          underwriter_notes: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          formula_version?: string
+          id?: string
+          lead_id?: string | null
+          opportunity_id: string
+          primary_contact_id?: string | null
+          qualifying_income_annual?: number | null
+          qualifying_income_monthly?: number | null
+          status?: Database["public"]["Enums"]["income_analysis_status"]
+          tax_years?: number[]
+          underwriter_notes?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          formula_version?: string
+          id?: string
+          lead_id?: string | null
+          opportunity_id?: string
+          primary_contact_id?: string | null
+          qualifying_income_annual?: number | null
+          qualifying_income_monthly?: number | null
+          status?: Database["public"]["Enums"]["income_analysis_status"]
+          tax_years?: number[]
+          underwriter_notes?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "income_analysis_cases_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "income_analysis_cases_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["lead_id"]
+          },
+          {
+            foreignKeyName: "income_analysis_cases_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["opportunity_id"]
+          },
+          {
+            foreignKeyName: "income_analysis_cases_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "income_analysis_cases_primary_contact_id_fkey"
+            columns: ["primary_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "income_analysis_cases_primary_contact_id_fkey"
+            columns: ["primary_contact_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["borrower_contact_id"]
+          },
+        ]
+      }
+      income_analysis_documents: {
+        Row: {
+          ai_model: string | null
+          ai_raw: Json
+          attachment_id: string | null
+          business_id: string | null
+          case_id: string
+          classification_confidence: number | null
+          created_at: string
+          detected_borrower_name: string | null
+          detected_business_name: string | null
+          detected_ein: string | null
+          error: string | null
+          form_code: string | null
+          id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: Database["public"]["Enums"]["income_document_status"]
+          tax_year: number | null
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          ai_model?: string | null
+          ai_raw?: Json
+          attachment_id?: string | null
+          business_id?: string | null
+          case_id: string
+          classification_confidence?: number | null
+          created_at?: string
+          detected_borrower_name?: string | null
+          detected_business_name?: string | null
+          detected_ein?: string | null
+          error?: string | null
+          form_code?: string | null
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["income_document_status"]
+          tax_year?: number | null
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          ai_model?: string | null
+          ai_raw?: Json
+          attachment_id?: string | null
+          business_id?: string | null
+          case_id?: string
+          classification_confidence?: number | null
+          created_at?: string
+          detected_borrower_name?: string | null
+          detected_business_name?: string | null
+          detected_ein?: string | null
+          error?: string | null
+          form_code?: string | null
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["income_document_status"]
+          tax_year?: number | null
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "income_analysis_documents_attachment_id_fkey"
+            columns: ["attachment_id"]
+            isOneToOne: false
+            referencedRelation: "crm_attachments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "income_analysis_documents_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "income_analysis_businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "income_analysis_documents_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "income_analysis_cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      income_analysis_extractions: {
+        Row: {
+          business_id: string | null
+          case_id: string
+          confidence: number | null
+          created_at: string
+          document_id: string | null
+          entered_by: string | null
+          form_code: string
+          id: string
+          is_current: boolean
+          line_code: string
+          source: string
+          tax_year: number
+          value_numeric: number | null
+          value_text: string | null
+        }
+        Insert: {
+          business_id?: string | null
+          case_id: string
+          confidence?: number | null
+          created_at?: string
+          document_id?: string | null
+          entered_by?: string | null
+          form_code: string
+          id?: string
+          is_current?: boolean
+          line_code: string
+          source?: string
+          tax_year: number
+          value_numeric?: number | null
+          value_text?: string | null
+        }
+        Update: {
+          business_id?: string | null
+          case_id?: string
+          confidence?: number | null
+          created_at?: string
+          document_id?: string | null
+          entered_by?: string | null
+          form_code?: string
+          id?: string
+          is_current?: boolean
+          line_code?: string
+          source?: string
+          tax_year?: number
+          value_numeric?: number | null
+          value_text?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "income_analysis_extractions_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "income_analysis_businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "income_analysis_extractions_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "income_analysis_cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "income_analysis_extractions_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "income_analysis_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      income_analysis_summaries: {
+        Row: {
+          average_annual_income: number | null
+          average_monthly_income: number | null
+          borrower_contact_id: string | null
+          business_id: string | null
+          business_name_snapshot: string | null
+          case_id: string
+          created_at: string
+          entity_type_snapshot:
+            | Database["public"]["Enums"]["business_entity_type"]
+            | null
+          formula_version: string
+          generated_at: string
+          generated_by: string | null
+          id: string
+          narrative: string | null
+          ownership_pct_snapshot: number | null
+          trend: string | null
+          updated_at: string
+          year_1: number | null
+          year_1_income: number | null
+          year_2: number | null
+          year_2_income: number | null
+        }
+        Insert: {
+          average_annual_income?: number | null
+          average_monthly_income?: number | null
+          borrower_contact_id?: string | null
+          business_id?: string | null
+          business_name_snapshot?: string | null
+          case_id: string
+          created_at?: string
+          entity_type_snapshot?:
+            | Database["public"]["Enums"]["business_entity_type"]
+            | null
+          formula_version?: string
+          generated_at?: string
+          generated_by?: string | null
+          id?: string
+          narrative?: string | null
+          ownership_pct_snapshot?: number | null
+          trend?: string | null
+          updated_at?: string
+          year_1?: number | null
+          year_1_income?: number | null
+          year_2?: number | null
+          year_2_income?: number | null
+        }
+        Update: {
+          average_annual_income?: number | null
+          average_monthly_income?: number | null
+          borrower_contact_id?: string | null
+          business_id?: string | null
+          business_name_snapshot?: string | null
+          case_id?: string
+          created_at?: string
+          entity_type_snapshot?:
+            | Database["public"]["Enums"]["business_entity_type"]
+            | null
+          formula_version?: string
+          generated_at?: string
+          generated_by?: string | null
+          id?: string
+          narrative?: string | null
+          ownership_pct_snapshot?: number | null
+          trend?: string | null
+          updated_at?: string
+          year_1?: number | null
+          year_1_income?: number | null
+          year_2?: number | null
+          year_2_income?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "income_analysis_summaries_borrower_contact_id_fkey"
+            columns: ["borrower_contact_id"]
+            isOneToOne: false
+            referencedRelation: "contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "income_analysis_summaries_borrower_contact_id_fkey"
+            columns: ["borrower_contact_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["borrower_contact_id"]
+          },
+          {
+            foreignKeyName: "income_analysis_summaries_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "income_analysis_businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "income_analysis_summaries_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "income_analysis_cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      income_analysis_tax_years: {
+        Row: {
+          business_id: string | null
+          case_id: string
+          created_at: string
+          id: string
+          is_ytd: boolean
+          notes: string | null
+          period_end: string | null
+          tax_year: number
+          updated_at: string
+        }
+        Insert: {
+          business_id?: string | null
+          case_id: string
+          created_at?: string
+          id?: string
+          is_ytd?: boolean
+          notes?: string | null
+          period_end?: string | null
+          tax_year: number
+          updated_at?: string
+        }
+        Update: {
+          business_id?: string | null
+          case_id?: string
+          created_at?: string
+          id?: string
+          is_ytd?: boolean
+          notes?: string | null
+          period_end?: string | null
+          tax_year?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "income_analysis_tax_years_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "income_analysis_businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "income_analysis_tax_years_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "income_analysis_cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       income_document_extractions: {
         Row: {
           applied_at: string | null
@@ -3341,6 +3919,8 @@ export type Database = {
           employment_type: string | null
           first_name: string
           id: string
+          income_sources: Json
+          income_type: Database["public"]["Enums"]["income_type"] | null
           intent_tag: string | null
           is_stuck: boolean | null
           last_activity_at: string | null
@@ -3385,6 +3965,8 @@ export type Database = {
           employment_type?: string | null
           first_name: string
           id?: string
+          income_sources?: Json
+          income_type?: Database["public"]["Enums"]["income_type"] | null
           intent_tag?: string | null
           is_stuck?: boolean | null
           last_activity_at?: string | null
@@ -3429,6 +4011,8 @@ export type Database = {
           employment_type?: string | null
           first_name?: string
           id?: string
+          income_sources?: Json
+          income_type?: Database["public"]["Enums"]["income_type"] | null
           intent_tag?: string | null
           is_stuck?: boolean | null
           last_activity_at?: string | null
@@ -6590,6 +7174,10 @@ export type Database = {
         }
         Returns: string
       }
+      user_can_access_opportunity: {
+        Args: { _opp_id: string }
+        Returns: boolean
+      }
       user_owns_contact: { Args: { _contact_id: string }; Returns: boolean }
       user_owns_lead: { Args: { _lead_id: string }; Returns: boolean }
     }
@@ -6603,6 +7191,14 @@ export type Database = {
         | "portal_user"
       blog_post_status: "draft" | "published"
       borrower_employment_type: "employee" | "self_employed"
+      business_entity_type:
+        | "sole_prop"
+        | "single_member_llc"
+        | "partnership"
+        | "s_corp"
+        | "c_corp"
+        | "schedule_e_rental"
+        | "schedule_f_farm"
       company_type:
         | "lender"
         | "title_company"
@@ -6635,6 +7231,14 @@ export type Database = {
         | "balance_sheet"
         | "cash_flow"
         | "combined"
+      income_analysis_status:
+        | "draft"
+        | "documents_pending"
+        | "extracting"
+        | "calculated"
+        | "review"
+        | "approved"
+        | "archived"
       income_doc_type:
         | "pay_stub"
         | "w2"
@@ -6642,7 +7246,23 @@ export type Database = {
         | "form_1040"
         | "business_return"
         | "unknown"
+      income_document_status:
+        | "uploaded"
+        | "classified"
+        | "extracted"
+        | "needs_review"
+        | "approved"
+        | "rejected"
       income_extraction_status: "pending" | "applied" | "dismissed" | "failed"
+      income_type:
+        | "w2"
+        | "schedule_c"
+        | "schedule_e"
+        | "schedule_f"
+        | "partnership_1065"
+        | "s_corp_1120s"
+        | "c_corp_1120"
+        | "multiple"
       lead_status:
         | "new_lead"
         | "contacted"
@@ -6822,6 +7442,15 @@ export const Constants = {
       ],
       blog_post_status: ["draft", "published"],
       borrower_employment_type: ["employee", "self_employed"],
+      business_entity_type: [
+        "sole_prop",
+        "single_member_llc",
+        "partnership",
+        "s_corp",
+        "c_corp",
+        "schedule_e_rental",
+        "schedule_f_farm",
+      ],
       company_type: [
         "lender",
         "title_company",
@@ -6858,6 +7487,15 @@ export const Constants = {
         "cash_flow",
         "combined",
       ],
+      income_analysis_status: [
+        "draft",
+        "documents_pending",
+        "extracting",
+        "calculated",
+        "review",
+        "approved",
+        "archived",
+      ],
       income_doc_type: [
         "pay_stub",
         "w2",
@@ -6866,7 +7504,25 @@ export const Constants = {
         "business_return",
         "unknown",
       ],
+      income_document_status: [
+        "uploaded",
+        "classified",
+        "extracted",
+        "needs_review",
+        "approved",
+        "rejected",
+      ],
       income_extraction_status: ["pending", "applied", "dismissed", "failed"],
+      income_type: [
+        "w2",
+        "schedule_c",
+        "schedule_e",
+        "schedule_f",
+        "partnership_1065",
+        "s_corp_1120s",
+        "c_corp_1120",
+        "multiple",
+      ],
       lead_status: [
         "new_lead",
         "contacted",
