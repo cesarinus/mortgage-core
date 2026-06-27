@@ -7,6 +7,7 @@
  *   - appends an audit log entry
  */
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import type { CaseCalculationResult } from "./types";
 
 export async function persistCalculation(result: CaseCalculationResult): Promise<void> {
@@ -29,7 +30,7 @@ export async function persistCalculation(result: CaseCalculationResult): Promise
       tax_year: result.tax_years.year_1,
       section_code: s.section_code,
       formula_version,
-      inputs: s.inputs_snapshot as unknown as Record<string, unknown>,
+      inputs: s.inputs_snapshot as unknown as Json,
       outputs: {
         section_label: s.section_label,
         spec_row: s.spec_row,
@@ -38,7 +39,7 @@ export async function persistCalculation(result: CaseCalculationResult): Promise
         ownership_pct: s.ownership_pct,
         subtotal: s.year_1_subtotal,
         after_ownership: s.year_1_after_ownership,
-      },
+      } as unknown as Json,
       subtotal: s.year_1_after_ownership ?? s.year_1_subtotal,
       is_current: true,
     },
@@ -48,7 +49,7 @@ export async function persistCalculation(result: CaseCalculationResult): Promise
       tax_year: result.tax_years.year_2,
       section_code: s.section_code,
       formula_version,
-      inputs: s.inputs_snapshot as unknown as Record<string, unknown>,
+      inputs: s.inputs_snapshot as unknown as Json,
       outputs: {
         section_label: s.section_label,
         spec_row: s.spec_row,
@@ -57,7 +58,7 @@ export async function persistCalculation(result: CaseCalculationResult): Promise
         ownership_pct: s.ownership_pct,
         subtotal: s.year_2_subtotal,
         after_ownership: s.year_2_after_ownership,
-      },
+      } as unknown as Json,
       subtotal: s.year_2_after_ownership ?? s.year_2_subtotal,
       is_current: true,
     },
@@ -111,16 +112,18 @@ export async function persistCalculation(result: CaseCalculationResult): Promise
   if (caseErr) throw caseErr;
 
   // 5. Audit.
-  await supabase.from("income_analysis_audit_log").insert({
-    case_id,
-    action: "engine.calculated",
-    entity: "case",
-    entity_id: case_id,
-    payload: {
-      formula_version,
-      tax_years: result.tax_years,
-      section_count: result.sections.length,
-      totals: result.totals,
+  await supabase.from("income_analysis_audit_log").insert([
+    {
+      case_id,
+      action: "engine.calculated",
+      entity: "case",
+      entity_id: case_id,
+      payload: {
+        formula_version,
+        tax_years: result.tax_years,
+        section_count: result.sections.length,
+        totals: result.totals,
+      } as unknown as Json,
     },
-  });
+  ]);
 }
