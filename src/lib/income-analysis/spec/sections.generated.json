@@ -1,0 +1,2727 @@
+{
+  "source": "All-In-One-Worksheet-Macro-Free (Tax Year 2025)",
+  "generated_at": "2026-06-27T15:47:07.223Z",
+  "formula_version": "all-in-one-2025.v1",
+  "named_ranges": {
+    "ErrMsg_EnterAnnDate": {
+      "value": "Support!$L$5",
+      "destinations": [
+        {
+          "sheet": "Support",
+          "ref": "$L$5"
+        }
+      ]
+    },
+    "ErrMsg_InputTwoYears": {
+      "value": "Support!$L$6",
+      "destinations": [
+        {
+          "sheet": "Support",
+          "ref": "$L$6"
+        }
+      ]
+    },
+    "ErrMsg_InputYears": {
+      "value": "Support!$L$2",
+      "destinations": [
+        {
+          "sheet": "Support",
+          "ref": "$L$2"
+        }
+      ]
+    },
+    "LKP_MILEAGE": {
+      "value": "OFFSET(Support!$A$1,1,0,COUNTA(Support!$A:$A)-1,2)",
+      "destinations": []
+    },
+    "LKP_MONTH": {
+      "value": "OFFSET(Support!$C$1,1,0,COUNTA(Support!$C:$C)-1,1)",
+      "destinations": []
+    },
+    "LKP_YEAR": {
+      "value": "OFFSET(Support!$A$1,1,0,COUNTA(Support!$A:$A)-1,1)",
+      "destinations": []
+    },
+    "LKP_YEAR_1": {
+      "value": "OFFSET(Support!$D$1,1,0,COUNTA(Support!$D:$D)-1,1)",
+      "destinations": []
+    },
+    "LKP_YEAR_2": {
+      "value": "OFFSET(Support!$E$1,1,0,COUNTA(Support!$E:$E)-1,1)",
+      "destinations": []
+    },
+    "LKP_YEAR_3": {
+      "value": "OFFSET(Support!$F$1,1,0,COUNTA(Support!$F:$F)-1,1)",
+      "destinations": []
+    },
+    "LKP_YEAR_LIQUIDITY": {
+      "value": "OFFSET(Support!$J$1,1,0,COUNTA(Support!$J:$J)-1,1)",
+      "destinations": []
+    },
+    "Msg_DisplaySchedule": {
+      "value": "Support!$L$3",
+      "destinations": [
+        {
+          "sheet": "Support",
+          "ref": "$L$3"
+        }
+      ]
+    },
+    "Msg_HideSchedule": {
+      "value": "Support!$L$4",
+      "destinations": [
+        {
+          "sheet": "Support",
+          "ref": "$L$4"
+        }
+      ]
+    },
+    "YEAR_1": {
+      "value": "Support!$G$2",
+      "destinations": [
+        {
+          "sheet": "Support",
+          "ref": "$G$2"
+        }
+      ]
+    },
+    "YEAR_2": {
+      "value": "Support!$H$2",
+      "destinations": [
+        {
+          "sheet": "Support",
+          "ref": "$H$2"
+        }
+      ]
+    },
+    "YEAR_3": {
+      "value": "Support!$I$2",
+      "destinations": [
+        {
+          "sheet": "Support",
+          "ref": "$I$2"
+        }
+      ]
+    }
+  },
+  "lookups": {
+    "LKP_MILEAGE": [],
+    "LKP_MONTH": [],
+    "LKP_YEAR": [],
+    "LKP_YEAR_1": [],
+    "LKP_YEAR_2": [],
+    "LKP_YEAR_3": [],
+    "LKP_YEAR_LIQUIDITY": []
+  },
+  "sections": [
+    {
+      "index": 0,
+      "label": "SCHEDULE B - INTEREST AND DIVIDENDS FROM SELF-EMPLOYMENT",
+      "form_code": "sch_b",
+      "entity": "interest_div",
+      "header_row": 7,
+      "row": 12,
+      "input_lines": [
+        {
+          "row": 9,
+          "line_number": "1",
+          "label": "Recurring Interest Income: LINE 1 or 1040 LINE 2b",
+          "irs_line_ref": "LINE 1 or 1040 LINE 2b",
+          "input_cell_I": "I9",
+          "input_cell_L": "L9",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 10,
+          "line_number": "2",
+          "label": "Recurring Dividend Income: LINE 5 or 1040 LINE 3b",
+          "irs_line_ref": "LINE 5 or 1040 LINE 3b",
+          "input_cell_I": "I10",
+          "input_cell_L": "L10",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        }
+      ],
+      "subtotal": {
+        "row": 12,
+        "label": "SUBTOTAL",
+        "cell_I": "I12",
+        "cell_L": "L12",
+        "formula_I": "=SUM(I9:I10)",
+        "formula_L": "=SUM(L9:L10)"
+      },
+      "ownership": null,
+      "final": null
+    },
+    {
+      "index": 1,
+      "label": "SCHEDULE C - SOLE PROPRIETORSHIP",
+      "form_code": "sch_c",
+      "entity": "sole_prop",
+      "header_row": 15,
+      "row": 30,
+      "input_lines": [
+        {
+          "row": 19,
+          "line_number": "4",
+          "label": "Net Profit (Loss): LINE 31",
+          "irs_line_ref": "LINE 31",
+          "input_cell_I": "I19",
+          "input_cell_L": "L19",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 20,
+          "line_number": "5",
+          "label": "Deduct nonrecurring income: LINE 6",
+          "irs_line_ref": "LINE 6",
+          "input_cell_I": "I20",
+          "input_cell_L": "L20",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 21,
+          "line_number": "6",
+          "label": "Depletion: LINE 12",
+          "irs_line_ref": "LINE 12",
+          "input_cell_I": "I21",
+          "input_cell_L": "L21",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 22,
+          "line_number": "7",
+          "label": "Depreciation: LINE 13",
+          "irs_line_ref": "LINE 13",
+          "input_cell_I": "I22",
+          "input_cell_L": "L22",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 23,
+          "line_number": "8",
+          "label": "Non-Deductible Meals and Entertainment Exclusion: LINE 24b",
+          "irs_line_ref": "LINE 24b",
+          "input_cell_I": "I23",
+          "input_cell_L": "L23",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 24,
+          "line_number": "9",
+          "label": "Business Use of Home: LINE 30",
+          "irs_line_ref": "LINE 30",
+          "input_cell_I": "I24",
+          "input_cell_L": "L24",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 25,
+          "line_number": "10",
+          "label": "Business Miles: Page 2, Part IV, LINE 44a OR Related 4562, Line 30",
+          "irs_line_ref": "LINE 44a OR Related 4562",
+          "input_cell_I": "I25",
+          "input_cell_L": "L25",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 26,
+          "line_number": "11a",
+          "label": "x Depreciation Rate 2025: $0.33, 2024: $0.30, 2023: $0.28",
+          "irs_line_ref": null,
+          "input_cell_I": "I26",
+          "input_cell_L": "L26",
+          "is_computed": true,
+          "formula_I": "=IFERROR(IF(AND(I25>0,$I$5>0),VLOOKUP($I$5,LKP_MILEAGE,2,FALSE),\"\"),\"\")",
+          "formula_L": "=IFERROR(IF(AND(L25>0,$L$5>0),VLOOKUP($L$5,LKP_MILEAGE,2,FALSE),\"\"),\"\")"
+        },
+        {
+          "row": 27,
+          "line_number": "11b",
+          "label": "= Total Mileage Depreciation",
+          "irs_line_ref": null,
+          "input_cell_I": "I27",
+          "input_cell_L": "L27",
+          "is_computed": true,
+          "formula_I": "=IFERROR(IF(I26>0,I25*I26,\"\"),\"\")",
+          "formula_L": "=IFERROR(IF(L26>0,L25*L26,\"\"),\"\")"
+        },
+        {
+          "row": 28,
+          "line_number": "12",
+          "label": "Amortization/Casualty Loss (only if noted): page 2, part V",
+          "irs_line_ref": null,
+          "input_cell_I": "I28",
+          "input_cell_L": "L28",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        }
+      ],
+      "subtotal": {
+        "row": 30,
+        "label": "SUBTOTAL",
+        "cell_I": "I30",
+        "cell_L": "L30",
+        "formula_I": "=IFERROR(I19+-I20+SUM(I21:I22)-I23+I24+IF(ISNUMBER(I27),I27,0)+I28,0)",
+        "formula_L": "=IFERROR(L19+-L20+SUM(L21:L22)-L23+L24+IF(ISNUMBER(L27),L27,0)+L28,0)"
+      },
+      "ownership": null,
+      "final": null
+    },
+    {
+      "index": 2,
+      "label": "SCHEDULE C - SOLE PROPRIETORSHIP",
+      "form_code": "sch_c",
+      "entity": "sole_prop",
+      "header_row": 15,
+      "row": 45,
+      "input_lines": [
+        {
+          "row": 34,
+          "line_number": "4",
+          "label": "Net Profit (Loss): LINE 31",
+          "irs_line_ref": "LINE 31",
+          "input_cell_I": "I34",
+          "input_cell_L": "L34",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 35,
+          "line_number": "5",
+          "label": "Deduct nonrecurring income: LINE 6",
+          "irs_line_ref": "LINE 6",
+          "input_cell_I": "I35",
+          "input_cell_L": "L35",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 36,
+          "line_number": "6",
+          "label": "Depletion: LINE 12",
+          "irs_line_ref": "LINE 12",
+          "input_cell_I": "I36",
+          "input_cell_L": "L36",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 37,
+          "line_number": "7",
+          "label": "Depreciation: LINE 13",
+          "irs_line_ref": "LINE 13",
+          "input_cell_I": "I37",
+          "input_cell_L": "L37",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 38,
+          "line_number": "8",
+          "label": "Non-Deductible Meals and Entertainment Exclusion: LINE 24b",
+          "irs_line_ref": "LINE 24b",
+          "input_cell_I": "I38",
+          "input_cell_L": "L38",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 39,
+          "line_number": "9",
+          "label": "Business Use of Home: LINE 30",
+          "irs_line_ref": "LINE 30",
+          "input_cell_I": "I39",
+          "input_cell_L": "L39",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 40,
+          "line_number": "10",
+          "label": "Business Miles: Page 2, Part IV, LINE 44a OR Related 4562, Line 30",
+          "irs_line_ref": "LINE 44a OR Related 4562",
+          "input_cell_I": "I40",
+          "input_cell_L": "L40",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 41,
+          "line_number": "11a",
+          "label": "x Depreciation Rate 2025: $0.33, 2024: $0.30, 2023: $0.28",
+          "irs_line_ref": null,
+          "input_cell_I": "I41",
+          "input_cell_L": "L41",
+          "is_computed": true,
+          "formula_I": "=IFERROR(IF(AND(I40>0,$I$5>0),VLOOKUP($I$5,LKP_MILEAGE,2,FALSE),\"\"),\"\")",
+          "formula_L": "=IFERROR(IF(AND(L40>0,$L$5>0),VLOOKUP($L$5,LKP_MILEAGE,2,FALSE),\"\"),\"\")"
+        },
+        {
+          "row": 42,
+          "line_number": "11b",
+          "label": "= Total Mileage Depreciation",
+          "irs_line_ref": null,
+          "input_cell_I": "I42",
+          "input_cell_L": "L42",
+          "is_computed": true,
+          "formula_I": "=IFERROR(IF(I41>0,I40*I41,\"\"),\"\")",
+          "formula_L": "=IFERROR(IF(L41>0,L40*L41,\"\"),\"\")"
+        },
+        {
+          "row": 43,
+          "line_number": "12",
+          "label": "Amortization/Casualty Loss (only if noted): page 2, part V",
+          "irs_line_ref": null,
+          "input_cell_I": "I43",
+          "input_cell_L": "L43",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        }
+      ],
+      "subtotal": {
+        "row": 45,
+        "label": "SUBTOTAL",
+        "cell_I": "I45",
+        "cell_L": "L45",
+        "formula_I": "=IFERROR(I34+-I35+SUM(I36:I37)-I38+I39+IF(ISNUMBER(I42),I42,0)+I43,0)",
+        "formula_L": "=IFERROR(L34+-L35+SUM(L36:L37)-L38+L39+IF(ISNUMBER(L42),L42,0)+L43,0)"
+      },
+      "ownership": null,
+      "final": null
+    },
+    {
+      "index": 3,
+      "label": "SCHEDULE C - SOLE PROPRIETORSHIP",
+      "form_code": "sch_c",
+      "entity": "sole_prop",
+      "header_row": 15,
+      "row": 60,
+      "input_lines": [
+        {
+          "row": 49,
+          "line_number": "4",
+          "label": "Net Profit (Loss): LINE 31",
+          "irs_line_ref": "LINE 31",
+          "input_cell_I": "I49",
+          "input_cell_L": "L49",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 50,
+          "line_number": "5",
+          "label": "Deduct nonrecurring income: LINE 6",
+          "irs_line_ref": "LINE 6",
+          "input_cell_I": "I50",
+          "input_cell_L": "L50",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 51,
+          "line_number": "6",
+          "label": "Depletion: LINE 12",
+          "irs_line_ref": "LINE 12",
+          "input_cell_I": "I51",
+          "input_cell_L": "L51",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 52,
+          "line_number": "7",
+          "label": "Depreciation: LINE 13",
+          "irs_line_ref": "LINE 13",
+          "input_cell_I": "I52",
+          "input_cell_L": "L52",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 53,
+          "line_number": "8",
+          "label": "Non-Deductible Meals and Entertainment Exclusion: LINE 24b",
+          "irs_line_ref": "LINE 24b",
+          "input_cell_I": "I53",
+          "input_cell_L": "L53",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 54,
+          "line_number": "9",
+          "label": "Business Use of Home: LINE 30",
+          "irs_line_ref": "LINE 30",
+          "input_cell_I": "I54",
+          "input_cell_L": "L54",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 55,
+          "line_number": "10",
+          "label": "Business Miles: Page 2, Part IV, LINE 44a OR Related 4562, Line 30",
+          "irs_line_ref": "LINE 44a OR Related 4562",
+          "input_cell_I": "I55",
+          "input_cell_L": "L55",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 56,
+          "line_number": "11a",
+          "label": "x Depreciation Rate 2025: $0.33, 2024: $0.30, 2023: $0.28",
+          "irs_line_ref": null,
+          "input_cell_I": "I56",
+          "input_cell_L": "L56",
+          "is_computed": true,
+          "formula_I": "=IFERROR(IF(AND(I55>0,$I$5>0),VLOOKUP($I$5,LKP_MILEAGE,2,FALSE),\"\"),\"\")",
+          "formula_L": "=IFERROR(IF(AND(L55>0,$L$5>0),VLOOKUP($L$5,LKP_MILEAGE,2,FALSE),\"\"),\"\")"
+        },
+        {
+          "row": 57,
+          "line_number": "11b",
+          "label": "= Total Mileage Depreciation",
+          "irs_line_ref": null,
+          "input_cell_I": "I57",
+          "input_cell_L": "L57",
+          "is_computed": true,
+          "formula_I": "=IFERROR(IF(I56>0,I55*I56,\"\"),\"\")",
+          "formula_L": "=IFERROR(IF(L56>0,L55*L56,\"\"),\"\")"
+        },
+        {
+          "row": 58,
+          "line_number": "12",
+          "label": "Amortization/Casualty Loss (only if noted): page 2, part V",
+          "irs_line_ref": null,
+          "input_cell_I": "I58",
+          "input_cell_L": "L58",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        }
+      ],
+      "subtotal": {
+        "row": 60,
+        "label": "SUBTOTAL",
+        "cell_I": "I60",
+        "cell_L": "L60",
+        "formula_I": "=IFERROR(I49+-I50+SUM(I51:I52)-I53+I54+IF(ISNUMBER(I57),I57,0)+I58,0)",
+        "formula_L": "=IFERROR(L49+-L50+SUM(L51:L52)-L53+L54+IF(ISNUMBER(L57),L57,0)+L58,0)"
+      },
+      "ownership": null,
+      "final": null
+    },
+    {
+      "index": 4,
+      "label": "SCHEDULE C - SINGLE-MEMBER LLC",
+      "form_code": "sch_c",
+      "entity": "single_member_llc",
+      "header_row": 63,
+      "row": 79,
+      "input_lines": [
+        {
+          "row": 67,
+          "line_number": "3",
+          "label": "W-2 Income from Self-Employment: W-2, Box 5 (in general)",
+          "irs_line_ref": null,
+          "input_cell_I": "I67",
+          "input_cell_L": "L67",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 68,
+          "line_number": "4",
+          "label": "Net Profit (Loss): LINE 31",
+          "irs_line_ref": "LINE 31",
+          "input_cell_I": "I68",
+          "input_cell_L": "L68",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 69,
+          "line_number": "5",
+          "label": "Deduct nonrecurring income: LINE 6",
+          "irs_line_ref": "LINE 6",
+          "input_cell_I": "I69",
+          "input_cell_L": "L69",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 70,
+          "line_number": "6",
+          "label": "Depletion: LINE 12",
+          "irs_line_ref": "LINE 12",
+          "input_cell_I": "I70",
+          "input_cell_L": "L70",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 71,
+          "line_number": "7",
+          "label": "Depreciation: LINE 13",
+          "irs_line_ref": "LINE 13",
+          "input_cell_I": "I71",
+          "input_cell_L": "L71",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 72,
+          "line_number": "8",
+          "label": "Non-Deductible Meals and Entertainment Exclusion: LINE 24b",
+          "irs_line_ref": "LINE 24b",
+          "input_cell_I": "I72",
+          "input_cell_L": "L72",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 73,
+          "line_number": "9",
+          "label": "Business Use of Home: LINE 30",
+          "irs_line_ref": "LINE 30",
+          "input_cell_I": "I73",
+          "input_cell_L": "L73",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 74,
+          "line_number": "10",
+          "label": "Business Miles: Page 2, Part IV, LINE 44a OR Related 4562, Line 30",
+          "irs_line_ref": "LINE 44a OR Related 4562",
+          "input_cell_I": "I74",
+          "input_cell_L": "L74",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 75,
+          "line_number": "11a",
+          "label": "x Depreciation Rate 2025: $0.33, 2024: $0.30, 2023: $0.28",
+          "irs_line_ref": null,
+          "input_cell_I": "I75",
+          "input_cell_L": "L75",
+          "is_computed": true,
+          "formula_I": "=IFERROR(IF(AND(I74>0,$I$5>0),VLOOKUP($I$5,LKP_MILEAGE,2,FALSE),\"\"),\"\")",
+          "formula_L": "=IFERROR(IF(AND(L74>0,$L$5>0),VLOOKUP($L$5,LKP_MILEAGE,2,FALSE),\"\"),\"\")"
+        },
+        {
+          "row": 76,
+          "line_number": "11b",
+          "label": "= Total Mileage Depreciation",
+          "irs_line_ref": null,
+          "input_cell_I": "I76",
+          "input_cell_L": "L76",
+          "is_computed": true,
+          "formula_I": "=IFERROR(IF(I75>0,I74*I75,\"\"),\"\")",
+          "formula_L": "=IFERROR(IF(L75>0,L74*L75,\"\"),\"\")"
+        },
+        {
+          "row": 77,
+          "line_number": "12",
+          "label": "Amortization/Casualty Loss (only if noted): page 2, part V",
+          "irs_line_ref": null,
+          "input_cell_I": "I77",
+          "input_cell_L": "L77",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        }
+      ],
+      "subtotal": {
+        "row": 79,
+        "label": "SUBTOTAL",
+        "cell_I": "I79",
+        "cell_L": "L79",
+        "formula_I": "=IFERROR(SUM(I67:I68)-I69+SUM(I70:I71)-I72+I73+IF(ISNUMBER(I76),I76,0)+I77,0)",
+        "formula_L": "=IFERROR(SUM(L67:L68)-L69+SUM(L70:L71)-L72+L73+IF(ISNUMBER(L76),L76,0)+L77,0)"
+      },
+      "ownership": null,
+      "final": null
+    },
+    {
+      "index": 5,
+      "label": "SCHEDULE D - CAPITAL GAINS AND LOSSES",
+      "form_code": "sch_d",
+      "entity": "capital_gains",
+      "header_row": 82,
+      "row": 86,
+      "input_lines": [
+        {
+          "row": 84,
+          "line_number": "13",
+          "label": "Recurring Capital Gains (Loss): page 2, LINE 16 (details on FORM 8949)",
+          "irs_line_ref": "LINE 16 (details on FORM 8949)",
+          "input_cell_I": "I84",
+          "input_cell_L": "L84",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        }
+      ],
+      "subtotal": {
+        "row": 86,
+        "label": "SUBTOTAL",
+        "cell_I": "I86",
+        "cell_L": "L86",
+        "formula_I": "=SUM(I84:I84)",
+        "formula_L": "=SUM(L84:L84)"
+      },
+      "ownership": null,
+      "final": null
+    },
+    {
+      "index": 6,
+      "label": "SCHEDULE E - SUPPLEMENTAL INCOME AND LOSS",
+      "form_code": "sch_e",
+      "entity": "schedule_e_rental",
+      "header_row": 89,
+      "row": 95,
+      "input_lines": [
+        {
+          "row": 91,
+          "line_number": "14",
+          "label": "Royalty Income (Loss): LINE 4",
+          "irs_line_ref": "LINE 4",
+          "input_cell_I": "I91",
+          "input_cell_L": "L91",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 92,
+          "line_number": "15",
+          "label": "Total Expenses: LINE 20",
+          "irs_line_ref": "LINE 20",
+          "input_cell_I": "I92",
+          "input_cell_L": "L92",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 93,
+          "line_number": "16",
+          "label": "Depreciation Expense or Depletion: LINE 18",
+          "irs_line_ref": "LINE 18",
+          "input_cell_I": "I93",
+          "input_cell_L": "L93",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        }
+      ],
+      "subtotal": {
+        "row": 95,
+        "label": "SUBTOTAL",
+        "cell_I": "I95",
+        "cell_L": "L95",
+        "formula_I": "=I91-I92+I93",
+        "formula_L": "=L91-L92+L93"
+      },
+      "ownership": null,
+      "final": null
+    },
+    {
+      "index": 7,
+      "label": "SCHEDULE F - FARM INCOME",
+      "form_code": "sch_f",
+      "entity": "schedule_f_farm",
+      "header_row": 98,
+      "row": 108,
+      "input_lines": [
+        {
+          "row": 100,
+          "line_number": "17",
+          "label": "Net Profit (Loss): LINE 34",
+          "irs_line_ref": "LINE 34",
+          "input_cell_I": "I100",
+          "input_cell_L": "L100",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 101,
+          "line_number": "18",
+          "label": "Non-Tax Portion Ongoing Co-op & CCC Pmts: LINES 3a minus b through 6a minus b",
+          "irs_line_ref": "LINES 3a minus b through 6a minus b",
+          "input_cell_I": "I101",
+          "input_cell_L": "L101",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 102,
+          "line_number": "19",
+          "label": "Add nonrecurring loss: LINE 2-8",
+          "irs_line_ref": "LINE 2-8",
+          "input_cell_I": "I102",
+          "input_cell_L": "L102",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 103,
+          "line_number": "20",
+          "label": "Deduct nonrecurring income: LINE 2-8",
+          "irs_line_ref": "LINE 2-8",
+          "input_cell_I": "I103",
+          "input_cell_L": "L103",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 104,
+          "line_number": "21",
+          "label": "Depreciation: LINE 14",
+          "irs_line_ref": "LINE 14",
+          "input_cell_I": "I104",
+          "input_cell_L": "L104",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 105,
+          "line_number": "22",
+          "label": "Amortization/Casualty Loss/Depletion (only if noted): LINE 32",
+          "irs_line_ref": "LINE 32",
+          "input_cell_I": "I105",
+          "input_cell_L": "L105",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 106,
+          "line_number": "23",
+          "label": "Business Use of Home (only if noted): LINE 32",
+          "irs_line_ref": "LINE 32",
+          "input_cell_I": "I106",
+          "input_cell_L": "L106",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        }
+      ],
+      "subtotal": {
+        "row": 108,
+        "label": "SUBTOTAL",
+        "cell_I": "I108",
+        "cell_L": "L108",
+        "formula_I": "=SUM(I100:I102)-I103+SUM(I104:I106)",
+        "formula_L": "=SUM(L100:L102)-L103+SUM(L104:L106)"
+      },
+      "ownership": null,
+      "final": null
+    },
+    {
+      "index": 8,
+      "label": "PARTNERSHIP                                                                 Name:",
+      "form_code": "1065",
+      "entity": "partnership",
+      "header_row": 113,
+      "row": 121,
+      "input_lines": [
+        {
+          "row": 117,
+          "line_number": "24",
+          "label": "Ordinary Income (Loss): LINE 1  If > Distributions see additional requirements.",
+          "irs_line_ref": "LINE 1  If > Distributions see additional requirements.",
+          "input_cell_I": "I117",
+          "input_cell_L": "L117",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 118,
+          "line_number": "25",
+          "label": "Net Rental Income (Loss): LINES 2 & 3  If > Distributions see additional requirements.",
+          "irs_line_ref": "LINES 2 & 3  If > Distributions see additional requirements.",
+          "input_cell_I": "I118",
+          "input_cell_L": "L118",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 119,
+          "line_number": "26",
+          "label": "Guaranteed Payments: LINE 4c",
+          "irs_line_ref": "LINE 4c",
+          "input_cell_I": "I119",
+          "input_cell_L": "L119",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        }
+      ],
+      "subtotal": {
+        "row": 121,
+        "label": "SUBTOTAL",
+        "cell_I": "I121",
+        "cell_L": "L121",
+        "formula_I": "=IFERROR(SUM(I117:I119),0)",
+        "formula_L": "=IFERROR(SUM(L117:L119),0)"
+      },
+      "ownership": null,
+      "final": null
+    },
+    {
+      "index": 9,
+      "label": "PARTNERSHIP                                                                 Name:",
+      "form_code": "1065",
+      "entity": "partnership",
+      "header_row": 113,
+      "row": 138,
+      "input_lines": [
+        {
+          "row": 125,
+          "line_number": "27",
+          "label": "Wages: W-2, Box 5 (in general)",
+          "irs_line_ref": null,
+          "input_cell_I": "I125",
+          "input_cell_L": "L125",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 129,
+          "line_number": "28",
+          "label": "Passthrough (Income) Loss from Other Partnerships: LINE 4",
+          "irs_line_ref": "LINE 4",
+          "input_cell_I": "I129",
+          "input_cell_L": "L129",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 130,
+          "line_number": "29",
+          "label": "Deduct nonrecurring income: LINES 5, 6 & 7",
+          "irs_line_ref": "LINES 5",
+          "input_cell_I": "I130",
+          "input_cell_L": "L130",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 131,
+          "line_number": "30",
+          "label": "Depreciation: LINE 16c",
+          "irs_line_ref": "LINE 16c",
+          "input_cell_I": "I131",
+          "input_cell_L": "L131",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 132,
+          "line_number": "31",
+          "label": "Depreciation (FORM 8825): LINE 14",
+          "irs_line_ref": "LINE 14",
+          "input_cell_I": "I132",
+          "input_cell_L": "L132",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 133,
+          "line_number": "32",
+          "label": "Depletion: LINE 17",
+          "irs_line_ref": "LINE 17",
+          "input_cell_I": "I133",
+          "input_cell_L": "L133",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 134,
+          "line_number": "33",
+          "label": "Amortization/Casualty Loss/Nonrecurring Loss: from statement or LINES 5,6 & 7",
+          "irs_line_ref": "LINES 5",
+          "input_cell_I": "I134",
+          "input_cell_L": "L134",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 135,
+          "line_number": "34",
+          "label": "Mortgages or Notes Payable in Less Than 1 Year: Schedule L, LINE 16, Column d",
+          "irs_line_ref": "LINE 16",
+          "input_cell_I": "I135",
+          "input_cell_L": "L135",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 136,
+          "line_number": "35",
+          "label": "Non-Deductible Travel and Entertainment Exclusion: Schedule M-1, LINE 4b",
+          "irs_line_ref": "LINE 4b",
+          "input_cell_I": "I136",
+          "input_cell_L": "L136",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        }
+      ],
+      "subtotal": {
+        "row": 138,
+        "label": "SUBTOTAL",
+        "cell_I": "I138",
+        "cell_L": "L138",
+        "formula_I": "=IFERROR(I129-I130+SUM(I131:I134)-I135-I136,0)",
+        "formula_L": "=IFERROR(L129-L130+SUM(L131:L134)-L135-L136,0)"
+      },
+      "ownership": {
+        "row": 140,
+        "line_number": "36",
+        "label": "Multiplied by Ownership Percentage",
+        "input_cell_I": "I140",
+        "input_cell_L": "L140"
+      },
+      "final": {
+        "row": 142,
+        "label": "Partner's Total Share of Income (Loss)",
+        "cell_I": "I142",
+        "cell_L": "L142",
+        "formula_I": "=IFERROR(I138*I140,0)",
+        "formula_L": "=IFERROR(L138*L140,0)"
+      }
+    },
+    {
+      "index": 10,
+      "label": "PARTNERSHIP                                                                 Name:",
+      "form_code": "1065",
+      "entity": "partnership",
+      "header_row": 145,
+      "row": 153,
+      "input_lines": [
+        {
+          "row": 149,
+          "line_number": "24",
+          "label": "Ordinary Income (Loss): LINE 1  If > Distributions see additional requirements.",
+          "irs_line_ref": "LINE 1  If > Distributions see additional requirements.",
+          "input_cell_I": "I149",
+          "input_cell_L": "L149",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 150,
+          "line_number": "25",
+          "label": "Net Rental Income (Loss): LINES 2 & 3  If > Distributions see additional requirements.",
+          "irs_line_ref": "LINES 2 & 3  If > Distributions see additional requirements.",
+          "input_cell_I": "I150",
+          "input_cell_L": "L150",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 151,
+          "line_number": "26",
+          "label": "Guaranteed Payments: LINE 4c",
+          "irs_line_ref": "LINE 4c",
+          "input_cell_I": "I151",
+          "input_cell_L": "L151",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        }
+      ],
+      "subtotal": {
+        "row": 153,
+        "label": "SUBTOTAL",
+        "cell_I": "I153",
+        "cell_L": "L153",
+        "formula_I": "=IFERROR(SUM(I149:I151),0)",
+        "formula_L": "=IFERROR(SUM(L149:L151),0)"
+      },
+      "ownership": null,
+      "final": null
+    },
+    {
+      "index": 11,
+      "label": "PARTNERSHIP                                                                 Name:",
+      "form_code": "1065",
+      "entity": "partnership",
+      "header_row": 145,
+      "row": 170,
+      "input_lines": [
+        {
+          "row": 157,
+          "line_number": "27",
+          "label": "Wages: W-2, Box 5 (in general)",
+          "irs_line_ref": null,
+          "input_cell_I": "I157",
+          "input_cell_L": "L157",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 161,
+          "line_number": "28",
+          "label": "Passthrough (Income) Loss from Other Partnerships: LINE 4",
+          "irs_line_ref": "LINE 4",
+          "input_cell_I": "I161",
+          "input_cell_L": "L161",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 162,
+          "line_number": "29",
+          "label": "Deduct nonrecurring income: LINES 5, 6 & 7",
+          "irs_line_ref": "LINES 5",
+          "input_cell_I": "I162",
+          "input_cell_L": "L162",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 163,
+          "line_number": "30",
+          "label": "Depreciation: LINE 16c",
+          "irs_line_ref": "LINE 16c",
+          "input_cell_I": "I163",
+          "input_cell_L": "L163",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 164,
+          "line_number": "31",
+          "label": "Depreciation (FORM 8825): LINE 14",
+          "irs_line_ref": "LINE 14",
+          "input_cell_I": "I164",
+          "input_cell_L": "L164",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 165,
+          "line_number": "32",
+          "label": "Depletion: LINE 17",
+          "irs_line_ref": "LINE 17",
+          "input_cell_I": "I165",
+          "input_cell_L": "L165",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 166,
+          "line_number": "33",
+          "label": "Amortization/Casualty Loss/Nonrecurring Loss: from statement or LINES 5,6 & 7",
+          "irs_line_ref": "LINES 5",
+          "input_cell_I": "I166",
+          "input_cell_L": "L166",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 167,
+          "line_number": "34",
+          "label": "Mortgages or Notes Payable in Less Than 1 Year: Schedule L, LINE 16, Column d",
+          "irs_line_ref": "LINE 16",
+          "input_cell_I": "I167",
+          "input_cell_L": "L167",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 168,
+          "line_number": "35",
+          "label": "Non-Deductible Travel and Entertainment Exclusion: Schedule M-1, LINE 4b",
+          "irs_line_ref": "LINE 4b",
+          "input_cell_I": "I168",
+          "input_cell_L": "L168",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        }
+      ],
+      "subtotal": {
+        "row": 170,
+        "label": "SUBTOTAL",
+        "cell_I": "I170",
+        "cell_L": "L170",
+        "formula_I": "=IFERROR(I161-I162+SUM(I163:I166)-I167-I168,0)",
+        "formula_L": "=IFERROR(L161-L162+SUM(L163:L166)-L167-L168,0)"
+      },
+      "ownership": {
+        "row": 172,
+        "line_number": "36",
+        "label": "Multiplied by Ownership Percentage",
+        "input_cell_I": "I172",
+        "input_cell_L": "L172"
+      },
+      "final": {
+        "row": 174,
+        "label": "Partner's Total Share of Income (Loss)",
+        "cell_I": "I174",
+        "cell_L": "L174",
+        "formula_I": "=IFERROR(I170*I172,0)",
+        "formula_L": "=IFERROR(L170*L172,0)"
+      }
+    },
+    {
+      "index": 12,
+      "label": "PARTNERSHIP                                                                 Name:",
+      "form_code": "1065",
+      "entity": "partnership",
+      "header_row": 177,
+      "row": 185,
+      "input_lines": [
+        {
+          "row": 181,
+          "line_number": "24",
+          "label": "Ordinary Income (Loss): LINE 1  If > Distributions see additional requirements.",
+          "irs_line_ref": "LINE 1  If > Distributions see additional requirements.",
+          "input_cell_I": "I181",
+          "input_cell_L": "L181",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 182,
+          "line_number": "25",
+          "label": "Net Rental Income (Loss): LINES 2 & 3  If > Distributions see additional requirements.",
+          "irs_line_ref": "LINES 2 & 3  If > Distributions see additional requirements.",
+          "input_cell_I": "I182",
+          "input_cell_L": "L182",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 183,
+          "line_number": "26",
+          "label": "Guaranteed Payments: LINE 4c",
+          "irs_line_ref": "LINE 4c",
+          "input_cell_I": "I183",
+          "input_cell_L": "L183",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        }
+      ],
+      "subtotal": {
+        "row": 185,
+        "label": "SUBTOTAL",
+        "cell_I": "I185",
+        "cell_L": "L185",
+        "formula_I": "=IFERROR(SUM(I181:I183),0)",
+        "formula_L": "=IFERROR(SUM(L181:L183),0)"
+      },
+      "ownership": null,
+      "final": null
+    },
+    {
+      "index": 13,
+      "label": "PARTNERSHIP                                                                 Name:",
+      "form_code": "1065",
+      "entity": "partnership",
+      "header_row": 177,
+      "row": 202,
+      "input_lines": [
+        {
+          "row": 189,
+          "line_number": "27",
+          "label": "Wages: W-2, Box 5 (in general)",
+          "irs_line_ref": null,
+          "input_cell_I": "I189",
+          "input_cell_L": "L189",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 193,
+          "line_number": "28",
+          "label": "Passthrough (Income) Loss from Other Partnerships: LINE 4",
+          "irs_line_ref": "LINE 4",
+          "input_cell_I": "I193",
+          "input_cell_L": "L193",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 194,
+          "line_number": "29",
+          "label": "Deduct nonrecurring income: LINES 5, 6 & 7",
+          "irs_line_ref": "LINES 5",
+          "input_cell_I": "I194",
+          "input_cell_L": "L194",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 195,
+          "line_number": "30",
+          "label": "Depreciation: LINE 16c",
+          "irs_line_ref": "LINE 16c",
+          "input_cell_I": "I195",
+          "input_cell_L": "L195",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 196,
+          "line_number": "31",
+          "label": "Depreciation (FORM 8825): LINE 14",
+          "irs_line_ref": "LINE 14",
+          "input_cell_I": "I196",
+          "input_cell_L": "L196",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 197,
+          "line_number": "32",
+          "label": "Depletion: LINE 17",
+          "irs_line_ref": "LINE 17",
+          "input_cell_I": "I197",
+          "input_cell_L": "L197",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 198,
+          "line_number": "33",
+          "label": "Amortization/Casualty Loss/Nonrecurring Loss: from statement or LINES 5,6 & 7",
+          "irs_line_ref": "LINES 5",
+          "input_cell_I": "I198",
+          "input_cell_L": "L198",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 199,
+          "line_number": "34",
+          "label": "Mortgages or Notes Payable in Less Than 1 Year: Schedule L, LINE 16, Column d",
+          "irs_line_ref": "LINE 16",
+          "input_cell_I": "I199",
+          "input_cell_L": "L199",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 200,
+          "line_number": "35",
+          "label": "Non-Deductible Travel and Entertainment Exclusion: Schedule M-1, LINE 4b",
+          "irs_line_ref": "LINE 4b",
+          "input_cell_I": "I200",
+          "input_cell_L": "L200",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        }
+      ],
+      "subtotal": {
+        "row": 202,
+        "label": "SUBTOTAL",
+        "cell_I": "I202",
+        "cell_L": "L202",
+        "formula_I": "=IFERROR(I193-I194+SUM(I195:I198)-I199-I200,0)",
+        "formula_L": "=IFERROR(L193-L194+SUM(L195:L198)-L199-L200,0)"
+      },
+      "ownership": {
+        "row": 204,
+        "line_number": "36",
+        "label": "Multiplied by Ownership Percentage",
+        "input_cell_I": "I204",
+        "input_cell_L": "L204"
+      },
+      "final": {
+        "row": 206,
+        "label": "Partner's Total Share of Income (Loss)",
+        "cell_I": "I206",
+        "cell_L": "L206",
+        "formula_I": "=IFERROR(I202*I204,0)",
+        "formula_L": "=IFERROR(L202*L204,0)"
+      }
+    },
+    {
+      "index": 14,
+      "label": "PARTNERSHIP                                                                 Name:",
+      "form_code": "1065",
+      "entity": "partnership",
+      "header_row": 209,
+      "row": 217,
+      "input_lines": [
+        {
+          "row": 213,
+          "line_number": "24",
+          "label": "Ordinary Income (Loss): LINE 1  If > Distributions see additional requirements.",
+          "irs_line_ref": "LINE 1  If > Distributions see additional requirements.",
+          "input_cell_I": "I213",
+          "input_cell_L": "L213",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 214,
+          "line_number": "25",
+          "label": "Net Rental Income (Loss): LINES 2 & 3  If > Distributions see additional requirements.",
+          "irs_line_ref": "LINES 2 & 3  If > Distributions see additional requirements.",
+          "input_cell_I": "I214",
+          "input_cell_L": "L214",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 215,
+          "line_number": "26",
+          "label": "Guaranteed Payments: LINE 4c",
+          "irs_line_ref": "LINE 4c",
+          "input_cell_I": "I215",
+          "input_cell_L": "L215",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        }
+      ],
+      "subtotal": {
+        "row": 217,
+        "label": "SUBTOTAL",
+        "cell_I": "I217",
+        "cell_L": "L217",
+        "formula_I": "=IFERROR(SUM(I213:I215),0)",
+        "formula_L": "=IFERROR(SUM(L213:L215),0)"
+      },
+      "ownership": null,
+      "final": null
+    },
+    {
+      "index": 15,
+      "label": "PARTNERSHIP                                                                 Name:",
+      "form_code": "1065",
+      "entity": "partnership",
+      "header_row": 209,
+      "row": 234,
+      "input_lines": [
+        {
+          "row": 221,
+          "line_number": "27",
+          "label": "Wages: W-2, Box 5 (in general)",
+          "irs_line_ref": null,
+          "input_cell_I": "I221",
+          "input_cell_L": "L221",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 225,
+          "line_number": "28",
+          "label": "Passthrough (Income) Loss from Other Partnerships: LINE 4",
+          "irs_line_ref": "LINE 4",
+          "input_cell_I": "I225",
+          "input_cell_L": "L225",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 226,
+          "line_number": "29",
+          "label": "Deduct nonrecurring income: LINES 5, 6 & 7",
+          "irs_line_ref": "LINES 5",
+          "input_cell_I": "I226",
+          "input_cell_L": "L226",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 227,
+          "line_number": "30",
+          "label": "Depreciation: LINE 16c",
+          "irs_line_ref": "LINE 16c",
+          "input_cell_I": "I227",
+          "input_cell_L": "L227",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 228,
+          "line_number": "31",
+          "label": "Depreciation (FORM 8825): LINE 14",
+          "irs_line_ref": "LINE 14",
+          "input_cell_I": "I228",
+          "input_cell_L": "L228",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 229,
+          "line_number": "32",
+          "label": "Depletion: LINE 17",
+          "irs_line_ref": "LINE 17",
+          "input_cell_I": "I229",
+          "input_cell_L": "L229",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 230,
+          "line_number": "33",
+          "label": "Amortization/Casualty Loss/Nonrecurring Loss: from statement or LINES 5,6 & 7",
+          "irs_line_ref": "LINES 5",
+          "input_cell_I": "I230",
+          "input_cell_L": "L230",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 231,
+          "line_number": "34",
+          "label": "Mortgages or Notes Payable in Less Than 1 Year: Schedule L, LINE 16, Column d",
+          "irs_line_ref": "LINE 16",
+          "input_cell_I": "I231",
+          "input_cell_L": "L231",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 232,
+          "line_number": "35",
+          "label": "Non-Deductible Travel and Entertainment Exclusion: Schedule M-1, LINE 4b",
+          "irs_line_ref": "LINE 4b",
+          "input_cell_I": "I232",
+          "input_cell_L": "L232",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        }
+      ],
+      "subtotal": {
+        "row": 234,
+        "label": "SUBTOTAL",
+        "cell_I": "I234",
+        "cell_L": "L234",
+        "formula_I": "=IFERROR(I225-I226+SUM(I227:I230)-I231-I232,0)",
+        "formula_L": "=IFERROR(L225-L226+SUM(L227:L230)-L231-L232,0)"
+      },
+      "ownership": {
+        "row": 236,
+        "line_number": "36",
+        "label": "Multiplied by Ownership Percentage",
+        "input_cell_I": "I236",
+        "input_cell_L": "L236"
+      },
+      "final": {
+        "row": 238,
+        "label": "Partner's Total Share of Income (Loss)",
+        "cell_I": "I238",
+        "cell_L": "L238",
+        "formula_I": "=IFERROR(I234*I236,0)",
+        "formula_L": "=IFERROR(L234*L236,0)"
+      }
+    },
+    {
+      "index": 16,
+      "label": "S CORPORATION                                                            Name:",
+      "form_code": "1120s",
+      "entity": "s_corp",
+      "header_row": 243,
+      "row": 250,
+      "input_lines": [
+        {
+          "row": 247,
+          "line_number": "37",
+          "label": "Ordinary Income (Loss): LINE 1  If > Distributions see additional requirements.",
+          "irs_line_ref": "LINE 1  If > Distributions see additional requirements.",
+          "input_cell_I": "I247",
+          "input_cell_L": "L247",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 248,
+          "line_number": "38",
+          "label": "Net Rental Income (Loss): LINES 2 & 3  If > Distributions see additional requirements.",
+          "irs_line_ref": "LINES 2 & 3  If > Distributions see additional requirements.",
+          "input_cell_I": "I248",
+          "input_cell_L": "L248",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        }
+      ],
+      "subtotal": {
+        "row": 250,
+        "label": "SUBTOTAL",
+        "cell_I": "I250",
+        "cell_L": "L250",
+        "formula_I": "=IFERROR(SUM(I247:I248),0)",
+        "formula_L": "=IFERROR(SUM(L247:L248),0)"
+      },
+      "ownership": null,
+      "final": null
+    },
+    {
+      "index": 17,
+      "label": "S CORPORATION                                                            Name:",
+      "form_code": "1120s",
+      "entity": "s_corp",
+      "header_row": 243,
+      "row": 266,
+      "input_lines": [
+        {
+          "row": 254,
+          "line_number": "39",
+          "label": "Wages: W-2, Box 5 (in general)",
+          "irs_line_ref": null,
+          "input_cell_I": "I254",
+          "input_cell_L": "L254",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 258,
+          "line_number": "40",
+          "label": "Deduct nonrecurring income: LINES 4 & 5",
+          "irs_line_ref": "LINES 4 & 5",
+          "input_cell_I": "I258",
+          "input_cell_L": "L258",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 259,
+          "line_number": "41",
+          "label": "Depreciation: LINE 14",
+          "irs_line_ref": "LINE 14",
+          "input_cell_I": "I259",
+          "input_cell_L": "L259",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 260,
+          "line_number": "42",
+          "label": "Depreciation (FORM 8825): LINE 14",
+          "irs_line_ref": "LINE 14",
+          "input_cell_I": "I260",
+          "input_cell_L": "L260",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 261,
+          "line_number": "43",
+          "label": "Depletion: LINE 15",
+          "irs_line_ref": "LINE 15",
+          "input_cell_I": "I261",
+          "input_cell_L": "L261",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 262,
+          "line_number": "44",
+          "label": "Amortization/Casualty Loss/Nonrecurring Loss: from statement or LINES 4 & 5",
+          "irs_line_ref": "LINES 4 & 5",
+          "input_cell_I": "I262",
+          "input_cell_L": "L262",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 263,
+          "line_number": "45",
+          "label": "Mortgages or Notes Payable in Less Than 1 Year: Schedule L, LINE 17, Column d",
+          "irs_line_ref": "LINE 17",
+          "input_cell_I": "I263",
+          "input_cell_L": "L263",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 264,
+          "line_number": "46",
+          "label": "Non-Deductible Travel and Entertainment Exclusion: Schedule M-1, LINE 3b",
+          "irs_line_ref": "LINE 3b",
+          "input_cell_I": "I264",
+          "input_cell_L": "L264",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        }
+      ],
+      "subtotal": {
+        "row": 266,
+        "label": "SUBTOTAL",
+        "cell_I": "I266",
+        "cell_L": "L266",
+        "formula_I": "=IFERROR(-I258+SUM(I259:I262)-I263-I264,0)",
+        "formula_L": "=IFERROR(-L258+SUM(L259:L262)-L263-L264,0)"
+      },
+      "ownership": {
+        "row": 268,
+        "line_number": "47",
+        "label": "Multiplied by Ownership Percentage",
+        "input_cell_I": "I268",
+        "input_cell_L": "L268"
+      },
+      "final": {
+        "row": 270,
+        "label": "Shareholder’s Total Share of Income (Loss)",
+        "cell_I": "I270",
+        "cell_L": "L270",
+        "formula_I": "=IFERROR(I266*I268,0)",
+        "formula_L": "=IFERROR(L266*L268,0)"
+      }
+    },
+    {
+      "index": 18,
+      "label": "S CORPORATION                                                            Name:",
+      "form_code": "1120s",
+      "entity": "s_corp",
+      "header_row": 273,
+      "row": 280,
+      "input_lines": [
+        {
+          "row": 277,
+          "line_number": "37",
+          "label": "Ordinary Income (Loss): LINE 1  If > Distributions see additional requirements.",
+          "irs_line_ref": "LINE 1  If > Distributions see additional requirements.",
+          "input_cell_I": "I277",
+          "input_cell_L": "L277",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 278,
+          "line_number": "38",
+          "label": "Net Rental Income (Loss): LINES 2 & 3  If > Distributions see additional requirements.",
+          "irs_line_ref": "LINES 2 & 3  If > Distributions see additional requirements.",
+          "input_cell_I": "I278",
+          "input_cell_L": "L278",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        }
+      ],
+      "subtotal": {
+        "row": 280,
+        "label": "SUBTOTAL",
+        "cell_I": "I280",
+        "cell_L": "L280",
+        "formula_I": "=IFERROR(SUM(I277:I278),0)",
+        "formula_L": "=IFERROR(SUM(L277:L278),0)"
+      },
+      "ownership": null,
+      "final": null
+    },
+    {
+      "index": 19,
+      "label": "S CORPORATION                                                            Name:",
+      "form_code": "1120s",
+      "entity": "s_corp",
+      "header_row": 273,
+      "row": 296,
+      "input_lines": [
+        {
+          "row": 284,
+          "line_number": "39",
+          "label": "Wages: W-2, Box 5 (in general)",
+          "irs_line_ref": null,
+          "input_cell_I": "I284",
+          "input_cell_L": "L284",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 288,
+          "line_number": "40",
+          "label": "Deduct nonrecurring income: LINES 4 & 5",
+          "irs_line_ref": "LINES 4 & 5",
+          "input_cell_I": "I288",
+          "input_cell_L": "L288",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 289,
+          "line_number": "41",
+          "label": "Depreciation: LINE 14",
+          "irs_line_ref": "LINE 14",
+          "input_cell_I": "I289",
+          "input_cell_L": "L289",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 290,
+          "line_number": "42",
+          "label": "Depreciation (FORM 8825): LINE 14",
+          "irs_line_ref": "LINE 14",
+          "input_cell_I": "I290",
+          "input_cell_L": "L290",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 291,
+          "line_number": "43",
+          "label": "Depletion: LINE 15",
+          "irs_line_ref": "LINE 15",
+          "input_cell_I": "I291",
+          "input_cell_L": "L291",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 292,
+          "line_number": "44",
+          "label": "Amortization/Casualty Loss/Nonrecurring Loss: from statement or LINES 4 & 5",
+          "irs_line_ref": "LINES 4 & 5",
+          "input_cell_I": "I292",
+          "input_cell_L": "L292",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 293,
+          "line_number": "45",
+          "label": "Mortgages or Notes Payable in Less Than 1 Year: Schedule L, LINE 17, Column d",
+          "irs_line_ref": "LINE 17",
+          "input_cell_I": "I293",
+          "input_cell_L": "L293",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 294,
+          "line_number": "46",
+          "label": "Non-Deductible Travel and Entertainment Exclusion: Schedule M-1, LINE 3b",
+          "irs_line_ref": "LINE 3b",
+          "input_cell_I": "I294",
+          "input_cell_L": "L294",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        }
+      ],
+      "subtotal": {
+        "row": 296,
+        "label": "SUBTOTAL",
+        "cell_I": "I296",
+        "cell_L": "L296",
+        "formula_I": "=IFERROR(-I288+SUM(I289:I292)-I293-I294,0)",
+        "formula_L": "=IFERROR(-L288+SUM(L289:L292)-L293-L294,0)"
+      },
+      "ownership": {
+        "row": 298,
+        "line_number": "47",
+        "label": "Multiplied by Ownership Percentage",
+        "input_cell_I": "I298",
+        "input_cell_L": "L298"
+      },
+      "final": {
+        "row": 300,
+        "label": "Shareholder’s Total Share of Income (Loss)",
+        "cell_I": "I300",
+        "cell_L": "L300",
+        "formula_I": "=IFERROR(I296*I298,0)",
+        "formula_L": "=IFERROR(L296*L298,0)"
+      }
+    },
+    {
+      "index": 20,
+      "label": "S CORPORATION                                                            Name:",
+      "form_code": "1120s",
+      "entity": "s_corp",
+      "header_row": 303,
+      "row": 310,
+      "input_lines": [
+        {
+          "row": 307,
+          "line_number": "37",
+          "label": "Ordinary Income (Loss): LINE 1  If > Distributions see additional requirements.",
+          "irs_line_ref": "LINE 1  If > Distributions see additional requirements.",
+          "input_cell_I": "I307",
+          "input_cell_L": "L307",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 308,
+          "line_number": "38",
+          "label": "Net Rental Income (Loss): LINES 2 & 3  If > Distributions see additional requirements.",
+          "irs_line_ref": "LINES 2 & 3  If > Distributions see additional requirements.",
+          "input_cell_I": "I308",
+          "input_cell_L": "L308",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        }
+      ],
+      "subtotal": {
+        "row": 310,
+        "label": "SUBTOTAL",
+        "cell_I": "I310",
+        "cell_L": "L310",
+        "formula_I": "=IFERROR(SUM(I307:I308),0)",
+        "formula_L": "=IFERROR(SUM(L307:L308),0)"
+      },
+      "ownership": null,
+      "final": null
+    },
+    {
+      "index": 21,
+      "label": "S CORPORATION                                                            Name:",
+      "form_code": "1120s",
+      "entity": "s_corp",
+      "header_row": 303,
+      "row": 326,
+      "input_lines": [
+        {
+          "row": 314,
+          "line_number": "39",
+          "label": "Wages: W-2, Box 5 (in general)",
+          "irs_line_ref": null,
+          "input_cell_I": "I314",
+          "input_cell_L": "L314",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 318,
+          "line_number": "40",
+          "label": "Deduct nonrecurring income: LINES 4 & 5",
+          "irs_line_ref": "LINES 4 & 5",
+          "input_cell_I": "I318",
+          "input_cell_L": "L318",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 319,
+          "line_number": "41",
+          "label": "Depreciation: LINE 14",
+          "irs_line_ref": "LINE 14",
+          "input_cell_I": "I319",
+          "input_cell_L": "L319",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 320,
+          "line_number": "42",
+          "label": "Depreciation (FORM 8825): LINE 14",
+          "irs_line_ref": "LINE 14",
+          "input_cell_I": "I320",
+          "input_cell_L": "L320",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 321,
+          "line_number": "43",
+          "label": "Depletion: LINE 15",
+          "irs_line_ref": "LINE 15",
+          "input_cell_I": "I321",
+          "input_cell_L": "L321",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 322,
+          "line_number": "44",
+          "label": "Amortization/Casualty Loss/Nonrecurring Loss: from statement or LINES 4 & 5",
+          "irs_line_ref": "LINES 4 & 5",
+          "input_cell_I": "I322",
+          "input_cell_L": "L322",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 323,
+          "line_number": "45",
+          "label": "Mortgages or Notes Payable in Less Than 1 Year: Schedule L, LINE 17, Column d",
+          "irs_line_ref": "LINE 17",
+          "input_cell_I": "I323",
+          "input_cell_L": "L323",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 324,
+          "line_number": "46",
+          "label": "Non-Deductible Travel and Entertainment Exclusion: Schedule M-1, LINE 3b",
+          "irs_line_ref": "LINE 3b",
+          "input_cell_I": "I324",
+          "input_cell_L": "L324",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        }
+      ],
+      "subtotal": {
+        "row": 326,
+        "label": "SUBTOTAL",
+        "cell_I": "I326",
+        "cell_L": "L326",
+        "formula_I": "=IFERROR(-I318+SUM(I319:I322)-I323-I324,0)",
+        "formula_L": "=IFERROR(-L318+SUM(L319:L322)-L323-L324,0)"
+      },
+      "ownership": {
+        "row": 328,
+        "line_number": "47",
+        "label": "Multiplied by Ownership Percentage",
+        "input_cell_I": "I328",
+        "input_cell_L": "L328"
+      },
+      "final": {
+        "row": 330,
+        "label": "Shareholder’s Total Share of Income (Loss)",
+        "cell_I": "I330",
+        "cell_L": "L330",
+        "formula_I": "=IFERROR(I326*I328,0)",
+        "formula_L": "=IFERROR(L326*L328,0)"
+      }
+    },
+    {
+      "index": 22,
+      "label": "S CORPORATION                                                            Name:",
+      "form_code": "1120s",
+      "entity": "s_corp",
+      "header_row": 333,
+      "row": 340,
+      "input_lines": [
+        {
+          "row": 337,
+          "line_number": "37",
+          "label": "Ordinary Income (Loss): LINE 1  If > Distributions see additional requirements.",
+          "irs_line_ref": "LINE 1  If > Distributions see additional requirements.",
+          "input_cell_I": "I337",
+          "input_cell_L": "L337",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 338,
+          "line_number": "38",
+          "label": "Net Rental Income (Loss): LINES 2 & 3  If > Distributions see additional requirements.",
+          "irs_line_ref": "LINES 2 & 3  If > Distributions see additional requirements.",
+          "input_cell_I": "I338",
+          "input_cell_L": "L338",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        }
+      ],
+      "subtotal": {
+        "row": 340,
+        "label": "SUBTOTAL",
+        "cell_I": "I340",
+        "cell_L": "L340",
+        "formula_I": "=IFERROR(SUM(I337:I338),0)",
+        "formula_L": "=IFERROR(SUM(L337:L338),0)"
+      },
+      "ownership": null,
+      "final": null
+    },
+    {
+      "index": 23,
+      "label": "S CORPORATION                                                            Name:",
+      "form_code": "1120s",
+      "entity": "s_corp",
+      "header_row": 333,
+      "row": 356,
+      "input_lines": [
+        {
+          "row": 344,
+          "line_number": "39",
+          "label": "Wages: W-2, Box 5 (in general)",
+          "irs_line_ref": null,
+          "input_cell_I": "I344",
+          "input_cell_L": "L344",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 348,
+          "line_number": "40",
+          "label": "Deduct nonrecurring income: LINES 4 & 5",
+          "irs_line_ref": "LINES 4 & 5",
+          "input_cell_I": "I348",
+          "input_cell_L": "L348",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 349,
+          "line_number": "41",
+          "label": "Depreciation: LINE 14",
+          "irs_line_ref": "LINE 14",
+          "input_cell_I": "I349",
+          "input_cell_L": "L349",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 350,
+          "line_number": "42",
+          "label": "Depreciation (FORM 8825): LINE 14",
+          "irs_line_ref": "LINE 14",
+          "input_cell_I": "I350",
+          "input_cell_L": "L350",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 351,
+          "line_number": "43",
+          "label": "Depletion: LINE 15",
+          "irs_line_ref": "LINE 15",
+          "input_cell_I": "I351",
+          "input_cell_L": "L351",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 352,
+          "line_number": "44",
+          "label": "Amortization/Casualty Loss/Nonrecurring Loss: from statement or LINES 4 & 5",
+          "irs_line_ref": "LINES 4 & 5",
+          "input_cell_I": "I352",
+          "input_cell_L": "L352",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 353,
+          "line_number": "45",
+          "label": "Mortgages or Notes Payable in Less Than 1 Year: Schedule L, LINE 17, Column d",
+          "irs_line_ref": "LINE 17",
+          "input_cell_I": "I353",
+          "input_cell_L": "L353",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 354,
+          "line_number": "46",
+          "label": "Non-Deductible Travel and Entertainment Exclusion: Schedule M-1, LINE 3b",
+          "irs_line_ref": "LINE 3b",
+          "input_cell_I": "I354",
+          "input_cell_L": "L354",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        }
+      ],
+      "subtotal": {
+        "row": 356,
+        "label": "SUBTOTAL",
+        "cell_I": "I356",
+        "cell_L": "L356",
+        "formula_I": "=IFERROR(-I348+SUM(I349:I352)-I353-I354,0)",
+        "formula_L": "=IFERROR(-L348+SUM(L349:L352)-L353-L354,0)"
+      },
+      "ownership": {
+        "row": 358,
+        "line_number": "47",
+        "label": "Multiplied by Ownership Percentage",
+        "input_cell_I": "I358",
+        "input_cell_L": "L358"
+      },
+      "final": {
+        "row": 360,
+        "label": "Shareholder’s Total Share of Income (Loss)",
+        "cell_I": "I360",
+        "cell_L": "L360",
+        "formula_I": "=IFERROR(I356*I358,0)",
+        "formula_L": "=IFERROR(L356*L358,0)"
+      }
+    },
+    {
+      "index": 24,
+      "label": "CORPORATION                                                               Name:",
+      "form_code": "1120",
+      "entity": "c_corp",
+      "header_row": 365,
+      "row": 384,
+      "input_lines": [
+        {
+          "row": 369,
+          "line_number": "48",
+          "label": "Wages: W-2, Box 5 (in general)",
+          "irs_line_ref": null,
+          "input_cell_I": "I369",
+          "input_cell_L": "L369",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 373,
+          "line_number": "49",
+          "label": "Taxable Income: LINE 30",
+          "irs_line_ref": "LINE 30",
+          "input_cell_I": "I373",
+          "input_cell_L": "L373",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 374,
+          "line_number": "50",
+          "label": "Total Tax: LINE 31",
+          "irs_line_ref": "LINE 31",
+          "input_cell_I": "I374",
+          "input_cell_L": "L374",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 375,
+          "line_number": "51",
+          "label": "Deduct nonrecurring gains/add nonrecurring losses: LINES 8 & 9",
+          "irs_line_ref": "LINES 8 & 9",
+          "input_cell_I": "I375",
+          "input_cell_L": "L375",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 376,
+          "line_number": "52",
+          "label": "Deduct nonrecurring income: LINE 10",
+          "irs_line_ref": "LINE 10",
+          "input_cell_I": "I376",
+          "input_cell_L": "L376",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 377,
+          "line_number": "53",
+          "label": "Depreciation: LINE 20",
+          "irs_line_ref": "LINE 20",
+          "input_cell_I": "I377",
+          "input_cell_L": "L377",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 378,
+          "line_number": "54",
+          "label": "Depletion: LINE 21",
+          "irs_line_ref": "LINE 21",
+          "input_cell_I": "I378",
+          "input_cell_L": "L378",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 379,
+          "line_number": "55",
+          "label": "Amortization/Casualty Loss/Nonrecurring Loss: from statement or LINES 8 & 9",
+          "irs_line_ref": "LINES 8 & 9",
+          "input_cell_I": "I379",
+          "input_cell_L": "L379",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 380,
+          "line_number": "56",
+          "label": "Net Operating Loss and Special Deductions: LINES 29a & b",
+          "irs_line_ref": "LINES 29a & b",
+          "input_cell_I": "I380",
+          "input_cell_L": "L380",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 381,
+          "line_number": "57",
+          "label": "Mortgages or Notes Payable in Less Than 1 Year: Schedule L, LINE 17, Column d",
+          "irs_line_ref": "LINE 17",
+          "input_cell_I": "I381",
+          "input_cell_L": "L381",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 382,
+          "line_number": "58",
+          "label": "Non-Deductible Travel and Entertainment Exclusion: Schedule M-1, LINE 5c",
+          "irs_line_ref": "LINE 5c",
+          "input_cell_I": "I382",
+          "input_cell_L": "L382",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        }
+      ],
+      "subtotal": {
+        "row": 384,
+        "label": "SUBTOTAL",
+        "cell_I": "I384",
+        "cell_L": "L384",
+        "formula_I": "=IFERROR(I373-I374+I375-I376+SUM(I377:I380)-I381-I382,0)",
+        "formula_L": "=IFERROR(L373-L374+L375-L376+SUM(L377:L380)-L381-L382,0)"
+      },
+      "ownership": {
+        "row": 386,
+        "line_number": "59",
+        "label": "Multiplied by Ownership Percentage",
+        "input_cell_I": "I386",
+        "input_cell_L": "L386"
+      },
+      "final": null
+    },
+    {
+      "index": 25,
+      "label": "CORPORATION                                                               Name:",
+      "form_code": "1120",
+      "entity": "c_corp",
+      "header_row": 392,
+      "row": 411,
+      "input_lines": [
+        {
+          "row": 387,
+          "line_number": "60",
+          "label": "Dividends Paid to Borrower: Form 1040, Schedule B, LINE 5",
+          "irs_line_ref": "LINE 5",
+          "input_cell_I": "I387",
+          "input_cell_L": "L387",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 396,
+          "line_number": "48",
+          "label": "Wages: W-2, Box 5 (in general)",
+          "irs_line_ref": null,
+          "input_cell_I": "I396",
+          "input_cell_L": "L396",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 400,
+          "line_number": "49",
+          "label": "Taxable Income: LINE 30",
+          "irs_line_ref": "LINE 30",
+          "input_cell_I": "I400",
+          "input_cell_L": "L400",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 401,
+          "line_number": "50",
+          "label": "Total Tax: LINE 31",
+          "irs_line_ref": "LINE 31",
+          "input_cell_I": "I401",
+          "input_cell_L": "L401",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 402,
+          "line_number": "51",
+          "label": "Deduct nonrecurring gains/add nonrecurring losses: LINES 8 & 9",
+          "irs_line_ref": "LINES 8 & 9",
+          "input_cell_I": "I402",
+          "input_cell_L": "L402",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 403,
+          "line_number": "52",
+          "label": "Deduct nonrecurring income: LINE 10",
+          "irs_line_ref": "LINE 10",
+          "input_cell_I": "I403",
+          "input_cell_L": "L403",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 404,
+          "line_number": "53",
+          "label": "Depreciation: LINE 20",
+          "irs_line_ref": "LINE 20",
+          "input_cell_I": "I404",
+          "input_cell_L": "L404",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 405,
+          "line_number": "54",
+          "label": "Depletion: LINE 21",
+          "irs_line_ref": "LINE 21",
+          "input_cell_I": "I405",
+          "input_cell_L": "L405",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 406,
+          "line_number": "55",
+          "label": "Amortization/Casualty Loss/Nonrecurring Loss: from statement or LINES 8 & 9",
+          "irs_line_ref": "LINES 8 & 9",
+          "input_cell_I": "I406",
+          "input_cell_L": "L406",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 407,
+          "line_number": "56",
+          "label": "Net Operating Loss and Special Deductions: LINES 29a & b",
+          "irs_line_ref": "LINES 29a & b",
+          "input_cell_I": "I407",
+          "input_cell_L": "L407",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 408,
+          "line_number": "57",
+          "label": "Mortgages or Notes Payable in Less Than 1 Year: Schedule L, LINE 17, Column d",
+          "irs_line_ref": "LINE 17",
+          "input_cell_I": "I408",
+          "input_cell_L": "L408",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 409,
+          "line_number": "58",
+          "label": "Non-Deductible Travel and Entertainment Exclusion: Schedule M-1, LINE 5c",
+          "irs_line_ref": "LINE 5c",
+          "input_cell_I": "I409",
+          "input_cell_L": "L409",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        }
+      ],
+      "subtotal": {
+        "row": 411,
+        "label": "SUBTOTAL",
+        "cell_I": "I411",
+        "cell_L": "L411",
+        "formula_I": "=IFERROR(I400-I401+I402-I403+SUM(I404:I407)-I408-I409,0)",
+        "formula_L": "=IFERROR(L400-L401+L402-L403+SUM(L404:L407)-L408-L409,0)"
+      },
+      "ownership": {
+        "row": 413,
+        "line_number": "59",
+        "label": "Multiplied by Ownership Percentage",
+        "input_cell_I": "I413",
+        "input_cell_L": "L413"
+      },
+      "final": null
+    },
+    {
+      "index": 26,
+      "label": "CORPORATION                                                               Name:",
+      "form_code": "1120",
+      "entity": "c_corp",
+      "header_row": 419,
+      "row": 438,
+      "input_lines": [
+        {
+          "row": 414,
+          "line_number": "60",
+          "label": "Dividends Paid to Borrower: Form 1040, Schedule B, LINE 5",
+          "irs_line_ref": "LINE 5",
+          "input_cell_I": "I414",
+          "input_cell_L": "L414",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 423,
+          "line_number": "48",
+          "label": "Wages: W-2, Box 5 (in general)",
+          "irs_line_ref": null,
+          "input_cell_I": "I423",
+          "input_cell_L": "L423",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 427,
+          "line_number": "49",
+          "label": "Taxable Income: LINE 30",
+          "irs_line_ref": "LINE 30",
+          "input_cell_I": "I427",
+          "input_cell_L": "L427",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 428,
+          "line_number": "50",
+          "label": "Total Tax: LINE 31",
+          "irs_line_ref": "LINE 31",
+          "input_cell_I": "I428",
+          "input_cell_L": "L428",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 429,
+          "line_number": "51",
+          "label": "Deduct nonrecurring gains/add nonrecurring losses: LINES 8 & 9",
+          "irs_line_ref": "LINES 8 & 9",
+          "input_cell_I": "I429",
+          "input_cell_L": "L429",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 430,
+          "line_number": "52",
+          "label": "Deduct nonrecurring income: LINE 10",
+          "irs_line_ref": "LINE 10",
+          "input_cell_I": "I430",
+          "input_cell_L": "L430",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 431,
+          "line_number": "53",
+          "label": "Depreciation: LINE 20",
+          "irs_line_ref": "LINE 20",
+          "input_cell_I": "I431",
+          "input_cell_L": "L431",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 432,
+          "line_number": "54",
+          "label": "Depletion: LINE 21",
+          "irs_line_ref": "LINE 21",
+          "input_cell_I": "I432",
+          "input_cell_L": "L432",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 433,
+          "line_number": "55",
+          "label": "Amortization/Casualty Loss/Nonrecurring Loss: from statement or LINES 8 & 9",
+          "irs_line_ref": "LINES 8 & 9",
+          "input_cell_I": "I433",
+          "input_cell_L": "L433",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 434,
+          "line_number": "56",
+          "label": "Net Operating Loss and Special Deductions: LINES 29a & b",
+          "irs_line_ref": "LINES 29a & b",
+          "input_cell_I": "I434",
+          "input_cell_L": "L434",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 435,
+          "line_number": "57",
+          "label": "Mortgages or Notes Payable in Less Than 1 Year: Schedule L, LINE 17, Column d",
+          "irs_line_ref": "LINE 17",
+          "input_cell_I": "I435",
+          "input_cell_L": "L435",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        },
+        {
+          "row": 436,
+          "line_number": "58",
+          "label": "Non-Deductible Travel and Entertainment Exclusion: Schedule M-1, LINE 5c",
+          "irs_line_ref": "LINE 5c",
+          "input_cell_I": "I436",
+          "input_cell_L": "L436",
+          "is_computed": false,
+          "formula_I": null,
+          "formula_L": null
+        }
+      ],
+      "subtotal": {
+        "row": 438,
+        "label": "SUBTOTAL",
+        "cell_I": "I438",
+        "cell_L": "L438",
+        "formula_I": "=IFERROR(I427-I428+I429-I430+SUM(I431:I434)-I435-I436,0)",
+        "formula_L": "=IFERROR(L427-L428+L429-L430+SUM(L431:L434)-L435-L436,0)"
+      },
+      "ownership": {
+        "row": 440,
+        "line_number": "59",
+        "label": "Multiplied by Ownership Percentage",
+        "input_cell_I": "I440",
+        "input_cell_L": "L440"
+      },
+      "final": null
+    }
+  ]
+}
