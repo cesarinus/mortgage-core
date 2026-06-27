@@ -37,5 +37,8 @@ export const MILEAGE_DEPRECIATION_RATE: Record<number, number> = (() => {
   return out;
 })();
 
-export const NAMED_RANGES = spec.named_ranges as string[];
+export const NAMED_RANGES = spec.named_ranges as unknown as Record<
+  string,
+  { value: string; destinations: Array<{ sheet: string; ref: string }> }
+>;
 export const FORMULA_VERSION = spec.formula_version as "all-in-one-2025.v1";
