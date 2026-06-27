@@ -28,6 +28,22 @@ function refToKey(col: string, row: number | string): string {
 export function makeParser(cells: CellMap): Parser {
   const parser = new Parser();
 
+  // hot-formula-parser ships AND/OR/NOT/IF/SUM/ISNUMBER/ISBLANK/VLOOKUP, but
+  // the All-In-One worksheet leans heavily on IFERROR. Register it so the
+  // worksheet's "=IFERROR(<expr>, 0)" pattern evaluates without #NAME?.
+  parser.setFunction("IFERROR", (params: unknown[]) => {
+    const v = params[0];
+    const fallback = params[1];
+    if (v === undefined || v === null) return fallback;
+    if (typeof v === "string") {
+      if (v.startsWith("#")) return fallback;       // Excel error sentinel
+      if (v.startsWith("ErrMsg_")) return fallback; // worksheet-named errors
+      if (v === "") return fallback;
+    }
+    if (typeof v === "number" && !Number.isFinite(v)) return fallback;
+    return v;
+  });
+
   parser.on("callCellValue", (cellCoord, done) => {
     const key = `${cellCoord.column.label}${cellCoord.row.label}`;
     const v = cells.get(key);
