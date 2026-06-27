@@ -120,10 +120,33 @@ function indexToColLetter(index: number): string {
   return s;
 }
 
+/**
+ * Pre-process the worksheet formula so hot-formula-parser can evaluate it.
+ *
+ * hot-formula-parser cannot resolve named ranges (LKP_MILEAGE) and treats
+ * VLOOKUP as a hard built-in, so setFunction() can't override it. The SAM
+ * worksheet's only VLOOKUP usage is the mileage rate lookup:
+ *     VLOOKUP($I$5, LKP_MILEAGE, 2, FALSE)
+ *     VLOOKUP($L$5, LKP_MILEAGE, 2, FALSE)
+ * We rewrite those tokens to the literal rate before parsing.
+ */
+function preprocessFormula(formula: string, cells: CellMap): string {
+  return formula.replace(
+    /VLOOKUP\(\s*\$?([A-Z]+)\$?(\d+)\s*,\s*LKP_MILEAGE\s*,\s*2\s*,\s*FALSE\s*\)/gi,
+    (_match, col: string, row: string) => {
+      const yearVal = cells.get(`${col.toUpperCase()}${row}`);
+      const year = typeof yearVal === "number" ? yearVal : Number(yearVal);
+      const rate = Number.isFinite(year) ? MILEAGE_DEPRECIATION_RATE[year] : undefined;
+      return rate != null ? String(rate) : "0";
+    },
+  );
+}
+
 /** Evaluate a formula in the context of the supplied cell map. */
 export function evaluate(formula: string, cells: CellMap): number | null {
   const parser = makeParser(cells);
-  const expr = formula.startsWith("=") ? formula.slice(1) : formula;
+  const raw = formula.startsWith("=") ? formula.slice(1) : formula;
+  const expr = preprocessFormula(raw, cells);
   const { result, error } = parser.parse(expr);
   if (error) return null;
   if (result == null || result === "") return null;
