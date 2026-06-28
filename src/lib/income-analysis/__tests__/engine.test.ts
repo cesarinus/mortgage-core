@@ -70,12 +70,26 @@ describe("Income Analysis engine", () => {
     };
 
     const result = runCaseCalculation(inputs);
-    const partnership = result.sections.find((s) => s.section_code === "1065");
-    expect(partnership).toBeDefined();
+    const k1 = result.sections.find(
+      (s) => s.section_code === "1065" && s.block_role === "k1",
+    );
+    const form = result.sections.find(
+      (s) => s.section_code === "1065" && s.block_role === "form",
+    );
+    expect(k1).toBeDefined();
+    expect(form).toBeDefined();
+    // K-1 block (lines 24–26): 80000 + 0 + 20000 = 100,000 (no ownership multiplier here)
+    expect(k1!.year_1_subtotal).toBe(100000);
+    expect(k1!.slot_index).toBe(0);
+    expect(k1!.block_index).toBe(0);
     // -5000 + (8000+2000+1000+0) - 1500 - 500 = 4000
-    expect(partnership!.year_1_subtotal).toBe(4000);
-    expect(partnership!.year_1_after_ownership).toBe(2000);
-    expect(partnership!.ownership_pct).toBe(50);
+    expect(form!.year_1_subtotal).toBe(4000);
+    expect(form!.year_1_after_ownership).toBe(2000);
+    expect(form!.ownership_pct).toBe(50);
+    expect(form!.slot_index).toBe(0);
+    expect(form!.block_index).toBe(1);
+    // Both blocks share the same business_id.
+    expect(k1!.business_id).toBe(form!.business_id);
   });
 
   it("produces a qualifying-income summary with annual + monthly averages", () => {

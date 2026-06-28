@@ -34,6 +34,9 @@ export async function persistCalculation(result: CaseCalculationResult): Promise
       outputs: {
         section_label: s.section_label,
         spec_row: s.spec_row,
+        slot_index: s.slot_index,
+        block_index: s.block_index,
+        block_role: s.block_role,
         subtotal_formula: s.subtotal_formula,
         final_formula: s.final_formula,
         ownership_pct: s.ownership_pct,
@@ -53,6 +56,9 @@ export async function persistCalculation(result: CaseCalculationResult): Promise
       outputs: {
         section_label: s.section_label,
         spec_row: s.spec_row,
+        slot_index: s.slot_index,
+        block_index: s.block_index,
+        block_role: s.block_role,
         subtotal_formula: s.subtotal_formula,
         final_formula: s.final_formula,
         ownership_pct: s.ownership_pct,
