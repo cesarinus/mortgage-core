@@ -61,6 +61,12 @@ export interface SectionResult {
   section_label: string;          // raw worksheet header text
   spec_row: number;               // source row in SAM
   business_id: string | null;     // null for personal sections (Sch B, Sch D)
+  /** Index of the slot (= business instance) within its entity. */
+  slot_index: number | null;
+  /** Position of this block inside its slot (0 = K-1, 1 = form-level, ...). */
+  block_index: number;
+  /** Stable identifier for this block within a slot: 'k1', '1065', '1120s', 'main'. */
+  block_role: "k1" | "form" | "main";
   year_1_subtotal: number | null;
   year_2_subtotal: number | null;
   year_1_after_ownership: number | null;
