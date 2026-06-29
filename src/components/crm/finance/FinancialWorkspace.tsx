@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, Download, FileText, Building2 } from "lucide-react";
 import { IncomeCard } from "@/components/crm/IncomeCard";
+import ManualIncomeWorksheet from "@/components/crm/finance/ManualIncomeWorksheet";
 import {
   computeBalanceSheet,
   computeCashFlow,
@@ -40,6 +41,8 @@ interface Profile {
   tax_id: string | null;
   business_type: string | null;
   line_items: LineItem[];
+  income_source_mode?: "upload" | "manual";
+  manual_worksheet?: any;
 }
 
 interface Props {
@@ -93,6 +96,8 @@ export default function FinancialWorkspace({ dealId, leadId, contactId, borrower
         line_items: Array.isArray(data.line_items) && data.line_items.length
           ? (data.line_items as LineItem[])
           : makeDefaultLineItems(),
+        income_source_mode: (data as any).income_source_mode ?? "upload",
+        manual_worksheet: (data as any).manual_worksheet ?? null,
       });
     } else {
       setProfile({
@@ -105,6 +110,8 @@ export default function FinancialWorkspace({ dealId, leadId, contactId, borrower
         tax_id: null,
         business_type: null,
         line_items: makeDefaultLineItems(),
+        income_source_mode: "upload",
+        manual_worksheet: null,
       });
     }
     const { data: snaps } = await (supabase as any)
@@ -133,6 +140,8 @@ export default function FinancialWorkspace({ dealId, leadId, contactId, borrower
       line_items: next.line_items,
       created_by: user.id,
     };
+    if (next.income_source_mode != null) payload.income_source_mode = next.income_source_mode;
+    if (next.manual_worksheet !== undefined) payload.manual_worksheet = next.manual_worksheet;
     const currentId = next.id || profile.id;
     let result;
 
@@ -342,6 +351,47 @@ export default function FinancialWorkspace({ dealId, leadId, contactId, borrower
           </CardContent>
         </Card>
       ) : (
+        <>
+          {/* Income Analysis Source */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">Income Analysis Source</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="inline-flex rounded-md border bg-muted p-1">
+                {([
+                  { v: "upload", l: "Upload Tax Documents" },
+                  { v: "manual", l: "Manual Entry" },
+                ] as const).map((opt) => {
+                  const active = (profile.income_source_mode ?? "upload") === opt.v;
+                  return (
+                    <button
+                      key={opt.v}
+                      onClick={() => persist({ income_source_mode: opt.v })}
+                      className={`px-4 py-1.5 text-sm rounded transition-colors ${
+                        active ? "bg-background shadow-sm font-medium" : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {opt.l}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                Upload runs AI extraction from tax documents. Manual Entry exposes the IRS form worksheets for direct underwriting input.
+              </p>
+            </CardContent>
+          </Card>
+
+          {(profile.income_source_mode ?? "upload") === "manual" ? (
+            <ManualIncomeWorksheet
+              profileId={profile.id}
+              leadId={leadId ?? null}
+              contactId={contactId}
+              borrowerName={borrowerName}
+              initial={profile.manual_worksheet ?? null}
+            />
+          ) : (
         <Tabs defaultValue="input">
           <TabsList>
             <TabsTrigger value="input">Financial Input</TabsTrigger>
@@ -474,6 +524,8 @@ export default function FinancialWorkspace({ dealId, leadId, contactId, borrower
             )}
           </TabsContent>
         </Tabs>
+          )}
+        </>
       )}
     </div>
   );
