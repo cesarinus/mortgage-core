@@ -351,6 +351,47 @@ export default function FinancialWorkspace({ dealId, leadId, contactId, borrower
           </CardContent>
         </Card>
       ) : (
+        <>
+          {/* Income Analysis Source */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">Income Analysis Source</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="inline-flex rounded-md border bg-muted p-1">
+                {([
+                  { v: "upload", l: "Upload Tax Documents" },
+                  { v: "manual", l: "Manual Entry" },
+                ] as const).map((opt) => {
+                  const active = (profile.income_source_mode ?? "upload") === opt.v;
+                  return (
+                    <button
+                      key={opt.v}
+                      onClick={() => persist({ income_source_mode: opt.v })}
+                      className={`px-4 py-1.5 text-sm rounded transition-colors ${
+                        active ? "bg-background shadow-sm font-medium" : "text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {opt.l}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                Upload runs AI extraction from tax documents. Manual Entry exposes the IRS form worksheets for direct underwriting input.
+              </p>
+            </CardContent>
+          </Card>
+
+          {(profile.income_source_mode ?? "upload") === "manual" ? (
+            <ManualIncomeWorksheet
+              profileId={profile.id}
+              leadId={leadId ?? null}
+              contactId={contactId}
+              borrowerName={borrowerName}
+              initial={profile.manual_worksheet ?? null}
+            />
+          ) : (
         <Tabs defaultValue="input">
           <TabsList>
             <TabsTrigger value="input">Financial Input</TabsTrigger>
@@ -483,6 +524,8 @@ export default function FinancialWorkspace({ dealId, leadId, contactId, borrower
             )}
           </TabsContent>
         </Tabs>
+          )}
+        </>
       )}
     </div>
   );
