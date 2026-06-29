@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, Download, FileText, Building2 } from "lucide-react";
 import { IncomeCard } from "@/components/crm/IncomeCard";
+import ManualIncomeWorksheet from "@/components/crm/finance/ManualIncomeWorksheet";
 import {
   computeBalanceSheet,
   computeCashFlow,
@@ -40,6 +41,8 @@ interface Profile {
   tax_id: string | null;
   business_type: string | null;
   line_items: LineItem[];
+  income_source_mode?: "upload" | "manual";
+  manual_worksheet?: any;
 }
 
 interface Props {
@@ -93,6 +96,8 @@ export default function FinancialWorkspace({ dealId, leadId, contactId, borrower
         line_items: Array.isArray(data.line_items) && data.line_items.length
           ? (data.line_items as LineItem[])
           : makeDefaultLineItems(),
+        income_source_mode: (data as any).income_source_mode ?? "upload",
+        manual_worksheet: (data as any).manual_worksheet ?? null,
       });
     } else {
       setProfile({
@@ -105,6 +110,8 @@ export default function FinancialWorkspace({ dealId, leadId, contactId, borrower
         tax_id: null,
         business_type: null,
         line_items: makeDefaultLineItems(),
+        income_source_mode: "upload",
+        manual_worksheet: null,
       });
     }
     const { data: snaps } = await (supabase as any)
@@ -133,6 +140,8 @@ export default function FinancialWorkspace({ dealId, leadId, contactId, borrower
       line_items: next.line_items,
       created_by: user.id,
     };
+    if (next.income_source_mode != null) payload.income_source_mode = next.income_source_mode;
+    if (next.manual_worksheet !== undefined) payload.manual_worksheet = next.manual_worksheet;
     const currentId = next.id || profile.id;
     let result;
 
