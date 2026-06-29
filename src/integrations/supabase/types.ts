@@ -6097,8 +6097,10 @@ export type Database = {
           created_by: string | null
           deal_id: string | null
           id: string
+          income_source_mode: string
           lead_id: string | null
           line_items: Json
+          manual_worksheet: Json
           period_end: string | null
           period_start: string | null
           tax_id: string | null
@@ -6113,8 +6115,10 @@ export type Database = {
           created_by?: string | null
           deal_id?: string | null
           id?: string
+          income_source_mode?: string
           lead_id?: string | null
           line_items?: Json
+          manual_worksheet?: Json
           period_end?: string | null
           period_start?: string | null
           tax_id?: string | null
@@ -6129,8 +6133,10 @@ export type Database = {
           created_by?: string | null
           deal_id?: string | null
           id?: string
+          income_source_mode?: string
           lead_id?: string | null
           line_items?: Json
+          manual_worksheet?: Json
           period_end?: string | null
           period_start?: string | null
           tax_id?: string | null
