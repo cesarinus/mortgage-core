@@ -249,8 +249,23 @@ export default function RecordWorkspace({ kind }: Props) {
           .select("*")
           .eq("lead_id", leadId);
         const list = opps ?? [];
-        setPrimaryOpp(list[0] ?? null);
-        setOpportunities(list.map((o: any) => ({
+        // Dedupe opportunities that represent the same deal for this lead
+        // (same normalized property address + loan amount + stage). Keep the
+        // most recently updated/created record so the Deals card on the
+        // right rail mirrors the single lead shown in the left column.
+        const norm = (s: any) => String(s ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+        const ts = (o: any) => new Date(o.updated_at ?? o.created_at ?? 0).getTime();
+        const sorted = [...list].sort((a: any, b: any) => ts(b) - ts(a));
+        const seen = new Set<string>();
+        const deduped: any[] = [];
+        for (const o of sorted) {
+          const key = `${norm(o.property_address)}|${o.loan_amount ?? ""}|${norm(o.stage)}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          deduped.push(o);
+        }
+        setPrimaryOpp(deduped[0] ?? null);
+        setOpportunities(deduped.map((o: any) => ({
           id: o.id,
           loan_type: o.property_address ? `Mortgage — ${o.property_address}` : "Mortgage deal",
           stage: o.stage,
