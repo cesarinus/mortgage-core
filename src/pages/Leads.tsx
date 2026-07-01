@@ -45,6 +45,7 @@ import {
 } from "@/lib/crm/stateMachine";
 import { ArrowRightCircle } from "lucide-react";
 import { LeadIncomeSection } from "@/components/crm/LeadIncomeSection";
+import { moveLeadToPipeline } from "@/lib/crm/moveToPipeline";
 
 type Lead = Tables<"leads">;
 type LeadSource = Tables<"lead_sources">;
