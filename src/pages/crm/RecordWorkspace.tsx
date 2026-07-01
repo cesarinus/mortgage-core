@@ -47,6 +47,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { isTransitionAllowed, getAllowedNext, normalizeStatus, recordLeadTransition } from "@/lib/crm/stateMachine";
 import { getStageSuggestions } from "@/lib/crm/stageTasks";
+import { moveLeadToPipeline } from "@/lib/crm/moveToPipeline";
+import { ArrowRightCircle } from "lucide-react";
 
 interface Props { kind: "lead" | "contact" }
 
@@ -431,6 +433,13 @@ export default function RecordWorkspace({ kind }: Props) {
                 onSent={() => window.location.reload()}
               />
               <LosSyncCard leadId={record.id} />
+              {!fromPipeline && (
+                <MoveToPipelineCard
+                  record={record}
+                  userId={user?.id}
+                  onDone={loadAll}
+                />
+              )}
             </div>
           )}
         </aside>
