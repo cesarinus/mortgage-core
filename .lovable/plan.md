@@ -1,84 +1,50 @@
-# Self-Employed Income Analysis Engine — Phased Plan
 
-The attached **All-In-One Worksheet (Tax Year 2025)** has 7 tabs — SAM (444 rows), Summary, Liquidity (223 rows), Comparative (494 rows), P&L (383 rows), Help, Support — with hundreds of formulas, lookups (`LKP_MILEAGE`, etc.), and cross-sheet references. Replicating it faithfully is a large build that must be done in phases with QA after each, not a single shot. Mock data and simplified formulas are explicitly out of scope per your brief.
+## Goal
 
-This plan splits the work into 6 phases. **Each phase ends at a working checkpoint** you can review before the next begins.
+Give users a one-click way to move a lead into the Pipeline directly from the Lead Workspace (the page opened from /crm/leads/:id), using the `property_address` already captured in the Smart Intake form. This is a temporary UI-side bridge until the Zapier CRM field mapping is completed — no existing functionality changes.
 
----
+## Problem
 
-## Phase 0 — Worksheet Spec Extraction (no app code yet)
+- The Smart Intake form on the Lead Workspace already stores `property_address` on `leads`.
+- Today, "Move to Pipeline" only exists on the **Leads list** (`src/pages/Leads.tsx` → `handleConvertToPipeline`).
+- From inside a lead's workspace, the user has no way to promote the lead to a `pipeline_opportunities` row — they must go back to the list.
+- The Zapier field-mapping route the user tried is not yet functional.
 
-Deliverable: a machine-readable "calculation spec" derived directly from the workbook, committed to the repo and used as the single source of truth by every later phase.
+## Solution (minimal, additive)
 
-- Walk every tab; export per-row: section, line number, IRS reference label, input vs computed, exact Excel formula, sign convention, add-back/deduct flag.
-- Extract named ranges and lookup tables (`LKP_MILEAGE` 2023/2024/2025 rates, etc.).
-- Produce: `docs/income-analysis/worksheet-spec.json` + a human-readable `worksheet-spec.md` mapping every Mortgage-Core field to its source cell.
-- No formulas re-typed by hand — generated from the file so they match exactly.
+Reuse the exact same conversion logic that already works on the Leads list, exposed as a button on the Lead Workspace left rail. No schema changes, no changes to Zapier, no changes to intake save flow.
 
-## Phase 1 — Data Model & Migrations
+### Changes
 
-Tables (all `public`, RLS + GRANTs, audit columns):
-- `income_analysis_cases` (per opportunity, status, tax years analyzed)
-- `income_analysis_businesses` (name, EIN, entity_type, ownership_pct, months_in_service, start_date)
-- `income_analysis_tax_years` (case, business, year)
-- `income_analysis_documents` (link to `crm_attachments`, detected form type, tax year)
-- `income_analysis_extractions` (raw IRS line values keyed by `form_code` + `line_code` — preserves recalculation)
-- `income_analysis_calculations` (computed per worksheet section, with input snapshot + formula version)
-- `income_analysis_summaries` (per-borrower qualifying income roll-up)
-- `income_analysis_audit_log`
-- Add `income_type` enum + `income_sources jsonb` array on `leads` / borrower record (multiple sources allowed).
+1. **Extract the conversion helper** (new file `src/lib/crm/moveToPipeline.ts`)
+   - Move the body of `handleConvertToPipeline` from `src/pages/Leads.tsx` into a reusable function `moveLeadToPipeline(lead, userId)` returning `{ ok, opportunityId?, error? }`.
+   - Same validation: requires `property_address` + at least one linked contact + status `qualified`.
+   - Same side effects: insert into `pipeline_opportunities`, update lead status to `unqualified`, log `lead_events`, enqueue LOS sync.
+   - `src/pages/Leads.tsx` keeps its handler but delegates to the new helper (behavior unchanged).
 
-## Phase 2 — Calculation Engine (TypeScript, pure functions)
+2. **Add "Move to Pipeline" action on Lead Workspace** (`src/pages/crm/RecordWorkspace.tsx`)
+   - Only for `kind === "lead"` and when NOT already coming from pipeline (`!fromPipeline`).
+   - Small button rendered in the left aside beneath `AriveExportCard` / `LosSyncCard`, labelled `Move to Pipeline` with the property address shown as helper text (or "Add a property address to enable" if missing).
+   - Button disabled when `record.property_address` is empty or status is not `qualified`. Tooltip explains why.
+   - Uses `record.property_address` (already populated by Smart Intake) — no extra prompt needed.
+   - On success: toast "Moved to Pipeline — Application Sent" and `loadAll()` to refresh; do NOT auto-navigate (user is inside the workspace).
 
-- `src/lib/income-analysis/engine/` — one module per template: `scheduleC`, `scheduleE`, `scheduleF`, `partnership1065`, `sCorp1120S`, `corp1120`, `interestDividends`, `capitalGains`.
-- Each module loads its formula set from the Phase 0 spec, takes an `extractions` object, returns a `calculation` object identical to the worksheet subtotals.
-- Mileage depreciation, non-recurring deductions, depletion/depreciation add-backs, meals exclusion, business-use-of-home, amortization, ownership %, months-in-service proration — all replicated literally.
-- Liquidity engine: current ratio, quick ratio, working capital, rating.
-- Comparative engine: YoY trend per metric with green/yellow/red thresholds taken from the workbook.
-- Vitest suite: feed sample IRS values, assert each subtotal matches the workbook to the cent (golden-file tests generated from the workbook itself).
+3. **No changes** to: Zapier settings, `leadIntake.ts`, `pipeline_opportunities` schema, RLS, or `handleConvertToPipeline` behavior on the list.
 
-## Phase 3 — Document Extraction (AI)
+## Guardrails
 
-- Edge function `extract-tax-document` (mirrors existing `extract-income-document` pattern, uses Lovable AI Gateway + Gemini vision).
-- Classifies: 1040, Sch C/E/F, K-1 (1065/1120-S), 1065, 1120, 1120-S, W-2, P&L, Balance Sheet.
-- Returns structured `extractions` keyed by form_code + line_code so engine can consume directly.
-- Confidence + "needs review" flag; underwriter can correct values in UI; corrections feed `income_analysis_extractions`.
+- Same status precondition (`qualified`) as the existing list flow, so users don't accidentally jump stages.
+- Same dedupe rules the workspace already applies to `pipeline_opportunities` (see `RecordWorkspace.tsx` lines ~245–265) will keep the right rail showing only the newly-created opportunity.
+- If the lead is already linked to an opportunity for the same address, we short-circuit with a toast ("This lead already has a Pipeline deal for this address") instead of creating a duplicate.
 
-## Phase 4 — Loan-Officer Workspace UI
+## Files touched
 
-New section in OpportunityWorkspace → **Financial Analysis**, tabs:
-1. Income Analyzer (per business, editable worksheet matching the workbook layout)
-2. Tax Returns (uploaded docs + detected form + extracted values)
-3. Business Analysis (per-entity drill-down)
-4. Comparative Analysis (Y1 vs Y2, colored trends)
-5. Liquidity Analysis
-6. Cash Flow Summary
-7. Underwriter Notes (auto-generated narrative, editable)
+- **New:** `src/lib/crm/moveToPipeline.ts` (~40 lines, extracted logic).
+- **Edit:** `src/pages/Leads.tsx` — replace inline body of `handleConvertToPipeline` with call to helper (no UX change).
+- **Edit:** `src/pages/crm/RecordWorkspace.tsx` — add button + handler in the left aside for lead kind.
 
-All numbers always trace back to a stored extraction and a versioned formula.
+## Out of scope
 
-## Phase 5 — Borrower Portal Upload Flow
-
-- Portal page: upload Tax Returns / W-2s / K-1s / P&L / Balance Sheet (categorized).
-- Status panel only: Documents Received → Tax Forms Identified → Income Analysis Generated → Awaiting Loan Officer Review.
-- No worksheet visibility to borrower.
-
-## Phase 6 — Underwriter Narrative + Export
-
-- Templated narrative generator (deterministic, not LLM) producing the example-style summary, editable in UI.
-- PDF export of full analysis matching workbook layout for the loan file.
-
----
-
-## Technical notes
-
-- Engine is **data-driven from the workbook spec**, not hand-coded formulas — guarantees parity and lets you drop in a new tax year by re-running the extractor.
-- All extracted IRS values stored raw + immutable; calculations are derived and versioned (formula_version column) so reruns are reproducible.
-- No changes to existing Opportunity model; this is a new related domain.
-- Estimated size: ~12–18 new files for engine, 8 new tables, 2 edge functions, ~10 UI components. Phases 0–2 are the heaviest; Phase 3+ reuse existing patterns.
-
-## Confirmation needed before Phase 0
-
-1. OK to proceed phase-by-phase with a review checkpoint after each? (vs. one mega-PR)
-2. Confirm tax years in scope: **2024 + 2025** (matches the workbook's two-year columns)?
-3. For W-2-only borrowers, should this engine just record `income_type='w2'` and defer to the existing income calculator, or also produce a summary line here?
+- Fixing the Zapier CRM field-mapping UI (tracked separately).
+- Any change to how the Smart Intake form saves `property_address`.
+- Any change to Pipeline stage rules.
