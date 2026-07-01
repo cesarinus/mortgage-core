@@ -731,3 +731,70 @@ export default function RecordWorkspace({ kind }: Props) {
     </>
   );
 }
+
+function MoveToPipelineCard({
+  record,
+  userId,
+  onDone,
+}: {
+  record: any;
+  userId: string | undefined;
+  onDone: () => void;
+}) {
+  const { toast } = useToast();
+  const [busy, setBusy] = useState(false);
+  const address = (record?.property_address ?? "").toString().trim();
+  const status = normalizeStatus(record?.status);
+  const canMove = !!address && status === "qualified";
+
+  const disabledReason = !address
+    ? "Add a property address in Smart Intake to enable."
+    : status !== "qualified"
+    ? "Lead must be Qualified before moving to Pipeline."
+    : "";
+
+  const handleMove = async () => {
+    setBusy(true);
+    const res = await moveLeadToPipeline(record, userId);
+    setBusy(false);
+    if (!res.ok) {
+      toast({
+        title:
+          res.code === "duplicate"
+            ? "Already in Pipeline"
+            : res.code === "wrong_status"
+            ? "Only qualified leads can be moved"
+            : "Cannot move to pipeline",
+        description: res.error,
+        variant: "destructive",
+      });
+      return;
+    }
+    toast({ title: "Moved to Pipeline — Application Sent" });
+    onDone();
+  };
+
+  return (
+    <div className="rounded-lg border bg-card p-3 space-y-2">
+      <div className="flex items-center gap-2 text-sm font-medium">
+        <ArrowRightCircle className="h-4 w-4 text-primary" />
+        Move to Pipeline
+      </div>
+      <p className="text-xs text-muted-foreground truncate" title={address || undefined}>
+        {address ? address : "No property address on file"}
+      </p>
+      <Button
+        size="sm"
+        className="w-full"
+        disabled={!canMove || busy}
+        onClick={handleMove}
+        title={disabledReason || "Create a pipeline deal from this lead"}
+      >
+        {busy ? "Moving…" : "Move to Pipeline"}
+      </Button>
+      {!canMove && (
+        <p className="text-[11px] text-muted-foreground">{disabledReason}</p>
+      )}
+    </div>
+  );
+}
