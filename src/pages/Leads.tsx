@@ -45,6 +45,7 @@ import {
 } from "@/lib/crm/stateMachine";
 import { ArrowRightCircle } from "lucide-react";
 import { LeadIncomeSection } from "@/components/crm/LeadIncomeSection";
+import { moveLeadToPipeline } from "@/lib/crm/moveToPipeline";
 
 type Lead = Tables<"leads">;
 type LeadSource = Tables<"lead_sources">;
@@ -269,68 +270,23 @@ export default function Leads() {
   };
 
   const handleConvertToPipeline = async (lead: Lead) => {
-    // Validate: property address + at least one linked contact.
-    if (!(lead as any).property_address) {
+    const res = await moveLeadToPipeline(lead, user?.id);
+    if (!res.ok) {
+      const title =
+        res.code === "wrong_status"
+          ? "Only qualified leads can be moved to Pipeline"
+          : res.code === "duplicate"
+          ? "Already in Pipeline"
+          : "Cannot move to pipeline";
       toast({
-        title: "Cannot move to pipeline",
-        description: "Please add a property address and link a contact before moving to Pipeline.",
+        title,
+        description:
+          res.error ??
+          "Please add a property address and link a contact before moving to Pipeline.",
         variant: "destructive",
       });
       return;
     }
-    const { data: linkedContacts } = await supabase
-      .from("lead_contacts")
-      .select("contact_id, is_primary")
-      .eq("lead_id", lead.id);
-    if (!linkedContacts || linkedContacts.length === 0) {
-      toast({
-        title: "Cannot move to pipeline",
-        description: "Please add a property address and link a contact before moving to Pipeline.",
-        variant: "destructive",
-      });
-      return;
-    }
-    const from = normalizeStatus(lead.status);
-    if (from !== "qualified") {
-      toast({ title: "Only qualified leads can be moved to Pipeline", variant: "destructive" });
-      return;
-    }
-    const primary =
-      linkedContacts.find((c: any) => c.is_primary)?.contact_id ?? linkedContacts[0].contact_id;
-
-    // 1) Create the opportunity
-    const { data: opp, error: oppErr } = await supabase
-      .from("pipeline_opportunities")
-      .insert({
-        lead_id: lead.id,
-        stage: "application_sent",
-        loan_amount: (lead as any).loan_amount ?? lead.property_value ?? null,
-        property_address: (lead as any).property_address ?? null,
-        primary_contact_id: primary,
-        created_by: user?.id,
-      })
-      .select("id")
-      .single();
-    if (oppErr) {
-      toast({ title: "Move failed", description: oppErr.message, variant: "destructive" });
-      return;
-    }
-
-    // 2) Move the lead to Unqualified so it leaves the active list
-    await supabase.from("leads").update({ status: "unqualified" as any }).eq("id", lead.id);
-    await recordLeadTransition(lead.id, from, "unqualified");
-    await supabase.from("lead_events").insert({
-      lead_id: lead.id,
-      event_type: "moved_to_pipeline",
-      points: 0,
-      metadata: { opportunity_id: opp?.id, stage: "application_sent" } as any,
-    });
-
-    // 3) Stage ARIVE / LOS sync
-    if (opp?.id) {
-      try { await enqueueLosSync(opp.id); } catch (e) { console.warn("LOS enqueue failed", e); }
-    }
-
     toast({ title: "Moved to Pipeline — Application Sent" });
     setSelectedLead(null);
     navigate("/pipeline/kanban");
