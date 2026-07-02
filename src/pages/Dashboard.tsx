@@ -23,7 +23,7 @@ type Stage = "application_sent" | "underwriting" | "approved" | "clear_to_close"
 const FUNNEL_DEF: { key: string; label: string; matcher: (l: any, p: any) => boolean }[] = [
   { key: "lead",          label: "Lead",            matcher: (l) => ["new_lead", "contacted"].includes(l.status) },
   { key: "application",   label: "Application",     matcher: (_, p) => p?.stage === "application_sent" },
-  { key: "processing",    label: "Processing",      matcher: (l) => l.status === "Qualified" },
+  { key: "processing",    label: "Processing",      matcher: (l) => (l.status ?? "").toString().toLowerCase() === "qualified" },
   { key: "underwriting",  label: "Underwriting",    matcher: (_, p) => p?.stage === "underwriting" },
   { key: "ctc",           label: "Clear to Close",  matcher: (_, p) => p?.stage === "clear_to_close" || p?.stage === "approved" },
   { key: "funded",        label: "Funded",          matcher: (_, p) => p?.stage === "closed" },
