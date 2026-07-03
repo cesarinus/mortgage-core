@@ -38,8 +38,6 @@ import {
   enqueueLosSync,
 } from "@/lib/crm/stages";
 import {
-  getAllowedNext,
-  isTransitionAllowedSync,
   normalizeStatus,
   recordLeadTransition,
 } from "@/lib/crm/stateMachine";
@@ -242,15 +240,6 @@ export default function Leads() {
     const currentLead = leads.find((l) => l.id === leadId);
     const from = normalizeStatus(currentLead?.status ?? null);
     const next = normalizeStatus(newStatus);
-    if (from !== next && !isTransitionAllowedSync("lead", from, next)) {
-      const allowed = getAllowedNext("lead", from).map((s) => stageLabels[s] ?? s).join(", ");
-      toast({
-        title: "Invalid stage change",
-        description: `Cannot move from ${stageLabels[from] ?? from} to ${stageLabels[next] ?? next}. Next allowed: ${allowed || "none"}.`,
-        variant: "destructive",
-      });
-      return;
-    }
     const { error } = await supabase.from("leads").update({ status: next as any }).eq("id", leadId);
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
