@@ -18,8 +18,18 @@ export async function moveLeadToPipeline(
   lead: any,
   userId: string | undefined,
 ): Promise<MoveToPipelineResult> {
+  let currentLead = lead;
+  if (lead?.id) {
+    const { data: freshLead } = await supabase
+      .from("leads")
+      .select("*")
+      .eq("id", lead.id)
+      .maybeSingle();
+    if (freshLead) currentLead = { ...lead, ...freshLead };
+  }
+
   const propertyAddress: string | null =
-    (lead?.property_address ?? "").toString().trim() || null;
+    (currentLead?.property_address ?? "").toString().trim() || null;
 
   if (!propertyAddress) {
     return { ok: false, code: "no_address", error: "Property address is required." };
@@ -28,13 +38,13 @@ export async function moveLeadToPipeline(
   const { data: linkedContacts } = await supabase
     .from("lead_contacts")
     .select("contact_id, is_primary")
-    .eq("lead_id", lead.id);
+    .eq("lead_id", currentLead.id);
 
   if (!linkedContacts || linkedContacts.length === 0) {
     return { ok: false, code: "no_contact", error: "Link at least one contact first." };
   }
 
-  const from = normalizeStatus(lead.status);
+  const from = normalizeStatus(currentLead.status);
   if (from !== "qualified") {
     return {
       ok: false,
@@ -49,7 +59,7 @@ export async function moveLeadToPipeline(
   const { data: existing } = await supabase
     .from("pipeline_opportunities")
     .select("id, property_address")
-    .eq("lead_id", lead.id);
+    .eq("lead_id", currentLead.id);
   if (existing?.some((o: any) => norm(o.property_address) === norm(propertyAddress))) {
     return {
       ok: false,
@@ -66,7 +76,7 @@ export async function moveLeadToPipeline(
     .insert({
       lead_id: lead.id,
       stage: "application_sent",
-      loan_amount: lead.loan_amount ?? lead.property_value ?? null,
+      loan_amount: currentLead.loan_amount ?? currentLead.property_value ?? null,
       property_address: propertyAddress,
       primary_contact_id: primary,
       created_by: userId,
@@ -78,10 +88,10 @@ export async function moveLeadToPipeline(
     return { ok: false, code: "db_error", error: oppErr.message };
   }
 
-  await supabase.from("leads").update({ status: "unqualified" as any }).eq("id", lead.id);
-  await recordLeadTransition(lead.id, from, "unqualified");
+  await supabase.from("leads").update({ status: "unqualified" as any }).eq("id", currentLead.id);
+  await recordLeadTransition(currentLead.id, from, "unqualified");
   await supabase.from("lead_events").insert({
-    lead_id: lead.id,
+    lead_id: currentLead.id,
     event_type: "moved_to_pipeline",
     points: 0,
     metadata: { opportunity_id: opp?.id, stage: "application_sent" } as any,
