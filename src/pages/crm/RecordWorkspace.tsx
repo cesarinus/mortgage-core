@@ -731,7 +731,6 @@ function MoveToPipelineCard({
   const [busy, setBusy] = useState(false);
   const address = (record?.property_address ?? "").toString().trim();
   const status = normalizeStatus(record?.status);
-  const canMove = !!address && status === "qualified";
 
   const disabledReason = !address
     ? "Add a property address in Smart Intake to enable."
@@ -772,13 +771,13 @@ function MoveToPipelineCard({
       <Button
         size="sm"
         className="w-full"
-        disabled={!canMove || busy}
+        disabled={busy}
         onClick={handleMove}
         title={disabledReason || "Create a pipeline deal from this lead"}
       >
         {busy ? "Moving…" : "Move to Pipeline"}
       </Button>
-      {!canMove && (
+      {!!disabledReason && (
         <p className="text-[11px] text-muted-foreground">{disabledReason}</p>
       )}
     </div>
