@@ -392,7 +392,7 @@ export default function Leads() {
     if (smartView === "inactive") result = result.filter(l => l.updated_at < fourteenDaysAgo);
 
     // Status filter
-    if (statusFilter !== "all") result = result.filter(l => l.status === statusFilter);
+    if (statusFilter !== "all") result = result.filter(l => normalizeStatus(l.status) === statusFilter);
 
     // Source filter
     if (sourceFilter !== "all") result = result.filter(l => l.source === sourceFilter);
@@ -569,8 +569,8 @@ export default function Leads() {
                       </div>
                       <p className="text-xs text-muted-foreground truncate">{l.email ?? "—"}</p>
                       <div className="mt-1.5 flex items-center gap-2 flex-wrap">
-                        <Badge variant="secondary" className={`text-[10px] ${statusColors[l.status] ?? ""}`}>
-                          {stageLabels[l.status] ?? l.status}
+                        <Badge variant="secondary" className={`text-[10px] ${statusColors[normalizeStatus(l.status)] ?? ""}`}>
+                          {stageLabels[normalizeStatus(l.status)] ?? l.status}
                         </Badge>
                         <HeatBadge score={l.lead_score} />
                         <span className="text-[10px] text-muted-foreground"><LastActivity lead={l} /></span>
@@ -630,8 +630,8 @@ export default function Leads() {
                       <ScoreBadge score={l.lead_score} />
                     </TableCell>
                     <TableCell>
-                      <Badge variant="secondary" className={`text-xs ${statusColors[l.status] ?? ""}`}>
-                        {stageLabels[l.status] ?? l.status}
+                      <Badge variant="secondary" className={`text-xs ${statusColors[normalizeStatus(l.status)] ?? ""}`}>
+                        {stageLabels[normalizeStatus(l.status)] ?? l.status}
                       </Badge>
                     </TableCell>
                     <TableCell className="hidden lg:table-cell">
@@ -691,7 +691,7 @@ export default function Leads() {
             /* Kanban View */
             <div className="flex gap-3 p-4 overflow-x-auto h-full">
               {LEAD_STATUSES.map(status => {
-                const statusLeads = filtered.filter(l => l.status === status);
+                const statusLeads = filtered.filter(l => normalizeStatus(l.status) === status);
                 return (
                   <div key={status} className="flex-shrink-0 w-64">
                     <div className="flex items-center justify-between mb-2 px-1">
@@ -838,22 +838,18 @@ export default function Leads() {
                   <div>
                     <p className="text-xs text-muted-foreground mb-1.5">Status</p>
                     <Select
-                      value={selectedLead.status}
+                      value={normalizeStatus(selectedLead.status)}
                       onValueChange={(v) => handleStatusChange(selectedLead.id, v as Enums<"lead_status">)}
                     >
                       <SelectTrigger className="h-8">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {(() => {
-                          const current = normalizeStatus(selectedLead.status);
-                          const allowed = new Set([current, ...getAllowedNext("lead", current)]);
-                          return statuses.map(s => (
-                            <SelectItem key={s} value={s} disabled={!allowed.has(s)} className="capitalize">
-                              {stageLabels[s] ?? s}
-                            </SelectItem>
-                          ));
-                        })()}
+                        {statuses.map(s => (
+                          <SelectItem key={s} value={s} className="capitalize">
+                            {stageLabels[s] ?? s}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     {normalizeStatus(selectedLead.status) === "qualified" && (

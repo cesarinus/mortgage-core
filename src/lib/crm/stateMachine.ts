@@ -17,10 +17,13 @@ export type EntityType = "lead" | "deal";
  */
 export const ALLOWED_TRANSITIONS: Record<EntityType, Record<string, string[]>> = {
   lead: {
-    new_lead: ["contacted", "unqualified"],
-    contacted: ["qualified", "unqualified"],
-    qualified: ["unqualified"],
-    unqualified: ["new_lead"],
+    // Lead statuses are operator-controlled funnel labels. Pipeline movement is
+    // the guarded conversion step; the status dropdown itself must not lock a
+    // lead into a dead-end state during data cleanup or borrower recovery.
+    new_lead: ["contacted", "qualified", "unqualified"],
+    contacted: ["new_lead", "qualified", "unqualified"],
+    qualified: ["new_lead", "contacted", "unqualified"],
+    unqualified: ["new_lead", "contacted", "qualified"],
   },
   deal: {
     application_sent: ["underwriting", "lost"],
@@ -41,6 +44,7 @@ export function normalizeStatus(s: string | null | undefined, bootstrap = "new_l
     pre_qualified: "qualified",
     prequalified: "qualified",
     converted: "unqualified",
+    lost: "unqualified",
     application_started: "application_sent",
   };
   return ALIAS[v] ?? v;

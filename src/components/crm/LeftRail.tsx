@@ -9,7 +9,7 @@ import {
   StickyNote, Mail, Phone, ListChecks, CalendarDays, Upload, ArrowLeft, Pencil,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
-import { getAllowedNext, normalizeStatus } from "@/lib/crm/stateMachine";
+import { normalizeStatus } from "@/lib/crm/stateMachine";
 import { LEAD_STATUSES, LEAD_STATUS_LABELS, PIPELINE_STAGES, PIPELINE_STAGE_LABELS } from "@/lib/crm/stages";
 import { formatPhone } from "@/lib/format";
 import { formatOptionLabel } from "@/lib/format/labels";
@@ -77,29 +77,18 @@ export function LeftRail({ record, kind, tags = [], onAction, onStatusChange, on
         {kind === "lead" && onStatusChange && !pipelineMode && (
           <div>
             <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">Status</div>
-            {(() => {
-              const current = normalizeStatus(record?.status, "new_lead");
-              const allowed = new Set([current, ...getAllowedNext("lead", current)]);
-              return (
-                <Select value={current} onValueChange={onStatusChange}>
+            <Select value={normalizeStatus(record?.status, "new_lead")} onValueChange={onStatusChange}>
               <SelectTrigger className="h-8 capitalize">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                    {LEAD_STATUSES.map((s) => (
-                      <SelectItem
-                        key={s}
-                        value={s}
-                        disabled={!allowed.has(s)}
-                        className="capitalize"
-                      >
-                        {LEAD_STATUS_LABELS[s] ?? s.replace(/_/g, " ")}
-                      </SelectItem>
-                    ))}
+                {LEAD_STATUSES.map((s) => (
+                  <SelectItem key={s} value={s} className="capitalize">
+                    {LEAD_STATUS_LABELS[s] ?? s.replace(/_/g, " ")}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
-              );
-            })()}
           </div>
         )}
 
