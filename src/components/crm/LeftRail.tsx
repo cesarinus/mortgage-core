@@ -77,18 +77,17 @@ export function LeftRail({ record, kind, tags = [], onAction, onStatusChange, on
         {kind === "lead" && onStatusChange && !pipelineMode && (
           <div>
             <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">Status</div>
-            <Select value={normalizeStatus(record?.status, "new_lead")} onValueChange={onStatusChange}>
-              <SelectTrigger className="h-8 capitalize">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {LEAD_STATUSES.map((s) => (
-                  <SelectItem key={s} value={s} className="capitalize">
-                    {LEAD_STATUS_LABELS[s] ?? s.replace(/_/g, " ")}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <select
+              value={normalizeStatus(record?.status, "new_lead")}
+              onChange={(event) => onStatusChange(event.target.value)}
+              className="flex h-8 w-full rounded-md border border-input bg-background px-3 py-1 text-sm capitalize ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+            >
+              {LEAD_STATUSES.map((s) => (
+                <option key={s} value={s}>
+                  {LEAD_STATUS_LABELS[s] ?? s.replace(/_/g, " ")}
+                </option>
+              ))}
+            </select>
           </div>
         )}
 
