@@ -826,21 +826,17 @@ export default function Leads() {
                   {/* Status Selector */}
                   <div>
                     <p className="text-xs text-muted-foreground mb-1.5">Status</p>
-                    <Select
+                    <select
                       value={normalizeStatus(selectedLead.status)}
-                      onValueChange={(v) => handleStatusChange(selectedLead.id, v as Enums<"lead_status">)}
+                      onChange={(event) => handleStatusChange(selectedLead.id, event.target.value as Enums<"lead_status">)}
+                      className="flex h-8 w-full rounded-md border border-input bg-background px-3 py-1 text-sm capitalize ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                     >
-                      <SelectTrigger className="h-8">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {statuses.map(s => (
-                          <SelectItem key={s} value={s} className="capitalize">
-                            {stageLabels[s] ?? s}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      {statuses.map(s => (
+                        <option key={s} value={s}>
+                          {stageLabels[s] ?? s}
+                        </option>
+                      ))}
+                    </select>
                     {normalizeStatus(selectedLead.status) === "qualified" && (
                       (() => {
                         const hasAddr = !!(selectedLead as any).property_address;
