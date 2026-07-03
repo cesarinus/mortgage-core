@@ -846,7 +846,6 @@ export default function Leads() {
                           <div className="mt-2 space-y-2">
                             <Button
                               size="sm"
-                              disabled={!ready}
                               title={ready ? "" : "Add property address and link a contact first"}
                               className="w-full bg-emerald-600 hover:bg-emerald-600/90 text-white border-2 border-emerald-700/40 shadow-sm gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
                               onClick={() => handleConvertToPipeline(selectedLead)}
@@ -1033,7 +1032,17 @@ export default function Leads() {
             leadId={editLead.lead.id}
             initial={editLead.initial}
             sources={sources}
-            onSaved={() => { setEditLead(null); load(); }}
+            onSaved={(_leadId, result) => {
+              if (result?.leadPatch) {
+                setSelectedLead((prev) =>
+                  prev?.id === editLead.lead.id
+                    ? { ...prev, ...result.leadPatch, lead_score: result.score }
+                    : prev,
+                );
+              }
+              setEditLead(null);
+              load();
+            }}
             onCancel={() => setEditLead(null)}
           />
         )}
