@@ -83,10 +83,9 @@ export default function RecordWorkspace({ kind }: Props) {
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const [chatOpen, setChatOpen] = useState(true);
-  // Pipeline mode is sticky: detected from router state OR from the existence
-  // of a pipeline_opportunity for this lead, so refreshes / re-renders after
-  // edits don't lose the pipeline context (back link + stage dropdown).
-  const fromPipeline = fromPipelineState || !!primaryOpp;
+  // Pipeline mode only applies when the workspace is explicitly opened from Pipeline.
+  // A linked opportunity must not replace or lock the manual Lead status workflow.
+  const fromPipeline = fromPipelineState;
   useEffect(() => {
     // Default-open on desktop when viewing a lead; mobile stays closed (bottom sheet).
     setChatOpen(kind === "lead" && !isMobile);
@@ -733,9 +732,9 @@ function MoveToPipelineCard({
   const status = normalizeStatus(record?.status);
 
   const disabledReason = !address
-    ? "Add a property address in Smart Intake to enable."
+    ? "Add a property address in Smart Intake before moving."
     : status !== "qualified"
-    ? "Lead must be Qualified before moving to Pipeline."
+    ? "Set Lead status to Qualified before moving."
     : "";
 
   const handleMove = async () => {
