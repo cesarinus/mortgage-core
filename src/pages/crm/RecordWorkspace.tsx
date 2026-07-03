@@ -45,7 +45,7 @@ import {
 } from "@/lib/crm/queries";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
-import { isTransitionAllowed, getAllowedNext, normalizeStatus, recordLeadTransition } from "@/lib/crm/stateMachine";
+import { normalizeStatus, recordLeadTransition } from "@/lib/crm/stateMachine";
 import { getStageSuggestions } from "@/lib/crm/stageTasks";
 import { moveLeadToPipeline } from "@/lib/crm/moveToPipeline";
 import { ArrowRightCircle } from "lucide-react";
@@ -367,20 +367,6 @@ export default function RecordWorkspace({ kind }: Props) {
     const prev = normalizeStatus(record?.status, "new");
     const next = normalizeStatus(newStatus);
     if (prev === next) return;
-    // Strict state machine: validate transition before writing
-    const ok = await isTransitionAllowed("lead", prev, next);
-    if (!ok) {
-      const allowed = getAllowedNext("lead", prev);
-      const fmt = (s: string) => s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
-      toast({
-        title: "Invalid status change",
-        description: allowed.length
-          ? `Cannot move from ${fmt(prev)} to ${fmt(next)}. Next allowed: ${allowed.map(fmt).join(", ")}.`
-          : `${fmt(prev)} is a terminal status — no further transitions allowed.`,
-        variant: "destructive",
-      });
-      return;
-    }
     setRecord((r: any) => ({ ...r, status: next }));
     const { error } = await supabase.from("leads").update({ status: next as any }).eq("id", id);
     if (error) {
