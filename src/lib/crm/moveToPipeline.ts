@@ -6,7 +6,7 @@ export interface MoveToPipelineResult {
   ok: boolean;
   opportunityId?: string;
   error?: string;
-  code?: "no_address" | "no_contact" | "wrong_status" | "duplicate" | "db_error";
+  code?: "no_address" | "wrong_status" | "duplicate" | "db_error";
 }
 
 /**
@@ -40,10 +40,6 @@ export async function moveLeadToPipeline(
     .select("contact_id, is_primary")
     .eq("lead_id", currentLead.id);
 
-  if (!linkedContacts || linkedContacts.length === 0) {
-    return { ok: false, code: "no_contact", error: "Link at least one contact first." };
-  }
-
   const from = normalizeStatus(currentLead.status);
   if (from !== "qualified") {
     return {
@@ -69,7 +65,9 @@ export async function moveLeadToPipeline(
   }
 
   const primary =
-    linkedContacts.find((c: any) => c.is_primary)?.contact_id ?? linkedContacts[0].contact_id;
+    linkedContacts?.find((c: any) => c.is_primary)?.contact_id ??
+    linkedContacts?.[0]?.contact_id ??
+    null;
 
   const { data: opp, error: oppErr } = await supabase
     .from("pipeline_opportunities")
