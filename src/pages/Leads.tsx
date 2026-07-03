@@ -826,21 +826,17 @@ export default function Leads() {
                   {/* Status Selector */}
                   <div>
                     <p className="text-xs text-muted-foreground mb-1.5">Status</p>
-                    <Select
+                    <select
                       value={normalizeStatus(selectedLead.status)}
-                      onValueChange={(v) => handleStatusChange(selectedLead.id, v as Enums<"lead_status">)}
+                      onChange={(event) => handleStatusChange(selectedLead.id, event.target.value as Enums<"lead_status">)}
+                      className="flex h-8 w-full rounded-md border border-input bg-background px-3 py-1 text-sm capitalize ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                     >
-                      <SelectTrigger className="h-8">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {statuses.map(s => (
-                          <SelectItem key={s} value={s} className="capitalize">
-                            {stageLabels[s] ?? s}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                      {statuses.map(s => (
+                        <option key={s} value={s}>
+                          {stageLabels[s] ?? s}
+                        </option>
+                      ))}
+                    </select>
                     {normalizeStatus(selectedLead.status) === "qualified" && (
                       (() => {
                         const hasAddr = !!(selectedLead as any).property_address;
@@ -850,7 +846,6 @@ export default function Leads() {
                           <div className="mt-2 space-y-2">
                             <Button
                               size="sm"
-                              disabled={!ready}
                               title={ready ? "" : "Add property address and link a contact first"}
                               className="w-full bg-emerald-600 hover:bg-emerald-600/90 text-white border-2 border-emerald-700/40 shadow-sm gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
                               onClick={() => handleConvertToPipeline(selectedLead)}
@@ -1037,7 +1032,17 @@ export default function Leads() {
             leadId={editLead.lead.id}
             initial={editLead.initial}
             sources={sources}
-            onSaved={() => { setEditLead(null); load(); }}
+            onSaved={(_leadId, result) => {
+              if (result?.leadPatch) {
+                setSelectedLead((prev) =>
+                  prev?.id === editLead.lead.id
+                    ? { ...prev, ...result.leadPatch, lead_score: result.score }
+                    : prev,
+                );
+              }
+              setEditLead(null);
+              load();
+            }}
             onCancel={() => setEditLead(null)}
           />
         )}
