@@ -8,7 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
@@ -35,7 +34,6 @@ import {
   LEAD_STATUSES,
   LEAD_STATUS_LABELS,
   LEAD_STATUS_BADGE,
-  enqueueLosSync,
 } from "@/lib/crm/stages";
 import {
   normalizeStatus,
@@ -141,7 +139,6 @@ export default function Leads() {
   const [tags, setTags] = useState<LeadTag[]>([]);
   const [opportunityLeadIds, setOpportunityLeadIds] = useState<Set<string>>(new Set());
   const [pipelineBorrowerEmails, setPipelineBorrowerEmails] = useState<Set<string>>(new Set());
-  const [selectedLeadContactCount, setSelectedLeadContactCount] = useState<number>(0);
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
@@ -222,18 +219,6 @@ export default function Leads() {
     else setEvents([]);
   }, [selectedLead?.id]);
 
-  useEffect(() => {
-    if (!selectedLead) { setSelectedLeadContactCount(0); return; }
-    (async () => {
-      const { data: links } = await supabase
-        .from("lead_contacts")
-        .select("id, contact:contacts(id)")
-        .eq("lead_id", selectedLead.id);
-      const live = (links ?? []).filter((l: any) => !!l.contact).length;
-      setSelectedLeadContactCount(live);
-    })();
-  }, [selectedLead?.id]);
-
   // Lead creation handled by <SmartLeadForm /> inside the dialog below.
 
   const handleStatusChange = async (leadId: string, newStatus: Enums<"lead_status">) => {
@@ -271,7 +256,7 @@ export default function Leads() {
         title,
         description:
           res.error ??
-          "Please add a property address and link a contact before moving to Pipeline.",
+          "Please add a property address before moving to Pipeline.",
         variant: "destructive",
       });
       return;
@@ -840,13 +825,12 @@ export default function Leads() {
                     {normalizeStatus(selectedLead.status) === "qualified" && (
                       (() => {
                         const hasAddr = !!(selectedLead as any).property_address;
-                        const hasContact = selectedLeadContactCount > 0;
-                        const ready = hasAddr && hasContact;
+                        const ready = hasAddr;
                         return (
                           <div className="mt-2 space-y-2">
                             <Button
                               size="sm"
-                              title={ready ? "" : "Add property address and link a contact first"}
+                              title={ready ? "" : "Add property address first"}
                               className="w-full bg-emerald-600 hover:bg-emerald-600/90 text-white border-2 border-emerald-700/40 shadow-sm gap-1.5 disabled:opacity-60 disabled:cursor-not-allowed"
                               onClick={() => handleConvertToPipeline(selectedLead)}
                             >
@@ -861,14 +845,6 @@ export default function Leads() {
                                   </span>
                                   <span className={hasAddr ? "text-muted-foreground" : ""}>
                                     Property address {hasAddr ? "set" : "— click Edit to add it"}
-                                  </span>
-                                </li>
-                                <li className="flex items-center gap-1.5">
-                                  <span className={hasContact ? "text-emerald-600" : "text-destructive"}>
-                                    {hasContact ? "✓" : "•"}
-                                  </span>
-                                  <span className={hasContact ? "text-muted-foreground" : ""}>
-                                    Linked contact {hasContact ? "present" : "— Open full workspace → Relationships"}
                                   </span>
                                 </li>
                               </ul>
