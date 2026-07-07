@@ -129,8 +129,8 @@ Deno.serve(async (req) => {
     );
 
     if (!isServiceCall) {
-      const { data: claims, error } = await supabase.auth.getClaims(token);
-      if (error || !claims?.claims) {
+      const { data: userData, error } = await supabase.auth.getUser(token);
+      if (error || !userData?.user) {
         return new Response(JSON.stringify({ error: "Unauthorized" }), {
           status: 401,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
