@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import Navbar from "@/components/landing/Navbar";
 import HeroSection from "@/components/landing/HeroSection";
@@ -16,11 +17,21 @@ const LandingPage = () => {
   const [hubOpen, setHubOpen] = useState(false);
   const [prefillPurpose, setPrefillPurpose] = useState<string | undefined>();
   const [calcOpen, setCalcOpen] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const openHub = (purpose?: string) => {
     setPrefillPurpose(purpose);
     setHubOpen(true);
   };
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get("start") === "1") {
+      setHubOpen(true);
+      navigate("/", { replace: true });
+    }
+  }, [location.search, navigate]);
 
   return (
     <div className="min-h-screen">

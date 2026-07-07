@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { EmailContactSheet } from "@/components/landing/EmailContactSheet";
 import { SocialIcons } from "@/components/SocialIcons";
 
@@ -13,6 +13,7 @@ const Navbar = ({ onGetStarted }: NavbarProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   const isLanding = location.pathname === "/" || location.pathname === "";
 
   const scrollTo = (id: string) => {
@@ -25,6 +26,8 @@ const Navbar = ({ onGetStarted }: NavbarProps) => {
     setIsOpen(false);
     if (onGetStarted) {
       onGetStarted();
+    } else {
+      navigate("/?start=1");
     }
   };
 
