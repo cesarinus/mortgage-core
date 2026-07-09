@@ -23,15 +23,23 @@ async function publishFacebook(post: any): Promise<{ success: boolean; id?: stri
   }
   try {
     const fullText = `${post.post_text}\n\n${(post.hashtags || []).map((h: string) => h.startsWith("#") ? h : "#" + h).join(" ")}`;
-    const params = new URLSearchParams({ message: fullText, access_token: token });
-    if (post.image_url) params.append("link", post.image_url);
-    const resp = await fetch(`https://graph.facebook.com/v20.0/${pageId}/feed`, {
-      method: "POST",
-      body: params,
-    });
+    // If we have an image, post to /photos (image + caption). Otherwise post text to /feed.
+    // Passing an image URL as `link` on /feed is invalid and returns "Invalid parameter".
+    let endpoint: string;
+    const params = new URLSearchParams({ access_token: token });
+    if (post.image_url) {
+      endpoint = `https://graph.facebook.com/v20.0/${pageId}/photos`;
+      params.append("url", post.image_url);
+      params.append("caption", fullText);
+    } else {
+      endpoint = `https://graph.facebook.com/v20.0/${pageId}/feed`;
+      params.append("message", fullText);
+      if (post.cta_link) params.append("link", post.cta_link);
+    }
+    const resp = await fetch(endpoint, { method: "POST", body: params });
     const data = await resp.json();
     if (!resp.ok) return { success: false, error: data?.error?.message || `HTTP ${resp.status}` };
-    return { success: true, id: data.id };
+    return { success: true, id: data.post_id || data.id };
   } catch (e) {
     return { success: false, error: e instanceof Error ? e.message : "Unknown error" };
   }
