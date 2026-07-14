@@ -19,7 +19,8 @@ export function PostEditor({ post, onSaved }: Props) {
   const [hashtags, setHashtags] = useState((post.hashtags || []).join(" "));
   const [imageUrl, setImageUrl] = useState(post.image_url || "");
   const [imagePrompt, setImagePrompt] = useState(post.image_placeholder || "");
-  const [ctaLink, setCtaLink] = useState(post.cta_link || "");
+  const defaultCta = `${window.location.origin}/?start=1`;
+  const [ctaLink, setCtaLink] = useState(post.cta_link || defaultCta);
   const [platform, setPlatform] = useState(post.platform);
   const [scheduledDate, setScheduledDate] = useState(post.scheduled_date);
   const [scheduledTime, setScheduledTime] = useState((post.scheduled_time || "10:00:00").slice(0, 5));
@@ -30,7 +31,7 @@ export function PostEditor({ post, onSaved }: Props) {
     setHashtags((post.hashtags || []).join(" "));
     setImageUrl(post.image_url || "");
     setImagePrompt(post.image_placeholder || "");
-    setCtaLink(post.cta_link || "");
+    setCtaLink(post.cta_link || defaultCta);
     setPlatform(post.platform);
     setScheduledDate(post.scheduled_date);
     setScheduledTime((post.scheduled_time || "10:00:00").slice(0, 5));
@@ -46,7 +47,7 @@ export function PostEditor({ post, onSaved }: Props) {
           hashtags: hashtags.split(/\s+/).filter(Boolean).map(h => h.startsWith("#") ? h : "#" + h),
           image_url: imageUrl || null,
           image_placeholder: imagePrompt || null,
-          cta_link: ctaLink || null,
+          cta_link: ctaLink || defaultCta,
           platform: platform as any,
           scheduled_date: scheduledDate,
           scheduled_time: scheduledTime + ":00",
@@ -123,6 +124,7 @@ export function PostEditor({ post, onSaved }: Props) {
             <div className="space-y-2">
               <Label>CTA Link</Label>
               <Input value={ctaLink} onChange={(e) => setCtaLink(e.target.value)} />
+              <p className="text-xs text-muted-foreground">Defaults to Get Started (auto-opens the application hub on the site).</p>
             </div>
             <div className="grid gap-4 sm:grid-cols-3">
               <div className="space-y-2">

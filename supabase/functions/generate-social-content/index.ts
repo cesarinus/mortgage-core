@@ -74,6 +74,7 @@ Deno.serve(async (req) => {
     const brand = settings?.brand_voice ||
       "professional, warm, expert mortgage lender voice";
     const website = settings?.website_url || "https://ngcapital.net";
+    const ctaUrl = `${website.replace(/\/$/, "")}/?start=1`;
     const promptBase = POST_TYPE_PROMPTS[post_type] || "Write a social media post for a SWFL mortgage lender.";
 
     const sysPrompt =
@@ -81,7 +82,8 @@ Deno.serve(async (req) => {
       `Voice: ${brand}. Always include 3-6 relevant hashtags (mix local SWFL + mortgage). ` +
       `Return STRICT JSON: {"post_text": string, "hashtags": string[], "image_placeholder": string, "cta_link": string}. ` +
       `image_placeholder is a short visual description for an image (under 120 chars). ` +
-      `cta_link defaults to "${website}/book" if not specified. Keep post_text under 280 chars for cross-platform safety.`;
+      `Always end post_text with a "Get Started" call to action pointing to ${ctaUrl}. ` +
+      `cta_link must be exactly "${ctaUrl}". Keep post_text under 300 chars for cross-platform safety.`;
 
     const userPrompt = custom_prompt || promptBase;
 
@@ -112,16 +114,21 @@ Deno.serve(async (req) => {
     try {
       parsed = JSON.parse(content);
     } catch {
-      parsed = { post_text: content, hashtags: [], image_placeholder: "", cta_link: `${website}/book` };
+      parsed = { post_text: content, hashtags: [], image_placeholder: "", cta_link: ctaUrl };
+    }
+
+    let finalText = (parsed.post_text || "").trim();
+    if (!/\/\?start=1/.test(finalText)) {
+      finalText = `${finalText}\n\n👉 Get Started: ${ctaUrl}`.trim();
     }
 
     const insertData = {
       post_type,
       platform,
-      post_text: parsed.post_text || "",
+      post_text: finalText,
       hashtags: parsed.hashtags || [],
       image_placeholder: parsed.image_placeholder || null,
-      cta_link: parsed.cta_link || `${website}/book`,
+      cta_link: ctaUrl,
       scheduled_date,
       scheduled_time: scheduled_time || "10:00:00",
       status: "draft",
