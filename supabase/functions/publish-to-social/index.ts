@@ -155,6 +155,7 @@ async function publishInstagram(post: any): Promise<PublishResult> {
       return { success: false, error: formatMetaError(createData, "Instagram did not return a media container ID") };
     }
 
+    let mediaReady = false;
     for (let attempt = 0; attempt < 5; attempt++) {
       const statusResp = await fetch(
         `https://graph.facebook.com/v20.0/${createData.id}?fields=status_code,status&access_token=${encodeURIComponent(token)}`,
@@ -163,11 +164,17 @@ async function publishInstagram(post: any): Promise<PublishResult> {
       if (!statusResp.ok || statusData?.error) {
         return { success: false, error: formatMetaError(statusData, `HTTP ${statusResp.status}`) };
       }
-      if (statusData.status_code === "FINISHED") break;
+      if (statusData.status_code === "FINISHED") {
+        mediaReady = true;
+        break;
+      }
       if (statusData.status_code === "ERROR" || statusData.status_code === "EXPIRED") {
         return { success: false, error: `Instagram media container failed: ${statusData.status || statusData.status_code}` };
       }
       await new Promise((resolve) => setTimeout(resolve, 1500));
+    }
+    if (!mediaReady) {
+      return { success: false, error: "Instagram media container is still processing. Retry publishing in a few seconds." };
     }
 
     const publish = await fetch(`https://graph.facebook.com/v20.0/${igId}/media_publish`, {
