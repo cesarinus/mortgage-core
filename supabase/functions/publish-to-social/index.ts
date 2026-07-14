@@ -53,7 +53,12 @@ function fullPostText(post: any): string {
   const tags = (post.hashtags || [])
     .map((h: string) => (h.startsWith("#") ? h : "#" + h))
     .join(" ");
-  return [post.post_text, tags].filter(Boolean).join("\n\n");
+  let body = (post.post_text || "").trim();
+  const cta = post.cta_link;
+  if (cta && !body.includes(cta)) {
+    body = `${body}\n\n👉 Get Started: ${cta}`.trim();
+  }
+  return [body, tags].filter(Boolean).join("\n\n");
 }
 
 function getMetaAccessToken(): string | undefined {
