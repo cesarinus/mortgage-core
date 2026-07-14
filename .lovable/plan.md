@@ -1,50 +1,36 @@
-
 ## Goal
+Every social media post (new + existing) includes a "Get Started" CTA linking to the main site's ApplicationHub trigger — both appended to the post text and stored in `cta_link`.
 
-Give users a one-click way to move a lead into the Pipeline directly from the Lead Workspace (the page opened from /crm/leads/:id), using the `property_address` already captured in the Smart Intake form. This is a temporary UI-side bridge until the Zapier CRM field mapping is completed — no existing functionality changes.
+## Landing URL
+Reuse the existing `?start=1` query param already handled in `src/pages/LandingPage.tsx` (lines 28–34), which auto-opens `ApplicationHub`. No landing-page changes needed.
 
-## Problem
+Final CTA URL: `${SITE_URL}/?start=1` (e.g. `https://nexgencapitalfinance.com/?start=1`).
 
-- The Smart Intake form on the Lead Workspace already stores `property_address` on `leads`.
-- Today, "Move to Pipeline" only exists on the **Leads list** (`src/pages/Leads.tsx` → `handleConvertToPipeline`).
-- From inside a lead's workspace, the user has no way to promote the lead to a `pipeline_opportunities` row — they must go back to the list.
-- The Zapier field-mapping route the user tried is not yet functional.
+## Changes
 
-## Solution (minimal, additive)
+### 1. `supabase/functions/generate-social-content/index.ts`
+- Change the AI prompt default from `${website}/book` to `${website}/?start=1` and rename the CTA intent to "Get Started".
+- After parsing, force `cta_link = \`${website}/?start=1\`` (ignore model output) so it's guaranteed on every generated post.
+- Append a CTA line to `post_text` if not already present:
+  `\n\n👉 Get Started: ${website}/?start=1`
+  (skip append if `post_text` already contains `/?start=1`).
 
-Reuse the exact same conversion logic that already works on the Leads list, exposed as a button on the Lead Workspace left rail. No schema changes, no changes to Zapier, no changes to intake save flow.
+### 2. `supabase/functions/publish-to-social/index.ts`
+- In `buildText()` (around line 56), ensure the Get Started CTA line is appended when missing, so existing draft posts without it still publish with the CTA in the body.
+- Facebook publishing already uses `post.cta_link` as the `link` param — no change needed; it will now always be set.
 
-### Changes
+### 3. Frontend: `src/components/social-media/PostEditor.tsx` and `PostGenerator.tsx`
+- On save, if `cta_link` is empty, default it to `${window.location.origin}/?start=1`.
+- Show a small helper hint under the CTA link field: "Defaults to Get Started (opens application hub)".
 
-1. **Extract the conversion helper** (new file `src/lib/crm/moveToPipeline.ts`)
-   - Move the body of `handleConvertToPipeline` from `src/pages/Leads.tsx` into a reusable function `moveLeadToPipeline(lead, userId)` returning `{ ok, opportunityId?, error? }`.
-   - Same validation: requires `property_address` + at least one linked contact + status `qualified`.
-   - Same side effects: insert into `pipeline_opportunities`, update lead status to `unqualified`, log `lead_events`, enqueue LOS sync.
-   - `src/pages/Leads.tsx` keeps its handler but delegates to the new helper (behavior unchanged).
-
-2. **Add "Move to Pipeline" action on Lead Workspace** (`src/pages/crm/RecordWorkspace.tsx`)
-   - Only for `kind === "lead"` and when NOT already coming from pipeline (`!fromPipeline`).
-   - Small button rendered in the left aside beneath `AriveExportCard` / `LosSyncCard`, labelled `Move to Pipeline` with the property address shown as helper text (or "Add a property address to enable" if missing).
-   - Button disabled when `record.property_address` is empty or status is not `qualified`. Tooltip explains why.
-   - Uses `record.property_address` (already populated by Smart Intake) — no extra prompt needed.
-   - On success: toast "Moved to Pipeline — Application Sent" and `loadAll()` to refresh; do NOT auto-navigate (user is inside the workspace).
-
-3. **No changes** to: Zapier settings, `leadIntake.ts`, `pipeline_opportunities` schema, RLS, or `handleConvertToPipeline` behavior on the list.
-
-## Guardrails
-
-- Same status precondition (`qualified`) as the existing list flow, so users don't accidentally jump stages.
-- Same dedupe rules the workspace already applies to `pipeline_opportunities` (see `RecordWorkspace.tsx` lines ~245–265) will keep the right rail showing only the newly-created opportunity.
-- If the lead is already linked to an opportunity for the same address, we short-circuit with a toast ("This lead already has a Pipeline deal for this address") instead of creating a duplicate.
-
-## Files touched
-
-- **New:** `src/lib/crm/moveToPipeline.ts` (~40 lines, extracted logic).
-- **Edit:** `src/pages/Leads.tsx` — replace inline body of `handleConvertToPipeline` with call to helper (no UX change).
-- **Edit:** `src/pages/crm/RecordWorkspace.tsx` — add button + handler in the left aside for lead kind.
+### 4. Backfill existing posts (one-time SQL migration)
+```sql
+UPDATE public.social_media_posts
+SET cta_link = 'https://nexgencapitalfinance.com/?start=1'
+WHERE cta_link IS NULL OR cta_link = '';
+```
+(Text bodies of already-published posts are not modified; only drafts/scheduled will get the appended line at publish time via change #2.)
 
 ## Out of scope
-
-- Fixing the Zapier CRM field-mapping UI (tracked separately).
-- Any change to how the Smart Intake form saves `property_address`.
-- Any change to Pipeline stage rules.
+- No changes to `ApplicationHub`, `Navbar`, or landing page — `?start=1` handler already exists.
+- LinkedIn/Instagram button widgets aren't supported for organic posts; the CTA is delivered as text + link preview.
