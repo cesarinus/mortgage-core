@@ -7,6 +7,47 @@ const corsHeaders = {
 };
 
 /**
+ * Meta (Facebook/Instagram) and LinkedIn require a publicly fetchable HTTPS URL
+ * for image posts. Base64 `data:` URIs are rejected with errors like
+ * "url should represent a valid URL". If a post's image_url is a data URI,
+ * upload the bytes to the private `social-images` bucket and swap in a signed
+ * URL (7-day expiry, enough for scheduled posts + Meta re-scraping).
+ */
+async function ensurePublicImageUrl(
+  admin: ReturnType<typeof createClient>,
+  postId: string,
+  imageUrl: string | null | undefined,
+): Promise<string | null> {
+  if (!imageUrl) return null;
+  if (!imageUrl.startsWith("data:")) return imageUrl;
+
+  const match = imageUrl.match(/^data:([^;]+);base64,(.+)$/);
+  if (!match) throw new Error("Unsupported image_url format");
+  const contentType = match[1] || "image/png";
+  const b64 = match[2];
+  const bin = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+  const ext = contentType.split("/")[1]?.split("+")[0] || "png";
+  const path = `posts/${postId}-${Date.now()}.${ext}`;
+
+  const { error: upErr } = await admin.storage
+    .from("social-images")
+    .upload(path, bin, { contentType, upsert: true });
+  if (upErr) throw new Error(`Storage upload failed: ${upErr.message}`);
+
+  const { data: signed, error: signErr } = await admin.storage
+    .from("social-images")
+    .createSignedUrl(path, 60 * 60 * 24 * 7);
+  if (signErr || !signed?.signedUrl) throw new Error(`Signed URL failed: ${signErr?.message}`);
+
+  await admin
+    .from("social_media_posts")
+    .update({ image_url: signed.signedUrl, updated_at: new Date().toISOString() })
+    .eq("id", postId);
+
+  return signed.signedUrl;
+}
+
+/**
  * STUB: Publishes to Facebook, Instagram, LinkedIn.
  * Real publishing requires the following secrets to be configured:
  *   - META_ACCESS_TOKEN, META_PAGE_ID, IG_BUSINESS_ACCOUNT_ID
@@ -161,6 +202,11 @@ Deno.serve(async (req) => {
       .eq("id", postId)
       .single();
     if (postErr || !post) throw new Error("Post not found");
+
+    // Ensure image_url is a public/https URL that Meta/LinkedIn can fetch.
+    if (post.image_url && post.image_url.startsWith("data:")) {
+      post.image_url = await ensurePublicImageUrl(adminClient, postId, post.image_url);
+    }
 
     const targets: string[] = forcePlatform
       ? [forcePlatform]
