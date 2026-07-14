@@ -6,6 +6,16 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+function hasMetaToken(): boolean {
+  return !!(Deno.env.get("META_PAGE_ACCESS_TOKEN") || Deno.env.get("META_ACCESS_TOKEN"));
+}
+
+type SocialSettings = {
+  facebook_page_id?: string | null;
+  instagram_business_id?: string | null;
+  linkedin_org_urn?: string | null;
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -57,6 +67,12 @@ Deno.serve(async (req) => {
     }
     log("FETCH_POST", "success", `Found post: ${post.post_type} on ${post.platform}`);
 
+    const { data: socialSettings } = await supabase
+      .from("social_account_settings")
+      .select("facebook_page_id, instagram_business_id, linkedin_org_urn")
+      .limit(1)
+      .maybeSingle<SocialSettings>();
+
     if (!post.post_text || post.post_text.includes("[") || post.post_text.includes("{{")) {
       log("VALIDATE_TEMPLATE", "fail", "Unresolved placeholders or empty text");
     } else {
@@ -77,14 +93,15 @@ Deno.serve(async (req) => {
     const targets = post.platform === "all" ? ["facebook", "instagram", "linkedin"] : [post.platform];
     for (const t of targets) {
       if (t === "facebook") {
-        const ok = !!Deno.env.get("META_ACCESS_TOKEN") && !!Deno.env.get("META_PAGE_ID");
-        log("FB_CREDENTIALS", ok ? "success" : "fail", ok ? "configured" : "missing META_ACCESS_TOKEN/META_PAGE_ID");
+        const ok = hasMetaToken() && !!(Deno.env.get("META_PAGE_ID") || socialSettings?.facebook_page_id);
+        log("FB_CREDENTIALS", ok ? "success" : "fail", ok ? "configured" : "missing META_PAGE_ACCESS_TOKEN or META_ACCESS_TOKEN, and META_PAGE_ID");
       } else if (t === "instagram") {
-        const ok = !!Deno.env.get("META_ACCESS_TOKEN") && !!Deno.env.get("IG_BUSINESS_ACCOUNT_ID");
-        log("IG_CREDENTIALS", ok ? "success" : "fail", ok ? "configured" : "missing META_ACCESS_TOKEN/IG_BUSINESS_ACCOUNT_ID");
+        const ok = hasMetaToken() && !!(Deno.env.get("IG_BUSINESS_ACCOUNT_ID") || socialSettings?.instagram_business_id);
+        log("IG_CREDENTIALS", ok ? "success" : "fail", ok ? "configured" : "missing META_PAGE_ACCESS_TOKEN or META_ACCESS_TOKEN, and IG_BUSINESS_ACCOUNT_ID");
       } else if (t === "linkedin") {
-        const ok = !!Deno.env.get("LINKEDIN_ACCESS_TOKEN") && !!Deno.env.get("LINKEDIN_ORG_URN");
-        log("LI_CREDENTIALS", ok ? "success" : "fail", ok ? "configured" : "missing LINKEDIN_ACCESS_TOKEN/LINKEDIN_ORG_URN");
+        const hasLinkedInAuth = !!(Deno.env.get("LINKEDIN_API_KEY") || Deno.env.get("LINKEDIN_ACCESS_TOKEN"));
+        const ok = hasLinkedInAuth && !!(Deno.env.get("LINKEDIN_ORG_URN") || socialSettings?.linkedin_org_urn);
+        log("LI_CREDENTIALS", ok ? "success" : "fail", ok ? "configured" : "missing LinkedIn connector or LINKEDIN_ACCESS_TOKEN, and LINKEDIN_ORG_URN");
       }
     }
 

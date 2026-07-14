@@ -48,9 +48,10 @@ export function SocialAccountSettings() {
           <div className="text-sm">
             <p className="font-medium">API tokens are stored as project secrets</p>
             <p className="text-muted-foreground">
-              Add <code>META_ACCESS_TOKEN</code>, <code>META_PAGE_ID</code>, <code>IG_BUSINESS_ACCOUNT_ID</code>,
-              <code>LINKEDIN_ACCESS_TOKEN</code>, and <code>LINKEDIN_ORG_URN</code> in your project secrets to enable publishing.
-              The IDs below are for reference and templating only.
+              Add a Meta Page access token as <code>META_PAGE_ACCESS_TOKEN</code> or <code>META_ACCESS_TOKEN</code>, plus
+              <code>META_PAGE_ID</code> and <code>IG_BUSINESS_ACCOUNT_ID</code>. The Meta token must use current Page and Instagram
+              publishing permissions, not deprecated <code>publish_actions</code>. LinkedIn requires the LinkedIn connector or
+              <code>LINKEDIN_ACCESS_TOKEN</code>, plus <code>LINKEDIN_ORG_URN</code>.
             </p>
           </div>
         </CardContent>

@@ -6,6 +6,72 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+type PublishResult = { success: boolean; id?: string; error?: string; skipped?: boolean };
+
+type SocialSettings = {
+  facebook_page_id?: string | null;
+  instagram_business_id?: string | null;
+  linkedin_org_urn?: string | null;
+};
+
+const META_PERMISSION_HELP =
+  "Meta publishing credentials need a Page access token with pages_manage_posts, pages_read_engagement, and pages_show_list. Instagram also needs instagram_basic and instagram_content_publish. Regenerate the token without the deprecated publish_actions permission.";
+
+async function parseProviderJson(resp: Response): Promise<any> {
+  const text = await resp.text();
+  if (!text) return {};
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { raw: text };
+  }
+}
+
+function formatMetaError(data: any, fallback: string): string {
+  const err = data?.error;
+  const message = err?.message || data?.error_message || data?.raw || fallback;
+  const code = err?.code ? `#${err.code}` : "";
+  const type = err?.type ? `${err.type}` : "";
+  const prefix = [code, type].filter(Boolean).join(" ");
+
+  if (/publish_actions/i.test(message)) {
+    return `${prefix ? `${prefix}: ` : ""}${META_PERMISSION_HELP}`;
+  }
+
+  if (err?.code === 10 || /permission|permissions|not have permission/i.test(message)) {
+    return `${prefix ? `${prefix}: ` : ""}${META_PERMISSION_HELP}`;
+  }
+
+  if (/media id is not available/i.test(message)) {
+    return `Instagram did not create a publishable media container. Confirm the image URL is public HTTPS and the Meta token has instagram_content_publish. ${META_PERMISSION_HELP}`;
+  }
+
+  return `${prefix ? `${prefix}: ` : ""}${message}`;
+}
+
+function fullPostText(post: any): string {
+  const tags = (post.hashtags || [])
+    .map((h: string) => (h.startsWith("#") ? h : "#" + h))
+    .join(" ");
+  return [post.post_text, tags].filter(Boolean).join("\n\n");
+}
+
+function getMetaAccessToken(): string | undefined {
+  return Deno.env.get("META_PAGE_ACCESS_TOKEN") || Deno.env.get("META_ACCESS_TOKEN") || undefined;
+}
+
+function getFacebookPageId(post: any): string | undefined {
+  return Deno.env.get("META_PAGE_ID") || post.social_settings?.facebook_page_id || undefined;
+}
+
+function getInstagramBusinessId(post: any): string | undefined {
+  return Deno.env.get("IG_BUSINESS_ACCOUNT_ID") || post.social_settings?.instagram_business_id || undefined;
+}
+
+function getLinkedInOrgUrn(post: any): string | undefined {
+  return Deno.env.get("LINKEDIN_ORG_URN") || post.social_settings?.linkedin_org_urn || undefined;
+}
+
 /**
  * Meta (Facebook/Instagram) and LinkedIn require a publicly fetchable HTTPS URL
  * for image posts. Base64 `data:` URIs are rejected with errors like
@@ -50,20 +116,20 @@ async function ensurePublicImageUrl(
 /**
  * STUB: Publishes to Facebook, Instagram, LinkedIn.
  * Real publishing requires the following secrets to be configured:
- *   - META_ACCESS_TOKEN, META_PAGE_ID, IG_BUSINESS_ACCOUNT_ID
- *   - LINKEDIN_ACCESS_TOKEN, LINKEDIN_ORG_URN
+ *   - META_PAGE_ACCESS_TOKEN (preferred) or META_ACCESS_TOKEN, META_PAGE_ID, IG_BUSINESS_ACCOUNT_ID
+ *   - LinkedIn connector (preferred) or LINKEDIN_ACCESS_TOKEN, plus LINKEDIN_ORG_URN
  * When any secret is missing, the function returns a clear "not configured" error
  * for that platform but will not throw — letting the UI show partial results.
  */
 
-async function publishFacebook(post: any): Promise<{ success: boolean; id?: string; error?: string }> {
-  const token = Deno.env.get("META_ACCESS_TOKEN");
-  const pageId = Deno.env.get("META_PAGE_ID");
+async function publishFacebook(post: any): Promise<PublishResult> {
+  const token = getMetaAccessToken();
+  const pageId = getFacebookPageId(post);
   if (!token || !pageId) {
-    return { success: false, error: "Facebook credentials not configured (META_ACCESS_TOKEN, META_PAGE_ID)" };
+    return { success: false, error: "Facebook credentials not configured (META_PAGE_ACCESS_TOKEN or META_ACCESS_TOKEN, META_PAGE_ID)" };
   }
   try {
-    const fullText = `${post.post_text}\n\n${(post.hashtags || []).map((h: string) => h.startsWith("#") ? h : "#" + h).join(" ")}`;
+    const fullText = fullPostText(post);
     // If we have an image, post to /photos (image + caption). Otherwise post text to /feed.
     // Passing an image URL as `link` on /feed is invalid and returns "Invalid parameter".
     let endpoint: string;
@@ -78,67 +144,99 @@ async function publishFacebook(post: any): Promise<{ success: boolean; id?: stri
       if (post.cta_link) params.append("link", post.cta_link);
     }
     const resp = await fetch(endpoint, { method: "POST", body: params });
-    const data = await resp.json();
-    if (!resp.ok) return { success: false, error: data?.error?.message || `HTTP ${resp.status}` };
+    const data = await parseProviderJson(resp);
+    if (!resp.ok || data?.error) return { success: false, error: formatMetaError(data, `HTTP ${resp.status}`) };
     return { success: true, id: data.post_id || data.id };
   } catch (e) {
     return { success: false, error: e instanceof Error ? e.message : "Unknown error" };
   }
 }
 
-async function publishInstagram(post: any): Promise<{ success: boolean; id?: string; error?: string }> {
-  const token = Deno.env.get("META_ACCESS_TOKEN");
-  const igId = Deno.env.get("IG_BUSINESS_ACCOUNT_ID");
+async function publishInstagram(post: any): Promise<PublishResult> {
+  const token = getMetaAccessToken();
+  const igId = getInstagramBusinessId(post);
   if (!token || !igId) {
-    return { success: false, error: "Instagram credentials not configured (META_ACCESS_TOKEN, IG_BUSINESS_ACCOUNT_ID)" };
+    return { success: false, error: "Instagram credentials not configured (META_PAGE_ACCESS_TOKEN or META_ACCESS_TOKEN, IG_BUSINESS_ACCOUNT_ID)" };
   }
   if (!post.image_url) {
     return { success: false, error: "Instagram requires an image_url" };
   }
   try {
-    const caption = `${post.post_text}\n\n${(post.hashtags || []).map((h: string) => h.startsWith("#") ? h : "#" + h).join(" ")}`;
+    const caption = fullPostText(post);
     const create = await fetch(`https://graph.facebook.com/v20.0/${igId}/media`, {
       method: "POST",
       body: new URLSearchParams({ image_url: post.image_url, caption, access_token: token }),
     });
-    const createData = await create.json();
-    if (!create.ok) return { success: false, error: createData?.error?.message || `HTTP ${create.status}` };
+    const createData = await parseProviderJson(create);
+    if (!create.ok || createData?.error) return { success: false, error: formatMetaError(createData, `HTTP ${create.status}`) };
+    if (!createData?.id) {
+      return { success: false, error: formatMetaError(createData, "Instagram did not return a media container ID") };
+    }
+
+    let mediaReady = false;
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const statusResp = await fetch(
+        `https://graph.facebook.com/v20.0/${createData.id}?fields=status_code,status&access_token=${encodeURIComponent(token)}`,
+      );
+      const statusData = await parseProviderJson(statusResp);
+      if (!statusResp.ok || statusData?.error) {
+        return { success: false, error: formatMetaError(statusData, `HTTP ${statusResp.status}`) };
+      }
+      if (statusData.status_code === "FINISHED") {
+        mediaReady = true;
+        break;
+      }
+      if (statusData.status_code === "ERROR" || statusData.status_code === "EXPIRED") {
+        return { success: false, error: `Instagram media container failed: ${statusData.status || statusData.status_code}` };
+      }
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+    }
+    if (!mediaReady) {
+      return { success: false, error: "Instagram media container is still processing. Retry publishing in a few seconds." };
+    }
 
     const publish = await fetch(`https://graph.facebook.com/v20.0/${igId}/media_publish`, {
       method: "POST",
       body: new URLSearchParams({ creation_id: createData.id, access_token: token }),
     });
-    const pubData = await publish.json();
-    if (!publish.ok) return { success: false, error: pubData?.error?.message || `HTTP ${publish.status}` };
+    const pubData = await parseProviderJson(publish);
+    if (!publish.ok || pubData?.error) return { success: false, error: formatMetaError(pubData, `HTTP ${publish.status}`) };
     return { success: true, id: pubData.id };
   } catch (e) {
     return { success: false, error: e instanceof Error ? e.message : "Unknown error" };
   }
 }
 
-async function publishLinkedIn(post: any): Promise<{ success: boolean; id?: string; error?: string }> {
+async function publishLinkedIn(post: any): Promise<PublishResult> {
+  const connectorKey = Deno.env.get("LINKEDIN_API_KEY");
+  const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
   const token = Deno.env.get("LINKEDIN_ACCESS_TOKEN");
-  const orgUrn = Deno.env.get("LINKEDIN_ORG_URN");
-  if (!token || !orgUrn) {
-    return { success: false, error: "LinkedIn credentials not configured (LINKEDIN_ACCESS_TOKEN, LINKEDIN_ORG_URN)" };
+  const orgUrn = getLinkedInOrgUrn(post);
+  if (!orgUrn) {
+    return { success: false, skipped: true, error: "LinkedIn organization not configured (LINKEDIN_ORG_URN)" };
+  }
+  if (!connectorKey && !token) {
+    return { success: false, skipped: true, error: "LinkedIn credentials not configured. Connect LinkedIn or add LINKEDIN_ACCESS_TOKEN." };
   }
   try {
-    const fullText = `${post.post_text}\n\n${(post.hashtags || []).map((h: string) => h.startsWith("#") ? h : "#" + h).join(" ")}`;
+    const fullText = fullPostText(post);
     const body = {
       author: orgUrn,
       lifecycleState: "PUBLISHED",
       specificContent: {
         "com.linkedin.ugc.ShareContent": {
           shareCommentary: { text: fullText },
-          shareMediaCategory: post.image_url ? "IMAGE" : "NONE",
+          shareMediaCategory: "NONE",
         },
       },
       visibility: { "com.linkedin.ugc.MemberNetworkVisibility": "PUBLIC" },
     };
-    const resp = await fetch("https://api.linkedin.com/v2/ugcPosts", {
+    const useConnector = connectorKey && lovableApiKey;
+    const resp = await fetch(useConnector ? "https://connector-gateway.lovable.dev/linkedin/v2/ugcPosts" : "https://api.linkedin.com/v2/ugcPosts", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${token}`,
+        Authorization: useConnector ? `Bearer ${lovableApiKey}` : `Bearer ${token}`,
+        ...(useConnector ? { "X-Connection-Api-Key": connectorKey } : {}),
         "Content-Type": "application/json",
         "X-Restli-Protocol-Version": "2.0.0",
       },
@@ -203,6 +301,13 @@ Deno.serve(async (req) => {
       .single();
     if (postErr || !post) throw new Error("Post not found");
 
+    const { data: socialSettings } = await adminClient
+      .from("social_account_settings")
+      .select("facebook_page_id, instagram_business_id, linkedin_org_urn")
+      .limit(1)
+      .maybeSingle<SocialSettings>();
+    post.social_settings = socialSettings || {};
+
     // Ensure image_url is a public/https URL that Meta/LinkedIn can fetch.
     if (post.image_url && post.image_url.startsWith("data:")) {
       post.image_url = await ensurePublicImageUrl(adminClient, postId, post.image_url);
@@ -214,7 +319,7 @@ Deno.serve(async (req) => {
         ? ["facebook", "instagram", "linkedin"]
         : [post.platform];
 
-    const results: Record<string, { success: boolean; id?: string; error?: string }> = {};
+    const results: Record<string, PublishResult> = {};
     for (const t of targets) {
       if (t === "facebook") results.facebook = await publishFacebook(post);
       else if (t === "instagram") results.instagram = await publishInstagram(post);
