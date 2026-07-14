@@ -6,6 +6,10 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+function hasMetaToken(): boolean {
+  return !!(Deno.env.get("META_PAGE_ACCESS_TOKEN") || Deno.env.get("META_ACCESS_TOKEN"));
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -77,14 +81,15 @@ Deno.serve(async (req) => {
     const targets = post.platform === "all" ? ["facebook", "instagram", "linkedin"] : [post.platform];
     for (const t of targets) {
       if (t === "facebook") {
-        const ok = !!Deno.env.get("META_ACCESS_TOKEN") && !!Deno.env.get("META_PAGE_ID");
-        log("FB_CREDENTIALS", ok ? "success" : "fail", ok ? "configured" : "missing META_ACCESS_TOKEN/META_PAGE_ID");
+        const ok = hasMetaToken() && !!Deno.env.get("META_PAGE_ID");
+        log("FB_CREDENTIALS", ok ? "success" : "fail", ok ? "configured" : "missing META_PAGE_ACCESS_TOKEN or META_ACCESS_TOKEN, and META_PAGE_ID");
       } else if (t === "instagram") {
-        const ok = !!Deno.env.get("META_ACCESS_TOKEN") && !!Deno.env.get("IG_BUSINESS_ACCOUNT_ID");
-        log("IG_CREDENTIALS", ok ? "success" : "fail", ok ? "configured" : "missing META_ACCESS_TOKEN/IG_BUSINESS_ACCOUNT_ID");
+        const ok = hasMetaToken() && !!Deno.env.get("IG_BUSINESS_ACCOUNT_ID");
+        log("IG_CREDENTIALS", ok ? "success" : "fail", ok ? "configured" : "missing META_PAGE_ACCESS_TOKEN or META_ACCESS_TOKEN, and IG_BUSINESS_ACCOUNT_ID");
       } else if (t === "linkedin") {
-        const ok = !!Deno.env.get("LINKEDIN_ACCESS_TOKEN") && !!Deno.env.get("LINKEDIN_ORG_URN");
-        log("LI_CREDENTIALS", ok ? "success" : "fail", ok ? "configured" : "missing LINKEDIN_ACCESS_TOKEN/LINKEDIN_ORG_URN");
+        const hasLinkedInAuth = !!(Deno.env.get("LINKEDIN_API_KEY") || Deno.env.get("LINKEDIN_ACCESS_TOKEN"));
+        const ok = hasLinkedInAuth && !!Deno.env.get("LINKEDIN_ORG_URN");
+        log("LI_CREDENTIALS", ok ? "success" : "fail", ok ? "configured" : "missing LinkedIn connector or LINKEDIN_ACCESS_TOKEN, and LINKEDIN_ORG_URN");
       }
     }
 
