@@ -8,6 +8,12 @@ const corsHeaders = {
 
 type PublishResult = { success: boolean; id?: string; error?: string; skipped?: boolean };
 
+type SocialSettings = {
+  facebook_page_id?: string | null;
+  instagram_business_id?: string | null;
+  linkedin_org_urn?: string | null;
+};
+
 const META_PERMISSION_HELP =
   "Meta publishing credentials need a Page access token with pages_manage_posts, pages_read_engagement, and pages_show_list. Instagram also needs instagram_basic and instagram_content_publish. Regenerate the token without the deprecated publish_actions permission.";
 
@@ -52,6 +58,18 @@ function fullPostText(post: any): string {
 
 function getMetaAccessToken(): string | undefined {
   return Deno.env.get("META_PAGE_ACCESS_TOKEN") || Deno.env.get("META_ACCESS_TOKEN") || undefined;
+}
+
+function getFacebookPageId(post: any): string | undefined {
+  return Deno.env.get("META_PAGE_ID") || post.social_settings?.facebook_page_id || undefined;
+}
+
+function getInstagramBusinessId(post: any): string | undefined {
+  return Deno.env.get("IG_BUSINESS_ACCOUNT_ID") || post.social_settings?.instagram_business_id || undefined;
+}
+
+function getLinkedInOrgUrn(post: any): string | undefined {
+  return Deno.env.get("LINKEDIN_ORG_URN") || post.social_settings?.linkedin_org_urn || undefined;
 }
 
 /**
@@ -106,7 +124,7 @@ async function ensurePublicImageUrl(
 
 async function publishFacebook(post: any): Promise<PublishResult> {
   const token = getMetaAccessToken();
-  const pageId = Deno.env.get("META_PAGE_ID");
+  const pageId = getFacebookPageId(post);
   if (!token || !pageId) {
     return { success: false, error: "Facebook credentials not configured (META_PAGE_ACCESS_TOKEN or META_ACCESS_TOKEN, META_PAGE_ID)" };
   }
@@ -136,7 +154,7 @@ async function publishFacebook(post: any): Promise<PublishResult> {
 
 async function publishInstagram(post: any): Promise<PublishResult> {
   const token = getMetaAccessToken();
-  const igId = Deno.env.get("IG_BUSINESS_ACCOUNT_ID");
+  const igId = getInstagramBusinessId(post);
   if (!token || !igId) {
     return { success: false, error: "Instagram credentials not configured (META_PAGE_ACCESS_TOKEN or META_ACCESS_TOKEN, IG_BUSINESS_ACCOUNT_ID)" };
   }
@@ -193,7 +211,7 @@ async function publishLinkedIn(post: any): Promise<PublishResult> {
   const connectorKey = Deno.env.get("LINKEDIN_API_KEY");
   const lovableApiKey = Deno.env.get("LOVABLE_API_KEY");
   const token = Deno.env.get("LINKEDIN_ACCESS_TOKEN");
-  const orgUrn = Deno.env.get("LINKEDIN_ORG_URN");
+  const orgUrn = getLinkedInOrgUrn(post);
   if (!orgUrn) {
     return { success: false, skipped: true, error: "LinkedIn organization not configured (LINKEDIN_ORG_URN)" };
   }
@@ -283,6 +301,13 @@ Deno.serve(async (req) => {
       .single();
     if (postErr || !post) throw new Error("Post not found");
 
+    const { data: socialSettings } = await adminClient
+      .from("social_account_settings")
+      .select("facebook_page_id, instagram_business_id, linkedin_org_urn")
+      .limit(1)
+      .maybeSingle<SocialSettings>();
+    post.social_settings = socialSettings || {};
+
     // Ensure image_url is a public/https URL that Meta/LinkedIn can fetch.
     if (post.image_url && post.image_url.startsWith("data:")) {
       post.image_url = await ensurePublicImageUrl(adminClient, postId, post.image_url);
@@ -294,7 +319,7 @@ Deno.serve(async (req) => {
         ? ["facebook", "instagram", "linkedin"]
         : [post.platform];
 
-    const results: Record<string, { success: boolean; id?: string; error?: string }> = {};
+    const results: Record<string, PublishResult> = {};
     for (const t of targets) {
       if (t === "facebook") results.facebook = await publishFacebook(post);
       else if (t === "instagram") results.instagram = await publishInstagram(post);
