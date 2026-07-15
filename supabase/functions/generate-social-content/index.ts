@@ -105,7 +105,18 @@ Deno.serve(async (req) => {
 
     if (!aiResp.ok) {
       const txt = await aiResp.text();
-      throw new Error(`AI gateway error ${aiResp.status}: ${txt}`);
+      let friendly = `AI gateway error ${aiResp.status}`;
+      if (aiResp.status === 402) {
+        friendly = "Not enough AI credits. Add credits in Workspace → Usage to generate posts.";
+      } else if (aiResp.status === 429) {
+        friendly = "AI rate limit reached. Please wait a moment and try again.";
+      } else {
+        friendly = `${friendly}: ${txt}`;
+      }
+      return new Response(
+        JSON.stringify({ success: false, error: friendly, status: aiResp.status }),
+        { status: aiResp.status, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
     const aiData = await aiResp.json();
