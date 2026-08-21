@@ -150,12 +150,14 @@ export function MoneyField({
   }, [value, focused]);
 
   const display = focused ? text : value === null || value === undefined ? "" : money(value);
+  const imported = useImported(label);
 
   return (
-    <div className={cn("space-y-1.5", className)}>
+    <div className={cn("cd-field space-y-1.5", imported && "cd-imported", className)}>
       {!compact && (
         <Label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           {label} {required && <span className="text-destructive">*</span>}
+          <ImportedTag show={imported} />
         </Label>
       )}
       <Input
