@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Image as ImageIcon, Save, Send, Loader2 } from "lucide-react";
 import type { SocialPost } from "@/pages/AdminSocialMedia";
+import { SITE_URL } from "@/lib/seoConstants";
 
 interface Props { post: SocialPost; onSaved?: () => void; }
 
@@ -19,7 +20,7 @@ export function PostEditor({ post, onSaved }: Props) {
   const [hashtags, setHashtags] = useState((post.hashtags || []).join(" "));
   const [imageUrl, setImageUrl] = useState(post.image_url || "");
   const [imagePrompt, setImagePrompt] = useState(post.image_placeholder || "");
-  const defaultCta = `${window.location.origin}/?start=1`;
+  const defaultCta = `${SITE_URL}/?start=1`;
   const [ctaLink, setCtaLink] = useState(post.cta_link || defaultCta);
   const [platform, setPlatform] = useState(post.platform);
   const [scheduledDate, setScheduledDate] = useState(post.scheduled_date);
@@ -124,7 +125,7 @@ export function PostEditor({ post, onSaved }: Props) {
             <div className="space-y-2">
               <Label>CTA Link</Label>
               <Input value={ctaLink} onChange={(e) => setCtaLink(e.target.value)} />
-              <p className="text-xs text-muted-foreground">Defaults to Get Started (auto-opens the application hub on the site).</p>
+              <p className="text-xs text-muted-foreground">Defaults to the public site Get Started link (auto-opens the application hub).</p>
             </div>
             <div className="grid gap-4 sm:grid-cols-3">
               <div className="space-y-2">
