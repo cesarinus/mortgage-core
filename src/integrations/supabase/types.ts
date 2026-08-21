@@ -822,6 +822,77 @@ export type Database = {
         }
         Relationships: []
       }
+      closing_disclosures: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          crm_payload: Json
+          deal_type: string
+          form_type: string
+          id: string
+          lead_id: string | null
+          opportunity_id: string | null
+          status: string
+          submitted_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          crm_payload?: Json
+          deal_type?: string
+          form_type?: string
+          id?: string
+          lead_id?: string | null
+          opportunity_id?: string | null
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          crm_payload?: Json
+          deal_type?: string
+          form_type?: string
+          id?: string
+          lead_id?: string | null
+          opportunity_id?: string | null
+          status?: string
+          submitted_at?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "closing_disclosures_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "closing_disclosures_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["lead_id"]
+          },
+          {
+            foreignKeyName: "closing_disclosures_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_context_view"
+            referencedColumns: ["opportunity_id"]
+          },
+          {
+            foreignKeyName: "closing_disclosures_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "pipeline_opportunities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contacts: {
         Row: {
           address: string | null
