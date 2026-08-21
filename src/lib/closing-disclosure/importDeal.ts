@@ -172,10 +172,8 @@ export async function importFromDeal(args: {
 
   return {
     apply,
-    importedLabels: (() => {
-      // Run once against a throwaway object to collect labels without side effects.
-      return labels;
-    })(),
+    // Same array reference the mutator fills — read it after calling apply().
+    importedLabels: labels,
     sourceDealId: (opp?.id as string) ?? null,
     dealName: (opp?.name as string) || propertyAddress || borrowerName || "Deal",
   };
