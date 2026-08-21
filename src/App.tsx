@@ -55,6 +55,7 @@ import NotFound from "@/pages/NotFound";
 import RecordWorkspace from "@/pages/crm/RecordWorkspace";
 import OpportunityWorkspace from "@/pages/crm/OpportunityWorkspace";
 import AskHub from "@/pages/crm/AskHub";
+import ClosingDisclosurePage from "@/pages/crm/ClosingDisclosure";
 import PortalLayout from "@/components/portal/PortalLayout";
 import PortalLogin from "@/pages/portal/PortalLogin";
 import PortalAccept from "@/pages/portal/PortalAccept";
@@ -156,6 +157,8 @@ const App = () => (
                 <Route path="/crm/leads/:id" element={<RecordWorkspace kind="lead" />} />
                 <Route path="/crm/contacts/:id" element={<RecordWorkspace kind="contact" />} />
                 <Route path="/opportunities/:id" element={<OpportunityWorkspace />} />
+                <Route path="/closing-disclosure/new" element={<ClosingDisclosurePage />} />
+                <Route path="/closing-disclosure/:id" element={<ClosingDisclosurePage />} />
                 <Route path="/ask" element={<AskHub />} />
               </Route>
               <Route path="*" element={<NotFound />} />
