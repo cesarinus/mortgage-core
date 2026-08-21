@@ -20,6 +20,7 @@ import {
   Trash2,
   Clock,
   MapPin,
+  FileText,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -35,6 +36,7 @@ export type RecordActionKey =
   | "addNote"
   | "sendEmail"
   | "viewTimeline"
+  | "closingDisclosure"
   | "archive"
   | "delete";
 
@@ -78,6 +80,7 @@ const DEFAULTS: Record<RecordEntity, RecordActionKey[]> = {
     "addNote",
     "sendEmail",
     "viewTimeline",
+    "closingDisclosure",
     "archive",
     "delete",
   ],
@@ -170,6 +173,11 @@ export function RecordActionMenu(props: RecordActionMenuProps) {
             }
           >
             <Clock className="h-3.5 w-3.5 mr-2" /> View Timeline
+          </DropdownMenuItem>
+        )}
+        {has("closingDisclosure") && props.entityType === "opportunity" && (
+          <DropdownMenuItem onClick={() => navigate(`/closing-disclosure/new?opportunity=${record.id}`)}>
+            <FileText className="h-3.5 w-3.5 mr-2" /> Closing Disclosure
           </DropdownMenuItem>
         )}
         {has("delete") && props.onDelete && (

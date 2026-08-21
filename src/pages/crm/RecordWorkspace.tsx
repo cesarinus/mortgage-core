@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { useParams, Navigate, useLocation } from "react-router-dom";
+import { useParams, Navigate, useLocation, Link } from "react-router-dom";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -21,7 +21,7 @@ import { TaskListPanel } from "@/components/tasks/TaskListPanel";
 import { ConditionsTab } from "@/components/crm/tabs/ConditionsTab";
 import CustomFieldsRenderer from "@/components/crm/CustomFieldsRenderer";
 import { BarChart2, MessageSquare, FileCheck2, Users, CheckSquare, Mail, ClipboardCheck } from "lucide-react";
-import { Sparkles } from "lucide-react";
+import { Sparkles, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { SmartLeadForm } from "@/components/crm/SmartLeadForm";
@@ -267,10 +267,8 @@ export default function RecordWorkspace({ kind }: Props) {
         }
         setPrimaryOpp(deduped[0] ?? null);
         setOpportunities(deduped.map((o: any) => ({
-          id: o.id,
+          ...o,
           loan_type: o.property_address ? `Mortgage — ${o.property_address}` : "Mortgage deal",
-          stage: o.stage,
-          loan_amount: o.loan_amount,
         })));
       } else {
         setPrimaryOpp(null);
@@ -506,14 +504,14 @@ export default function RecordWorkspace({ kind }: Props) {
               </TabsContent>
             )}
             <TabsContent value="messages" className="mt-4">
-              <MessagesTab deals={deals} />
+              <MessagesTab deals={kind === "lead" ? opportunities : deals} />
             </TabsContent>
             <TabsContent value="tasks" className="mt-4 space-y-6">
               {kind === "lead" && id && (
                 <TaskListPanel related={{ type: "lead", id, label: `${record?.first_name ?? ""} ${record?.last_name ?? ""}`.trim() }} title="Lead Tasks" />
               )}
-              {deals?.[0]?.id && (
-                <TaskListPanel related={{ type: "opportunity", id: deals[0].id, label: deals[0].property_address ?? "Opportunity" }} title="Opportunity Tasks" />
+              {(kind === "lead" ? opportunities : deals)?.[0]?.id && (
+                <TaskListPanel related={{ type: "opportunity", id: (kind === "lead" ? opportunities : deals)[0].id, label: (kind === "lead" ? opportunities : deals)[0].property_address ?? "Opportunity" }} title="Opportunity Tasks" />
               )}
             </TabsContent>
             {kind === "lead" && (
@@ -522,7 +520,7 @@ export default function RecordWorkspace({ kind }: Props) {
               </TabsContent>
             )}
             <TabsContent value="documents" className="mt-4">
-              <DocumentsTab deals={deals} />
+              <DocumentsTab deals={kind === "lead" ? opportunities : deals} />
             </TabsContent>
             <TabsContent value="emails" className="mt-4">
               <EmailLogList
@@ -544,9 +542,18 @@ export default function RecordWorkspace({ kind }: Props) {
           </Tabs>
           {kind === "lead" && (
             <div className="mt-auto pt-4 flex justify-end">
-              <Button size="sm" variant="outline" onClick={() => setIntakeOpen(true)}>
-                <Sparkles className="h-3.5 w-3.5 mr-1.5" /> Edit Intake
-              </Button>
+              <div className="flex gap-2">
+                {primaryOpp?.id && (
+                  <Button size="sm" variant="outline" asChild>
+                    <Link to={`/closing-disclosure/new?opportunity=${primaryOpp.id}&lead=${id}`}>
+                      <FileText className="h-3.5 w-3.5 mr-1.5" /> Closing Disclosure
+                    </Link>
+                  </Button>
+                )}
+                <Button size="sm" variant="outline" onClick={() => setIntakeOpen(true)}>
+                  <Sparkles className="h-3.5 w-3.5 mr-1.5" /> Edit Intake
+                </Button>
+              </div>
             </div>
           )}
         </main>
