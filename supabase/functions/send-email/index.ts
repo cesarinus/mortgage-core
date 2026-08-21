@@ -24,7 +24,20 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: "Invalid JSON" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 
-  const { to, subject: subjectIn, html: htmlIn, text: textIn, template_alias, vars = {}, lead_id, opportunity_id, audience } = body || {};
+  const { to, subject: subjectIn, html: htmlIn, text: textIn, template_alias, vars = {}, lead_id, opportunity_id, audience, attachments } = body || {};
+
+  // Optional file attachments: [{ filename, content (base64), contentType }]
+  const mailAttachments = Array.isArray(attachments)
+    ? attachments
+        .filter((a: any) => a && a.filename && a.content)
+        .slice(0, 5)
+        .map((a: any) => ({
+          filename: String(a.filename),
+          content: String(a.content),
+          encoding: "base64" as const,
+          contentType: a.contentType ? String(a.contentType) : undefined,
+        }))
+    : undefined;
 
   // Templates that must ONLY ever go to the borrower(s) on the deal.
   // The lead record is the primary borrower; co-borrowers are linked through
@@ -160,6 +173,7 @@ Deno.serve(async (req) => {
         subject,
         html: html || undefined,
         text: text || (html ? html.replace(/<[^>]+>/g, "") : undefined),
+        attachments: mailAttachments && mailAttachments.length ? mailAttachments : undefined,
       });
       await supabase.from("email_logs").insert({
         recipient_email: rcpt, subject, template_id, template_alias: template_alias ?? null,

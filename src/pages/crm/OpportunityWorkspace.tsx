@@ -120,7 +120,13 @@ export default function OpportunityWorkspace() {
             {ctx?.lifecycle_stage && <Badge variant="outline">{ctx.lifecycle_stage}</Badge>}
             {ctx?.los_status && <Badge variant="secondary">LOS: {ctx.los_status}</Badge>}
             <Button size="sm" variant="outline" onClick={() => setEditOpen(true)}>Edit</Button>
+            <Button size="sm" variant="outline" asChild>
+              <Link to={`/closing-disclosure/new?opportunity=${id}${ctx?.lead_id ? `&lead=${ctx.lead_id}` : ""}`}>
+                Closing Disclosure
+              </Link>
+            </Button>
             <Button size="sm" variant="outline" onClick={() => setDeleteOpen(true)}>Archive / Delete</Button>
+
           </div>
         </header>
 
