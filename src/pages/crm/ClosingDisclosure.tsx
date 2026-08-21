@@ -382,22 +382,30 @@ export default function ClosingDisclosurePage() {
 
       {/* Body */}
       {mode === "form" ? (
-        <>
-          <Current form={form} update={update} totals={totals} />
-          <div className="no-print flex items-center justify-between pt-2">
-            <Button variant="outline" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>
-              <ArrowLeft className="mr-1.5 h-4 w-4" />
-              Previous
-            </Button>
-            <span className="text-xs text-muted-foreground">Page {page} of 6</span>
-            <Button onClick={() => setPage((p) => Math.min(6, p + 1))} disabled={page === 6}>
-              Next
-              <ArrowRight className="ml-1.5 h-4 w-4" />
-            </Button>
+        <ImportedFieldsContext.Provider value={importedLabels}>
+          <div className="cd-form space-y-6">
+            {importedFrom && importedLabels.size > 0 && (
+              <p className="border border-[#b58900] bg-[#fffbe6] px-3 py-2 text-xs text-[#7a5c00]">
+                {importedLabels.size} field{importedLabels.size === 1 ? "" : "s"} pre-filled from{" "}
+                <strong>{importedFrom}</strong>. Imported values are highlighted.
+              </p>
+            )}
+            <Current form={form} update={update} totals={totals} />
+            <div className="no-print flex items-center justify-between pt-2">
+              <Button variant="outline" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>
+                <ArrowLeft className="mr-1.5 h-4 w-4" />
+                Previous
+              </Button>
+              <span className="text-xs text-muted-foreground">Page {page} of 6</span>
+              <Button onClick={() => setPage((p) => Math.min(6, p + 1))} disabled={page === 6}>
+                Next
+                <ArrowRight className="ml-1.5 h-4 w-4" />
+              </Button>
+            </div>
           </div>
-        </>
+        </ImportedFieldsContext.Provider>
       ) : (
-        <div className="cd-preview rounded-lg">
+        <div className="cd-preview print-mode rounded-lg">
           <PrintDocument ref={printRef} form={form} />
         </div>
       )}
