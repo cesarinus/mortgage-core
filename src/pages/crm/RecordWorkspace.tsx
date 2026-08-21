@@ -267,10 +267,8 @@ export default function RecordWorkspace({ kind }: Props) {
         }
         setPrimaryOpp(deduped[0] ?? null);
         setOpportunities(deduped.map((o: any) => ({
-          id: o.id,
+          ...o,
           loan_type: o.property_address ? `Mortgage — ${o.property_address}` : "Mortgage deal",
-          stage: o.stage,
-          loan_amount: o.loan_amount,
         })));
       } else {
         setPrimaryOpp(null);
