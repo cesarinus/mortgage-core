@@ -75,10 +75,14 @@ export default function ClosingDisclosurePage() {
   const [emailBody, setEmailBody] = useState(
     "<p>Attached is your Closing Disclosure. Please review it carefully and contact us with any questions.</p>",
   );
+  const [importedLabels, setImportedLabels] = useState<Set<string>>(() => new Set());
+  const [importedFrom, setImportedFrom] = useState<string | null>(null);
 
   const printRef = useRef<HTMLDivElement>(null);
   const totals = useMemo(() => computeTotals(form), [form]);
   const draftKey = recordId ?? "new";
+  const formRef = useRef(form);
+  formRef.current = form;
 
   /* ---------------- load ---------------- */
   useEffect(() => {
@@ -87,6 +91,23 @@ export default function ClosingDisclosurePage() {
       if (isNew) {
         const local = readLocalDraft("new");
         if (local && alive) setForm(local);
+        // Pre-fill mappable fields from the originating Deal/Opportunity.
+        if (!local && (opportunityId || leadId)) {
+          try {
+            const imported = await importFromDeal({ opportunityId, leadId });
+            if (imported && alive) {
+              setForm((prev) => {
+                const next = clone(prev);
+                imported.apply(next);
+                return next;
+              });
+              setImportedLabels(new Set(imported.importedLabels));
+              setImportedFrom(imported.dealName);
+            }
+          } catch {
+            /* import is best-effort — the form still opens blank */
+          }
+        }
         return;
       }
       setLoading(true);
@@ -109,7 +130,7 @@ export default function ClosingDisclosurePage() {
     return () => {
       alive = false;
     };
-  }, [routeId, isNew, navigate]);
+  }, [routeId, isNew, navigate, opportunityId, leadId]);
 
   /* ---------------- editing ---------------- */
   const update = useCallback((mutate: (draft: ClosingDisclosureForm) => void) => {
@@ -125,6 +146,13 @@ export default function ClosingDisclosurePage() {
     const t = setTimeout(() => saveLocalDraft(draftKey, form), 800);
     return () => clearTimeout(t);
   }, [form, draftKey]);
+
+  // Belt-and-braces 30s snapshot to localStorage.
+  useEffect(() => {
+    const i = setInterval(() => saveLocalDraft(draftKey, formRef.current), 30_000);
+    return () => clearInterval(i);
+  }, [draftKey]);
+
 
   /* ---------------- actions ---------------- */
   const handleSave = async (silent = false) => {
