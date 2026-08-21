@@ -35,6 +35,9 @@ import Page4 from "@/components/closing-disclosure/pages/Page4";
 import Page5 from "@/components/closing-disclosure/pages/Page5";
 import Page6 from "@/components/closing-disclosure/pages/Page6";
 import { PrintDocument } from "@/components/closing-disclosure/PrintDocument";
+import { ImportedFieldsContext } from "@/components/closing-disclosure/fields";
+import { importFromDeal } from "@/lib/closing-disclosure/importDeal";
+import "@/components/closing-disclosure/form.css";
 
 const PAGES = [
   { n: 1, label: "Loan Terms", Comp: Page1 },
