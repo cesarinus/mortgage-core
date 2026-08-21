@@ -36,19 +36,19 @@ export function Section({
   letter?: string;
 }) {
   return (
-    <Card className="border-border/70">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-base">
+    <Card className="cd-section border-border/70">
+      <CardHeader className="cd-section-header pb-3">
+        <CardTitle className="cd-section-title flex items-center gap-2 text-base">
           {letter && (
-            <span className="flex h-6 w-6 items-center justify-center rounded bg-primary text-xs font-bold text-primary-foreground">
+            <span className="cd-section-letter flex h-6 w-6 items-center justify-center rounded bg-primary text-xs font-bold text-primary-foreground">
               {letter}
             </span>
           )}
           {title}
         </CardTitle>
-        {description && <CardDescription>{description}</CardDescription>}
+        {description && <CardDescription className="cd-section-desc">{description}</CardDescription>}
       </CardHeader>
-      <CardContent className="space-y-4">{children}</CardContent>
+      <CardContent className="space-y-4 pt-4">{children}</CardContent>
     </Card>
   );
 }
