@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, createContext, useContext, useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,6 +9,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Trash2 } from "lucide-react";
 import { money, num } from "@/lib/closing-disclosure/calc";
 import { cn } from "@/lib/utils";
+
+/** Labels (lowercased) that were pre-filled from a Deal/Opportunity import. */
+export const ImportedFieldsContext = createContext<Set<string>>(new Set());
+
+function useImported(label: string) {
+  const set = useContext(ImportedFieldsContext);
+  return set.has(label.trim().toLowerCase());
+}
+
+/** Small "from deal" tag shown next to imported labels. */
+function ImportedTag({ show }: { show: boolean }) {
+  if (!show) return null;
+  return <span className="cd-imported-tag">from deal</span>;
+}
 
 export function Section({
   title,
@@ -22,19 +36,19 @@ export function Section({
   letter?: string;
 }) {
   return (
-    <Card className="border-border/70">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-base">
+    <Card className="cd-section border-border/70">
+      <CardHeader className="cd-section-header pb-3">
+        <CardTitle className="cd-section-title flex items-center gap-2 text-base">
           {letter && (
-            <span className="flex h-6 w-6 items-center justify-center rounded bg-primary text-xs font-bold text-primary-foreground">
+            <span className="cd-section-letter flex h-6 w-6 items-center justify-center rounded bg-primary text-xs font-bold text-primary-foreground">
               {letter}
             </span>
           )}
           {title}
         </CardTitle>
-        {description && <CardDescription>{description}</CardDescription>}
+        {description && <CardDescription className="cd-section-desc">{description}</CardDescription>}
       </CardHeader>
-      <CardContent className="space-y-4">{children}</CardContent>
+      <CardContent className="space-y-4 pt-4">{children}</CardContent>
     </Card>
   );
 }
@@ -65,10 +79,12 @@ export function TextField({
   placeholder,
   className,
 }: BaseProps & { value: string; onChange: (v: string) => void; placeholder?: string }) {
+  const imported = useImported(label);
   return (
-    <div className={cn("space-y-1.5", className)}>
+    <div className={cn("cd-field space-y-1.5", imported && "cd-imported", className)}>
       <Label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
         {label} {required && <span className="text-destructive">*</span>}
+        <ImportedTag show={imported} />
       </Label>
       <Input value={value ?? ""} placeholder={placeholder} onChange={(e) => onChange(e.target.value)} />
       {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
@@ -84,9 +100,13 @@ export function AreaField({
   rows = 3,
   className,
 }: BaseProps & { value: string; onChange: (v: string) => void; rows?: number }) {
+  const imported = useImported(label);
   return (
-    <div className={cn("space-y-1.5", className)}>
-      <Label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</Label>
+    <div className={cn("cd-field space-y-1.5", imported && "cd-imported", className)}>
+      <Label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+        <ImportedTag show={imported} />
+      </Label>
       <Textarea rows={rows} value={value ?? ""} onChange={(e) => onChange(e.target.value)} />
       {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
     </div>
@@ -100,10 +120,12 @@ export function DateField({
   required,
   className,
 }: BaseProps & { value: string; onChange: (v: string) => void }) {
+  const imported = useImported(label);
   return (
-    <div className={cn("space-y-1.5", className)}>
+    <div className={cn("cd-field space-y-1.5", imported && "cd-imported", className)}>
       <Label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
         {label} {required && <span className="text-destructive">*</span>}
+        <ImportedTag show={imported} />
       </Label>
       <Input type="date" value={value ?? ""} onChange={(e) => onChange(e.target.value)} />
     </div>
@@ -128,12 +150,14 @@ export function MoneyField({
   }, [value, focused]);
 
   const display = focused ? text : value === null || value === undefined ? "" : money(value);
+  const imported = useImported(label);
 
   return (
-    <div className={cn("space-y-1.5", className)}>
+    <div className={cn("cd-field space-y-1.5", imported && "cd-imported", className)}>
       {!compact && (
         <Label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           {label} {required && <span className="text-destructive">*</span>}
+          <ImportedTag show={imported} />
         </Label>
       )}
       <Input
@@ -172,11 +196,13 @@ export function NumberField({
   step?: string;
   compact?: boolean;
 }) {
+  const imported = useImported(label);
   return (
-    <div className={cn("space-y-1.5", className)}>
+    <div className={cn("cd-field space-y-1.5", imported && "cd-imported", className)}>
       {!compact && (
         <Label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
           {label} {required && <span className="text-destructive">*</span>}
+          <ImportedTag show={imported} />
         </Label>
       )}
       <div className="relative">
@@ -210,9 +236,13 @@ export function SelectField({
   onChange: (v: string) => void;
   options: Array<{ value: string; label: string }>;
 }) {
+  const imported = useImported(label);
   return (
-    <div className={cn("space-y-1.5", className)}>
-      <Label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</Label>
+    <div className={cn("cd-field space-y-1.5", imported && "cd-imported", className)}>
+      <Label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+        <ImportedTag show={imported} />
+      </Label>
       <Select value={value || undefined} onValueChange={onChange}>
         <SelectTrigger>
           <SelectValue placeholder="Select…" />

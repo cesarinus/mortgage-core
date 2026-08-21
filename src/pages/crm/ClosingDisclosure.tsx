@@ -35,6 +35,9 @@ import Page4 from "@/components/closing-disclosure/pages/Page4";
 import Page5 from "@/components/closing-disclosure/pages/Page5";
 import Page6 from "@/components/closing-disclosure/pages/Page6";
 import { PrintDocument } from "@/components/closing-disclosure/PrintDocument";
+import { ImportedFieldsContext } from "@/components/closing-disclosure/fields";
+import { importFromDeal } from "@/lib/closing-disclosure/importDeal";
+import "@/components/closing-disclosure/form.css";
 
 const PAGES = [
   { n: 1, label: "Loan Terms", Comp: Page1 },
@@ -72,10 +75,14 @@ export default function ClosingDisclosurePage() {
   const [emailBody, setEmailBody] = useState(
     "<p>Attached is your Closing Disclosure. Please review it carefully and contact us with any questions.</p>",
   );
+  const [importedLabels, setImportedLabels] = useState<Set<string>>(() => new Set());
+  const [importedFrom, setImportedFrom] = useState<string | null>(null);
 
   const printRef = useRef<HTMLDivElement>(null);
   const totals = useMemo(() => computeTotals(form), [form]);
   const draftKey = recordId ?? "new";
+  const formRef = useRef(form);
+  formRef.current = form;
 
   /* ---------------- load ---------------- */
   useEffect(() => {
@@ -84,6 +91,23 @@ export default function ClosingDisclosurePage() {
       if (isNew) {
         const local = readLocalDraft("new");
         if (local && alive) setForm(local);
+        // Pre-fill mappable fields from the originating Deal/Opportunity.
+        if (!local && (opportunityId || leadId)) {
+          try {
+            const imported = await importFromDeal({ opportunityId, leadId });
+            if (imported && alive) {
+              setForm((prev) => {
+                const next = clone(prev);
+                imported.apply(next);
+                return next;
+              });
+              setImportedLabels(new Set(imported.importedLabels));
+              setImportedFrom(imported.dealName);
+            }
+          } catch {
+            /* import is best-effort — the form still opens blank */
+          }
+        }
         return;
       }
       setLoading(true);
@@ -106,7 +130,7 @@ export default function ClosingDisclosurePage() {
     return () => {
       alive = false;
     };
-  }, [routeId, isNew, navigate]);
+  }, [routeId, isNew, navigate, opportunityId, leadId]);
 
   /* ---------------- editing ---------------- */
   const update = useCallback((mutate: (draft: ClosingDisclosureForm) => void) => {
@@ -122,6 +146,13 @@ export default function ClosingDisclosurePage() {
     const t = setTimeout(() => saveLocalDraft(draftKey, form), 800);
     return () => clearTimeout(t);
   }, [form, draftKey]);
+
+  // Belt-and-braces 30s snapshot to localStorage.
+  useEffect(() => {
+    const i = setInterval(() => saveLocalDraft(draftKey, formRef.current), 30_000);
+    return () => clearInterval(i);
+  }, [draftKey]);
+
 
   /* ---------------- actions ---------------- */
   const handleSave = async (silent = false) => {
@@ -351,22 +382,30 @@ export default function ClosingDisclosurePage() {
 
       {/* Body */}
       {mode === "form" ? (
-        <>
-          <Current form={form} update={update} totals={totals} />
-          <div className="no-print flex items-center justify-between pt-2">
-            <Button variant="outline" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>
-              <ArrowLeft className="mr-1.5 h-4 w-4" />
-              Previous
-            </Button>
-            <span className="text-xs text-muted-foreground">Page {page} of 6</span>
-            <Button onClick={() => setPage((p) => Math.min(6, p + 1))} disabled={page === 6}>
-              Next
-              <ArrowRight className="ml-1.5 h-4 w-4" />
-            </Button>
+        <ImportedFieldsContext.Provider value={importedLabels}>
+          <div className="cd-form space-y-6">
+            {importedFrom && importedLabels.size > 0 && (
+              <p className="border border-[#b58900] bg-[#fffbe6] px-3 py-2 text-xs text-[#7a5c00]">
+                {importedLabels.size} field{importedLabels.size === 1 ? "" : "s"} pre-filled from{" "}
+                <strong>{importedFrom}</strong>. Imported values are highlighted.
+              </p>
+            )}
+            <Current form={form} update={update} totals={totals} />
+            <div className="no-print flex items-center justify-between pt-2">
+              <Button variant="outline" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>
+                <ArrowLeft className="mr-1.5 h-4 w-4" />
+                Previous
+              </Button>
+              <span className="text-xs text-muted-foreground">Page {page} of 6</span>
+              <Button onClick={() => setPage((p) => Math.min(6, p + 1))} disabled={page === 6}>
+                Next
+                <ArrowRight className="ml-1.5 h-4 w-4" />
+              </Button>
+            </div>
           </div>
-        </>
+        </ImportedFieldsContext.Provider>
       ) : (
-        <div className="cd-preview rounded-lg">
+        <div className="cd-preview print-mode rounded-lg">
           <PrintDocument ref={printRef} form={form} />
         </div>
       )}

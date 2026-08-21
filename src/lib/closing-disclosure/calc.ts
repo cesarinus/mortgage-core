@@ -138,6 +138,30 @@ export function validateForm(f: ClosingDisclosureForm): string[] {
   if (!f.loanTerms.loan_amount) errors.push("Page 1: Loan amount is required.");
   if (f.loanTerms.interest_rate === null) errors.push("Page 1: Interest rate is required.");
   if (f.loanCalculations.apr === null) errors.push("Page 6: Annual Percentage Rate (APR) is required.");
+
+  // Currency fields must be finite, non-negative numbers.
+  const currency: Array<[string, number | null]> = [
+    ["Loan amount", f.loanTerms.loan_amount],
+    ["Sale price", f.property.sale_price],
+    ["Total closing costs", f.closingCostsSummary.total_closing_costs],
+    ["Cash to close", f.closingCostsSummary.cash_to_close_amount],
+  ];
+  for (const [label, v] of currency) {
+    if (v !== null && (!Number.isFinite(v) || v < 0)) errors.push(`${label} must be a valid amount.`);
+  }
+
+  // Date fields must parse.
+  const dates: Array<[string, string]> = [
+    ["Date Issued", f.closingInfo.date_issued],
+    ["Closing Date", f.closingInfo.closing_date],
+    ["Disbursement Date", f.closingInfo.disbursement_date],
+  ];
+  for (const [label, v] of dates) {
+    if (v && Number.isNaN(new Date(v).getTime())) errors.push(`${label} is not a valid date.`);
+  }
+
+  if (!f.signatures.applicant_signature_data_url)
+    errors.push("Page 5: Applicant signature is required before submitting.");
   if (!f.signatures.receipt_confirmed)
     errors.push("Page 5: Receipt of the Closing Disclosure must be confirmed.");
   return errors;
