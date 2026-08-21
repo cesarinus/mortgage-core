@@ -236,9 +236,13 @@ export function SelectField({
   onChange: (v: string) => void;
   options: Array<{ value: string; label: string }>;
 }) {
+  const imported = useImported(label);
   return (
-    <div className={cn("space-y-1.5", className)}>
-      <Label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</Label>
+    <div className={cn("cd-field space-y-1.5", imported && "cd-imported", className)}>
+      <Label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+        <ImportedTag show={imported} />
+      </Label>
       <Select value={value || undefined} onValueChange={onChange}>
         <SelectTrigger>
           <SelectValue placeholder="Select…" />
