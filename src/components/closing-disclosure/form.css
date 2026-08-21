@@ -1,0 +1,143 @@
+/* Government-document aesthetic for the interactive Closing Disclosure form.
+   Scoped to .cd-form so the rest of the CRM keeps its normal styling. */
+
+.cd-form {
+  font-family: Arial, Helvetica, "Segoe UI", sans-serif;
+  color: #000;
+}
+
+/* Sections read as boxed document blocks with an ALL-CAPS black header bar. */
+.cd-form [data-slot="card"],
+.cd-form .cd-form-card,
+.cd-form > div > div > .rounded-lg {
+  border-radius: 0;
+}
+
+.cd-form .cd-section {
+  border: 1.5px solid #000;
+  border-radius: 0;
+  background: #fff;
+  box-shadow: none;
+}
+
+.cd-form .cd-section-header {
+  background: #1f1f1f;
+  color: #fff;
+  padding: 4px 10px;
+  border-radius: 0;
+}
+
+.cd-form .cd-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #fff;
+}
+
+.cd-form .cd-section-letter {
+  border-radius: 0;
+  background: #fff;
+  color: #000;
+  height: 18px;
+  width: 18px;
+  font-size: 10px;
+}
+
+.cd-form .cd-section-desc {
+  color: #d7d7d7;
+  font-size: 10px;
+  font-style: italic;
+}
+
+/* Labels: monospace, uppercase, black. */
+.cd-form label,
+.cd-form .cd-field label {
+  font-family: "Courier New", Courier, monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #000;
+}
+
+/* Inputs: square, hairline black, no rounded modern chrome. */
+.cd-form input,
+.cd-form textarea,
+.cd-form button[role="combobox"] {
+  border-radius: 0 !important;
+  border: 1px solid #000 !important;
+  background: #fff !important;
+  color: #000 !important;
+  font-size: 12px;
+  box-shadow: none !important;
+}
+
+.cd-form input:focus-visible,
+.cd-form textarea:focus-visible,
+.cd-form button[role="combobox"]:focus-visible {
+  outline: 2px solid #000;
+  outline-offset: 0;
+  ring: 0;
+}
+
+.cd-form .cd-field p {
+  font-size: 10px;
+  color: #444;
+}
+
+/* Checkbox rows as document checkboxes. */
+.cd-form label.flex {
+  border-radius: 0;
+  border-color: #000;
+}
+
+.cd-form [role="checkbox"] {
+  border-radius: 0;
+  border: 1px solid #000;
+}
+
+/* Imported-from-deal indication. */
+.cd-form .cd-imported input,
+.cd-form .cd-imported textarea,
+.cd-form .cd-imported button[role="combobox"] {
+  background: #fffbe6 !important;
+  border-left: 3px solid #b58900 !important;
+}
+
+.cd-imported-tag {
+  margin-left: 6px;
+  padding: 0 4px;
+  border: 1px solid #b58900;
+  background: #fffbe6;
+  color: #7a5c00;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
+/* Totals read as ledger rows. */
+.cd-form .tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Print mode: strip every trace of input styling. */
+@media print {
+  .no-print,
+  .cd-form {
+    display: none !important;
+  }
+}
+
+.print-mode input,
+.print-mode textarea,
+.print-mode select {
+  border: none !important;
+  background: transparent !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  -webkit-appearance: none;
+  appearance: none;
+}
