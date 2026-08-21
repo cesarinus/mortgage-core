@@ -555,7 +555,6 @@ export const PrintDocument = forwardRef<HTMLDivElement, Props>(function PrintDoc
                 <td className="num">{money(r.final)}</td>
                 <td>
                   <b>{r.did_change ? "YES" : "NO"}</b>
-                  {r.did_change && r.explanation ? ` • ${r.explanation}` : ""}
                 </td>
               </tr>
             ))}
@@ -612,8 +611,8 @@ export const PrintDocument = forwardRef<HTMLDivElement, Props>(function PrintDoc
                 </tr>
                 <tr className="total">
                   <td>
-                    Cash to Close <CK on={ctc.direction_to_borrower === "From"} /> From{" "}
-                    <CK on={ctc.direction_to_borrower === "To"} /> To Borrower
+                    Cash to Close <CK on={ctc.direction_to_borrower === "From Borrower"} /> From{" "}
+                    <CK on={ctc.direction_to_borrower === "To Borrower"} /> To Borrower
                   </td>
                   <td className="num">{money(ctc.cash_to_close_borrower ?? t.cashToCloseBorrower)}</td>
                 </tr>
@@ -664,8 +663,8 @@ export const PrintDocument = forwardRef<HTMLDivElement, Props>(function PrintDoc
                 </tr>
                 <tr className="total">
                   <td>
-                    Cash to Close <CK on={ctc.direction_to_seller === "From"} /> From{" "}
-                    <CK on={ctc.direction_to_seller === "To"} /> To Seller
+                    Cash to Close <CK on={ctc.direction_to_seller === "From Seller"} /> From{" "}
+                    <CK on={ctc.direction_to_seller === "To Seller"} /> To Seller
                   </td>
                   <td className="num">{money(ctc.cash_to_close_seller ?? t.cashToCloseSeller)}</td>
                 </tr>
