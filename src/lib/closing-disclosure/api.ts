@@ -9,9 +9,10 @@ export const DEAL_TYPE = "Closing Disclosure";
 const draftKey = (id: string) => `cd_draft_${id}`;
 
 /** The CRM-ready payload emitted on submit. */
-export function buildCrmPayload(form: ClosingDisclosureForm) {
+export function buildCrmPayload(form: ClosingDisclosureForm, sourceDealId?: string | null) {
   const totals = computeTotals(form);
   return {
+    sourceDealId: sourceDealId ?? null,
     transactionInfo: {
       ...form.transactionInfo,
       closingInformation: form.closingInfo,
@@ -159,7 +160,7 @@ export async function persistDisclosure({
     deal_type: DEAL_TYPE,
     form_type: FORM_TYPE,
     status,
-    crm_payload: buildCrmPayload(form) as never,
+    crm_payload: buildCrmPayload(form, opportunityId ?? null) as never,
     opportunity_id: opportunityId ?? null,
     lead_id: leadId ?? null,
     submitted_at: status === "submitted" ? new Date().toISOString() : null,
