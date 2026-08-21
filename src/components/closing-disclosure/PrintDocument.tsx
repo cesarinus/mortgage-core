@@ -18,7 +18,7 @@ const N = ({ i }: { i: number }) => <span className="cd-idx">{String(i).padStart
 const Footer = ({ page, loanId }: { page: number; loanId: string }) => (
   <div className="cd-footer">
     <span>CLOSING DISCLOSURE</span>
-    <span>Page {page} of 6</span>
+    <span className="cd-footer-page">PAGE {page} OF 6</span>
     <span>LOAN ID # {loanId || "\u2014"}</span>
   </div>
 );
