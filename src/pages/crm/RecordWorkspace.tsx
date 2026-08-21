@@ -504,14 +504,14 @@ export default function RecordWorkspace({ kind }: Props) {
               </TabsContent>
             )}
             <TabsContent value="messages" className="mt-4">
-              <MessagesTab deals={deals} />
+              <MessagesTab deals={kind === "lead" ? opportunities : deals} />
             </TabsContent>
             <TabsContent value="tasks" className="mt-4 space-y-6">
               {kind === "lead" && id && (
                 <TaskListPanel related={{ type: "lead", id, label: `${record?.first_name ?? ""} ${record?.last_name ?? ""}`.trim() }} title="Lead Tasks" />
               )}
-              {deals?.[0]?.id && (
-                <TaskListPanel related={{ type: "opportunity", id: deals[0].id, label: deals[0].property_address ?? "Opportunity" }} title="Opportunity Tasks" />
+              {(kind === "lead" ? opportunities : deals)?.[0]?.id && (
+                <TaskListPanel related={{ type: "opportunity", id: (kind === "lead" ? opportunities : deals)[0].id, label: (kind === "lead" ? opportunities : deals)[0].property_address ?? "Opportunity" }} title="Opportunity Tasks" />
               )}
             </TabsContent>
             {kind === "lead" && (
@@ -520,7 +520,7 @@ export default function RecordWorkspace({ kind }: Props) {
               </TabsContent>
             )}
             <TabsContent value="documents" className="mt-4">
-              <DocumentsTab deals={deals} />
+              <DocumentsTab deals={kind === "lead" ? opportunities : deals} />
             </TabsContent>
             <TabsContent value="emails" className="mt-4">
               <EmailLogList
@@ -542,9 +542,18 @@ export default function RecordWorkspace({ kind }: Props) {
           </Tabs>
           {kind === "lead" && (
             <div className="mt-auto pt-4 flex justify-end">
-              <Button size="sm" variant="outline" onClick={() => setIntakeOpen(true)}>
-                <Sparkles className="h-3.5 w-3.5 mr-1.5" /> Edit Intake
-              </Button>
+              <div className="flex gap-2">
+                {primaryOpp?.id && (
+                  <Button size="sm" variant="outline" asChild>
+                    <Link to={`/closing-disclosure/new?opportunity=${primaryOpp.id}&lead=${id}`}>
+                      <FileText className="h-3.5 w-3.5 mr-1.5" /> Closing Disclosure
+                    </Link>
+                  </Button>
+                )}
+                <Button size="sm" variant="outline" onClick={() => setIntakeOpen(true)}>
+                  <Sparkles className="h-3.5 w-3.5 mr-1.5" /> Edit Intake
+                </Button>
+              </div>
             </div>
           )}
         </main>
