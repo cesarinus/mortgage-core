@@ -100,9 +100,13 @@ export function AreaField({
   rows = 3,
   className,
 }: BaseProps & { value: string; onChange: (v: string) => void; rows?: number }) {
+  const imported = useImported(label);
   return (
-    <div className={cn("space-y-1.5", className)}>
-      <Label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</Label>
+    <div className={cn("cd-field space-y-1.5", imported && "cd-imported", className)}>
+      <Label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        {label}
+        <ImportedTag show={imported} />
+      </Label>
       <Textarea rows={rows} value={value ?? ""} onChange={(e) => onChange(e.target.value)} />
       {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
     </div>
