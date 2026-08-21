@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, createContext, useContext, useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,6 +9,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Trash2 } from "lucide-react";
 import { money, num } from "@/lib/closing-disclosure/calc";
 import { cn } from "@/lib/utils";
+
+/** Labels (lowercased) that were pre-filled from a Deal/Opportunity import. */
+export const ImportedFieldsContext = createContext<Set<string>>(new Set());
+
+function useImported(label: string) {
+  const set = useContext(ImportedFieldsContext);
+  return set.has(label.trim().toLowerCase());
+}
+
+/** Small "from deal" tag shown next to imported labels. */
+function ImportedTag({ show }: { show: boolean }) {
+  if (!show) return null;
+  return <span className="cd-imported-tag">from deal</span>;
+}
 
 export function Section({
   title,
