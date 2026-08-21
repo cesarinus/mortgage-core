@@ -120,10 +120,12 @@ export function DateField({
   required,
   className,
 }: BaseProps & { value: string; onChange: (v: string) => void }) {
+  const imported = useImported(label);
   return (
-    <div className={cn("space-y-1.5", className)}>
+    <div className={cn("cd-field space-y-1.5", imported && "cd-imported", className)}>
       <Label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
         {label} {required && <span className="text-destructive">*</span>}
+        <ImportedTag show={imported} />
       </Label>
       <Input type="date" value={value ?? ""} onChange={(e) => onChange(e.target.value)} />
     </div>
