@@ -7,6 +7,7 @@ import { LayoutDashboard, FileText, Calculator, MessageSquare, LogOut, Building2
 import { cn } from "@/lib/utils";
 import MfaGate from "@/components/auth/MfaGate";
 import { AssistantLauncher } from "@/components/chat/AssistantLauncher";
+import NoIndex from "@/components/seo/NoIndex";
 
 const nav = [
   { to: "/portal", label: "Overview", icon: LayoutDashboard, end: true },
@@ -36,6 +37,7 @@ export default function PortalLayout() {
   // Enforce MFA before showing any portal content (including the "no binding" screen).
   return (
     <MfaGate signOutRedirect="/portal/login">
+      <NoIndex />
       <PortalLayoutInner />
     </MfaGate>
   );
