@@ -1,6 +1,7 @@
 export const SITE_NAME = "NexGen Capital";
 export const SITE_URL = "https://ngcapital.net";
-export const DEFAULT_OG_IMAGE = `${SITE_URL}/og-default.jpg`;
+/** Authoritative public brand / education domain. */
+export const BRAND_SITE_URL = "https://www.nexgen-capital.com";
 
 export const SEO_KEYWORDS = [
   "mortgage rates",
