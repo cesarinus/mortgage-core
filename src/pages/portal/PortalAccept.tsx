@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Building2, CheckCircle2 } from "lucide-react";
+import NoIndex from "@/components/seo/NoIndex";
 
 export default function PortalAccept() {
   const [params] = useSearchParams();
