@@ -11,7 +11,7 @@ import ApplicationHub from "@/components/landing/ApplicationHub";
 import MortgageCalculator from "@/components/calculator/MortgageCalculator";
 import FloatingCalculatorButton from "@/components/calculator/FloatingCalculatorButton";
 import { AccessibilityToolbar } from "@/components/accessibility/AccessibilityToolbar";
-import { SITE_URL, HOMEPAGE_KEYWORDS_STRING } from "@/lib/seoConstants";
+import { SITE_URL, BRAND_SITE_URL, HOMEPAGE_KEYWORDS_STRING } from "@/lib/seoConstants";
 
 const LandingPage = () => {
   const [hubOpen, setHubOpen] = useState(false);
@@ -50,10 +50,10 @@ const LandingPage = () => {
           "@type": ["LocalBusiness", "MortgageBroker", "FinancialService"],
           "@id": `${SITE_URL}/#business`,
           name: "NexGen Capital",
-          image: `${SITE_URL}/og-default.jpg`,
           priceRange: "$$",
           telephone: "(239) 645-4580",
           url: SITE_URL,
+          identifier: "NMLS #1766649",
           address: {
             "@type": "PostalAddress",
             addressLocality: "Naples",
