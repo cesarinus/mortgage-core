@@ -75,7 +75,8 @@ const LandingPage = () => {
             opens: "00:00", closes: "23:59",
           }],
           sameAs: [
-            "https://www.google.com/maps/search/?api=1&query=NexGen+Capital+Naples+FL",
+            BRAND_SITE_URL,
+            "https://www.nmlsconsumeraccess.org/EntityDetails.aspx/COMPANY/1766649",
           ],
         })}</script>
       </Helmet>
