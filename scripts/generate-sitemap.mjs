@@ -6,20 +6,13 @@ const SUPABASE_URL = "https://hyskofjwotohgdtocsie.supabase.co";
 const SUPABASE_ANON =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh5c2tvZmp3b3RvaGdkdG9jc2llIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA0NjcxODUsImV4cCI6MjA4NjA0MzE4NX0.2M5GNKjxatuYJ2cG3kwHjcrwdK8CTRXwPerdv__J8vQ";
 
-interface Entry {
-  path;
-  lastmod?;
-  changefreq?;
-  priority?;
-}
-
 const staticEntries = [
   { path: "/", changefreq: "weekly", priority: "1.0" },
   { path: "/blog", changefreq: "daily", priority: "0.8" },
   { path: "/book", changefreq: "monthly", priority: "0.7" },
 ];
 
-async function fetchBlogSlugs(): Promise<Entry[]> {
+async function fetchBlogSlugs() {
   try {
     const res = await fetch(
       `${SUPABASE_URL}/rest/v1/blog_posts?select=slug,updated_at,created_at&status=eq.published`,
@@ -28,7 +21,7 @@ async function fetchBlogSlugs(): Promise<Entry[]> {
       },
     );
     if (!res.ok) return [];
-    const rows = (await res.json()) as Array<{ slug; updated_at?; created_at? }>;
+    const rows = await res.json();
     return rows.map((r) => ({
       path: `/blog/${r.slug}`,
       lastmod: (r.updated_at || r.created_at || "").slice(0, 10) || undefined,

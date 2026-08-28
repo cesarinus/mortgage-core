@@ -20,17 +20,9 @@ if (!existsSync(SOURCE)) {
 
 const template = readFileSync(SOURCE, "utf8");
 
-interface Route {
-  path: string;
-  title: string;
-  description: string;
-  ogTitle?: string;
-  ogDescription?: string;
-}
-
 const BASE = "https://ngcapital.net";
 
-const routes: Route[] = [
+const routes = [
   {
     path: "/blog",
     title: "Mortgage Blog | NexGen Capital — Southwest Florida Insights",
@@ -51,21 +43,26 @@ const routes: Route[] = [
   },
 ];
 
-function rewrite(html: string, r: Route): string {
+function escapeAttr(s) {
+  return s.replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+}
+
+function rewrite(html, r) {
   const canonical = `${BASE}${r.path}`;
+  const desc = escapeAttr(r.description);
   return html
     .replace(/<title>[\s\S]*?<\/title>/i, `<title>${r.title}</title>`)
     .replace(
       /<meta\s+name="description"[^>]*>/i,
-      `<meta name="description" content="${r.description}" />`,
+      `<meta name="description" content="${desc}" />`,
     )
     .replace(
       /<meta\s+property="og:title"[^>]*>/i,
-      `<meta property="og:title" content="${r.ogTitle ?? r.title}" />`,
+      `<meta property="og:title" content="${escapeAttr(r.ogTitle ?? r.title)}" />`,
     )
     .replace(
       /<meta\s+property="og:description"[^>]*>/i,
-      `<meta property="og:description" content="${r.ogDescription ?? r.description}" />`,
+      `<meta property="og:description" content="${escapeAttr(r.ogDescription ?? r.description)}" />`,
     )
     .replace(
       /<meta\s+property="og:url"[^>]*>/i,
@@ -77,9 +74,18 @@ function rewrite(html: string, r: Route): string {
     );
 }
 
+let wrote = 0;
 for (const r of routes) {
   const dir = resolve(DIST, r.path.replace(/^\//, ""));
   mkdirSync(dir, { recursive: true });
   writeFileSync(resolve(dir, "index.html"), rewrite(template, r));
+  wrote++;
   console.log(`[prerender] wrote ${r.path}/index.html`);
+}
+
+// Fail loudly if nothing was written — a silent skip previously shipped
+// duplicate shells to production.
+if (wrote !== routes.length) {
+  console.error(`[prerender] expected ${routes.length} routes, wrote ${wrote}`);
+  process.exit(1);
 }
