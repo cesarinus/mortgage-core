@@ -68,6 +68,7 @@ export default function PortalAccept() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
+      <NoIndex />
       <Card className="w-full max-w-md text-center">
         <CardHeader>
           {done
