@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Bell, CheckSquare, Plus, Search, Sparkles } from "lucide-react";
 import { TaskDrawer } from "@/components/tasks/TaskDrawer";
+import NoIndex from "@/components/seo/NoIndex";
 
 export default function AppLayout() {
   const navigate = useNavigate();
@@ -34,6 +35,7 @@ export default function AppLayout() {
 
   return (
     <SidebarProvider>
+      <NoIndex />
       <div className="flex min-h-screen w-full bg-background">
         <AppSidebar />
         <div className="flex flex-1 flex-col min-w-0">

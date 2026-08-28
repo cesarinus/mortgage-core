@@ -62,7 +62,10 @@ export default function PortalLogin() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
-      <Helmet><title>Borrower Portal · NexGen Capital</title></Helmet>
+      <Helmet>
+        <title>Borrower Portal · NexGen Capital</title>
+        <meta name="robots" content="noindex, nofollow" />
+      </Helmet>
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <Building2 className="h-8 w-8 text-primary mx-auto mb-2" />
