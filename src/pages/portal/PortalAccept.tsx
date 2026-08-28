@@ -49,6 +49,7 @@ export default function PortalAccept() {
     const next = `/portal/accept?token=${encodeURIComponent(token)}`;
     return (
       <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
+        <NoIndex />
         <Card className="w-full max-w-md text-center">
           <CardHeader>
             <Building2 className="h-8 w-8 text-primary mx-auto mb-2" />
