@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "prebuild": "bunx tsx scripts/generate-sitemap.ts || true",
+    "prebuild": "node scripts/generate-sitemap.mjs",
     "build": "vite build",
-    "postbuild": "bunx tsx scripts/prerender-routes.ts || true",
+    "postbuild": "node scripts/prerender-routes.mjs",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
