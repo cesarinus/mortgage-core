@@ -48,7 +48,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { normalizeStatus, recordLeadTransition } from "@/lib/crm/stateMachine";
 import { getStageSuggestions } from "@/lib/crm/stageTasks";
 import { moveLeadToPipeline } from "@/lib/crm/moveToPipeline";
-import { ArrowRightCircle } from "lucide-react";
+import { ArrowRightCircle, Globe } from "lucide-react";
+import { WebActivityPanel } from "@/components/crm/WebActivityPanel";
 
 interface Props { kind: "lead" | "contact" }
 
@@ -457,6 +458,11 @@ export default function RecordWorkspace({ kind }: Props) {
               <TabsTrigger value="emails" className="flex items-center gap-1.5">
                 <Mail className="h-3.5 w-3.5" /> Emails
               </TabsTrigger>
+              {kind === "lead" && (
+                <TabsTrigger value="web" className="flex items-center gap-1.5">
+                  <Globe className="h-3.5 w-3.5" /> Web Activity
+                </TabsTrigger>
+              )}
               {kind === "contact" && (
                 <TabsTrigger value="relationships" className="flex items-center gap-1.5">
                   <Users className="h-3.5 w-3.5" /> Relationships
@@ -477,6 +483,11 @@ export default function RecordWorkspace({ kind }: Props) {
                 pipelineMode={kind === "lead" && fromPipeline}
               />
             </TabsContent>
+            {kind === "lead" && id && (
+              <TabsContent value="web" className="mt-4">
+                <WebActivityPanel leadId={id} />
+              </TabsContent>
+            )}
             <TabsContent value="activities" className="mt-4">
               <UnifiedTimelineTab
                 activities={activities}

@@ -1,3 +1,4 @@
+import { getVisitorId } from "@/lib/visitorTracking";
 import { useMemo, useState } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -179,6 +180,7 @@ const MortgageCalculator = ({ open, onOpenChange }: MortgageCalculatorProps) => 
           first_name,
           last_name,
           email: leadEmail.trim(),
+          visitor_id: getVisitorId(),
           phone: leadPhone.trim() || undefined,
           loan_purpose: loanTypeLabel,
           property_value: homePrice,
