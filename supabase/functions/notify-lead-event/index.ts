@@ -73,6 +73,12 @@ Deno.serve(async (req) => {
       subject = `[Lead Update] ${fullName} → ${newS}`;
       banner = "Lead Status Changed";
       intro = `<p style="margin:0 0 16px;color:#334155;">A lead has progressed in the pipeline: <strong>${escapeHtml(oldS)}</strong> → <strong style="color:#f97316;">${escapeHtml(newS)}</strong></p>`;
+    } else if (event === "return_visit") {
+      const path = payload.visit_path || "/";
+      const site = payload.visit_site || "your website";
+      subject = `[Return Visit] ${fullName} is back on ${site}`;
+      banner = "Lead Is Back On Your Site";
+      intro = `<p style="margin:0 0 16px;color:#334155;"><strong>${escapeHtml(fullName)}</strong> just returned to <strong>${escapeHtml(site)}</strong> and is viewing <strong style="color:#f97316;">${escapeHtml(path)}</strong> (visit #${escapeHtml(payload.visit_count ?? "")}). Good time to reach out.</p>`;
     } else {
       subject = `[New Lead] ${fullName} — ${loanPurpose}`;
       banner = "New Lead Captured";
