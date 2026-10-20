@@ -1,3 +1,4 @@
+import WebsiteVisitors from "@/pages/WebsiteVisitors";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -100,6 +101,7 @@ const App = () => (
               >
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/leads" element={<Leads />} />
+                <Route path="/visitors" element={<WebsiteVisitors />} />
                 <Route path="/tasks" element={<Tasks />} />
                 <Route path="/contacts" element={<Navigate to="/contacts/people" replace />} />
                 <Route path="/contacts/people" element={<People />} />

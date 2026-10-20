@@ -1,3 +1,4 @@
+import { getVisitorId } from "@/lib/visitorTracking";
 import { useState, useEffect, useCallback } from "react";
 import { getScore, getSessionId } from "@/hooks/useBlogTracking";
 import { X, ArrowLeft, ArrowRight, Check, Shield, Clock, Lock, Home, Building2, Users, DollarSign, Phone, Mail, Calendar, Sparkles } from "lucide-react";
@@ -220,6 +221,7 @@ const ApplicationHub = ({ open, onClose, prefillPurpose }: ApplicationHubProps) 
           source: "application_hub",
           lead_score: getScore(),
           blog_session_id: getSessionId(),
+          visitor_id: getVisitorId(),
           variant_shown: (() => {
             try {
               const v = localStorage.getItem("ng_blog_variant");

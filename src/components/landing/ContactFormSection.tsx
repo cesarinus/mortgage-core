@@ -1,3 +1,4 @@
+import { getVisitorId } from "@/lib/visitorTracking";
 import { useState } from "react";
 import { getScore, getSessionId } from "@/hooks/useBlogTracking";
 import { Button } from "@/components/ui/button";
@@ -41,6 +42,7 @@ const ContactFormSection = () => {
           source: "contact_form",
           lead_score: getScore(),
           blog_session_id: getSessionId(),
+          visitor_id: getVisitorId(),
         },
       });
 
