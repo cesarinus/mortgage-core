@@ -61,3 +61,6 @@ verify_jwt = false
 
 [functions.update-mortgage-rates]
 verify_jwt = false
+
+[functions.track-visitor-activity]
+verify_jwt = false

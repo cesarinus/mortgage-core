@@ -153,6 +153,13 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Link website visitor history (cross-site tracker) to this lead
+    const visitor_id = sanitizeText(body.visitor_id, 64);
+    if (visitor_id && leadData?.id) {
+      await supabase.from("website_visitors").update({ lead_id: leadData.id }).eq("visitor_id", visitor_id).is("lead_id", null);
+      await supabase.from("website_events").update({ lead_id: leadData.id }).eq("visitor_id", visitor_id).is("lead_id", null);
+    }
+
     // Link blog session to lead if session_id provided
     if (blog_session_id && leadData?.id) {
       await supabase

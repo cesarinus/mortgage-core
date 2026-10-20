@@ -6993,6 +6993,99 @@ export type Database = {
         }
         Relationships: []
       }
+      website_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          lead_id: string | null
+          metadata: Json
+          path: string | null
+          points: number
+          site: string | null
+          visitor_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          lead_id?: string | null
+          metadata?: Json
+          path?: string | null
+          points?: number
+          site?: string | null
+          visitor_id: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          lead_id?: string | null
+          metadata?: Json
+          path?: string | null
+          points?: number
+          site?: string | null
+          visitor_id?: string
+        }
+        Relationships: []
+      }
+      website_visitors: {
+        Row: {
+          created_at: string
+          device: string | null
+          first_referrer: string | null
+          first_seen_at: string
+          id: string
+          intent_score: number
+          last_alert_at: string | null
+          last_seen_at: string
+          lead_id: string | null
+          pageview_count: number
+          site: string | null
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          visit_count: number
+          visitor_id: string
+        }
+        Insert: {
+          created_at?: string
+          device?: string | null
+          first_referrer?: string | null
+          first_seen_at?: string
+          id?: string
+          intent_score?: number
+          last_alert_at?: string | null
+          last_seen_at?: string
+          lead_id?: string | null
+          pageview_count?: number
+          site?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          visit_count?: number
+          visitor_id: string
+        }
+        Update: {
+          created_at?: string
+          device?: string | null
+          first_referrer?: string | null
+          first_seen_at?: string
+          id?: string
+          intent_score?: number
+          last_alert_at?: string | null
+          last_seen_at?: string
+          lead_id?: string | null
+          pageview_count?: number
+          site?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          visit_count?: number
+          visitor_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       deals: {
