@@ -24,6 +24,8 @@ import { fetchAllCompanies } from "@/lib/crm/queries";
 import { TablePagination } from "@/components/ui/table-pagination";
 import { SmartEmailComposer } from "@/components/email/SmartEmailComposer";
 import { FilterSidebar } from "@/components/crm/FilterSidebar";
+import { ImportPeopleDialog } from "@/components/people/ImportPeopleDialog";
+import { Upload } from "lucide-react";
 
 type Contact = Tables<"contacts">;
 
@@ -59,6 +61,7 @@ export default function People() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const [emailTarget, setEmailTarget] = useState<{ to: string; name: string } | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
 
   const load = async () => {
     const [{ data: contactsData }, { data: pdData }] = await Promise.all([
@@ -211,7 +214,9 @@ export default function People() {
           <h1 className="text-2xl font-bold tracking-tight">People</h1>
           <p className="text-muted-foreground">Borrowers, partners, and contacts</p>
         </div>
+        <Button variant="outline" onClick={() => setImportOpen(true)}><Upload className="mr-2 h-4 w-4" />Import Excel / CSV</Button>
         <Button onClick={openNew}><Plus className="mr-2 h-4 w-4" />New Person</Button>
+        {user && <ImportPeopleDialog open={importOpen} onOpenChange={setImportOpen} userId={user.id} onDone={() => { load(); loadCompanies(); }} />}
       </div>
 
       <Card>
