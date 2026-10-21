@@ -155,8 +155,14 @@ Deno.serve(async (req) => {
 
     // Link website visitor history (cross-site tracker) to this lead
     const visitor_id = sanitizeText(body.visitor_id, 64);
-    if (visitor_id && leadData?.id) {
-      await supabase.from("website_visitors").update({ lead_id: leadData.id }).eq("visitor_id", visitor_id).is("lead_id", null);
+    if (visitor_id && /^[A-Za-z0-9_-]{8,64}$/.test(visitor_id) && leadData?.id) {
+      const { data: existing } = await supabase.from("website_visitors").select("id").eq("visitor_id", visitor_id).maybeSingle();
+      if (existing) {
+        await supabase.from("website_visitors").update({ lead_id: leadData.id }).eq("visitor_id", visitor_id).is("lead_id", null);
+      } else {
+        // Save the vid with the lead even if no tracked visit has arrived yet
+        await supabase.from("website_visitors").insert({ visitor_id, lead_id: leadData.id, site: "ngcapital.net", visit_count: 0, pageview_count: 0 });
+      }
       await supabase.from("website_events").update({ lead_id: leadData.id }).eq("visitor_id", visitor_id).is("lead_id", null);
     }
 
