@@ -113,6 +113,24 @@ Deno.serve(async (req) => {
       </div>
     `;
 
+    let recipient = NOTIFY_TO;
+    if (event === "return_visit" && leadId !== "—") {
+      try {
+        const SB_URL = Deno.env.get("SUPABASE_URL")!;
+        const SRK = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+        const h = { apikey: SRK, Authorization: `Bearer ${SRK}` };
+        const lr = await fetch(`${SB_URL}/rest/v1/leads?id=eq.${encodeURIComponent(String(leadId))}&select=assigned_to`, { headers: h });
+        const assigned = (await lr.json())?.[0]?.assigned_to;
+        if (assigned) {
+          const pr = await fetch(`${SB_URL}/rest/v1/profiles?id=eq.${assigned}&select=email`, { headers: h });
+          const em = (await pr.json())?.[0]?.email;
+          if (typeof em === "string" && em.includes("@")) recipient = em;
+        }
+      } catch (e) {
+        console.error("[NOTIFY-LEAD-EVENT] officer lookup failed", e);
+      }
+    }
+
     const res = await fetch(`${GATEWAY_URL}/emails`, {
       method: "POST",
       headers: {
@@ -122,7 +140,7 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         from: FROM,
-        to: [NOTIFY_TO],
+        to: [recipient],
         reply_to: typeof email === "string" && email.includes("@") ? email : undefined,
         subject,
         html,
