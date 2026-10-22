@@ -55,6 +55,7 @@ export function ImportPeopleDialog({ open, onOpenChange, userId, onDone }: Props
       const coMap = new Map<string, string>((cos ?? []).map((c: any) => [c.name.trim().toLowerCase(), c.id]));
       const isPartner = !["borrower", "lead"].includes(role);
       let created = 0, updated = 0, skipped = 0, invalid = 0;
+      const companyFailed = new Set<string>();
 
       for (const p of mapped) {
         if (!p.first_name && !p.last_name) { invalid++; continue; }
@@ -64,8 +65,9 @@ export function ImportPeopleDialog({ open, onOpenChange, userId, onDone }: Props
           const k = p.company.toLowerCase();
           company_id = coMap.get(k) ?? null;
           if (!company_id) {
-            const { data } = await supabase.from("crm_companies").insert({ name: p.company } as any).select("id").maybeSingle();
+            const { data } = await supabase.from("crm_companies").insert({ name: p.company, created_by: userId } as any).select("id").maybeSingle();
             if (data) { company_id = data.id; coMap.set(k, data.id); }
+            else companyFailed.add(p.company);
           }
         }
         const base: any = {
@@ -93,6 +95,11 @@ export function ImportPeopleDialog({ open, onOpenChange, userId, onDone }: Props
         }
       }
       setResult({ created, updated, skipped, invalid });
+      if (companyFailed.size) toast({
+        title: `${companyFailed.size} brokerage(s) could not be added`,
+        description: `People were saved without a company: ${[...companyFailed].slice(0, 5).join(", ")}${companyFailed.size > 5 ? "…" : ""}`,
+        variant: "destructive",
+      });
       onDone();
     } finally { setRunning(false); }
   };
