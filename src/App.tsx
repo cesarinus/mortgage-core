@@ -51,6 +51,7 @@ import Book from "@/pages/Book";
 import AdminSocialMedia from "@/pages/AdminSocialMedia";
 import Subscribers from "@/pages/Subscribers";
 import EmailTemplates from "@/pages/EmailTemplates";
+import EmailCampaigns from "@/pages/EmailCampaigns";
 import Tasks from "@/pages/Tasks";
 import NotFound from "@/pages/NotFound";
 import RecordWorkspace from "@/pages/crm/RecordWorkspace";
@@ -156,6 +157,7 @@ const App = () => (
                 <Route path="/admin/social-media" element={<AdminSocialMedia />} />
                 <Route path="/email/subscribers" element={<Subscribers />} />
                 <Route path="/email/templates" element={<EmailTemplates />} />
+                <Route path="/email/campaigns" element={<EmailCampaigns />} />
                 <Route path="/crm/leads/:id" element={<RecordWorkspace kind="lead" />} />
                 <Route path="/crm/contacts/:id" element={<RecordWorkspace kind="contact" />} />
                 <Route path="/opportunities/:id" element={<OpportunityWorkspace />} />

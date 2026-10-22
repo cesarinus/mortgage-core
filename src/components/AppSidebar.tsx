@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Users, Building2, Contact as ContactIcon, Kanban, TrendingUp,
-  FileText, Share2, Mail, MailOpen, Settings, LogOut, ChevronDown, UserRound, CheckSquare, Globe,
+  FileText, Share2, Mail, MailOpen, Settings, LogOut, ChevronDown, UserRound, CheckSquare, Globe, Send,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useAuth } from "@/hooks/useAuth";
@@ -40,6 +40,7 @@ const navItems: NavItem[] = [
   { title: "Social Media", url: "/admin/social-media", icon: Share2, adminOnly: true },
   { title: "Subscribers", url: "/email/subscribers", icon: Mail, adminOnly: true },
   { title: "Email Templates", url: "/email/templates", icon: MailOpen, adminOnly: true },
+  { title: "Email Campaigns", url: "/email/campaigns", icon: Send },
   { title: "Lock vs Float", url: "/rate-decision", icon: TrendingUp },
   { title: "Settings", url: "/settings", icon: Settings },
 ];
