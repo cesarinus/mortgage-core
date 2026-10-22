@@ -64,3 +64,6 @@ verify_jwt = false
 
 [functions.track-visitor-activity]
 verify_jwt = false
+
+[functions.send-campaign]
+verify_jwt = false

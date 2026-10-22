@@ -2426,6 +2426,119 @@ export type Database = {
           },
         ]
       }
+      email_campaign_recipients: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          email: string
+          error_message: string | null
+          first_name: string | null
+          id: string
+          person_id: string | null
+          sent_at: string | null
+          status: string
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          email: string
+          error_message?: string | null
+          first_name?: string | null
+          id?: string
+          person_id?: string | null
+          sent_at?: string | null
+          status?: string
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          email?: string
+          error_message?: string | null
+          first_name?: string | null
+          id?: string
+          person_id?: string | null
+          sent_at?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_campaign_recipients_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "email_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_campaign_recipients_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_campaigns: {
+        Row: {
+          audience_role: string
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          failed_count: number
+          id: string
+          name: string
+          scheduled_at: string | null
+          sent_count: number
+          started_at: string | null
+          status: string
+          subject: string | null
+          template_id: string | null
+          total_recipients: number
+          updated_at: string
+        }
+        Insert: {
+          audience_role?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          failed_count?: number
+          id?: string
+          name: string
+          scheduled_at?: string | null
+          sent_count?: number
+          started_at?: string | null
+          status?: string
+          subject?: string | null
+          template_id?: string | null
+          total_recipients?: number
+          updated_at?: string
+        }
+        Update: {
+          audience_role?: string
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          failed_count?: number
+          id?: string
+          name?: string
+          scheduled_at?: string | null
+          sent_count?: number
+          started_at?: string | null
+          status?: string
+          subject?: string | null
+          template_id?: string | null
+          total_recipients?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_campaigns_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "email_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_logs: {
         Row: {
           clicked_at: string | null
@@ -2596,6 +2709,24 @@ export type Database = {
           text_content?: string
           trigger_event?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      email_unsubscribes: {
+        Row: {
+          campaign_id: string | null
+          created_at: string
+          email: string
+        }
+        Insert: {
+          campaign_id?: string | null
+          created_at?: string
+          email: string
+        }
+        Update: {
+          campaign_id?: string | null
+          created_at?: string
+          email?: string
         }
         Relationships: []
       }
