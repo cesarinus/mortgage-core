@@ -13,12 +13,11 @@ import { useToast } from "@/hooks/use-toast";
 import { Plus, Send, Users, CalendarClock, FlaskConical, Trash2 } from "lucide-react";
 
 const AUDIENCES = [
-  { value: "Realtor", label: "Real Estate Agents" },
-  { value: "ReferralPartner", label: "Referral Partners" },
-  { value: "Builder", label: "Builders" },
-  { value: "Attorney", label: "Attorneys" },
-  { value: "Vendor", label: "Vendors" },
-  { value: "Contact", label: "General Contacts" },
+  { value: "real_estate_agent", label: "Real Estate Agents" },
+  { value: "referral_partner", label: "Referral Partners" },
+  { value: "title_agent", label: "Title Agents" },
+  { value: "insurance_agent", label: "Insurance Agents" },
+  { value: "borrower", label: "Borrowers" },
 ];
 const audienceLabel = (v: string) => AUDIENCES.find((a) => a.value === v)?.label ?? v;
 
@@ -43,7 +42,7 @@ export default function EmailCampaigns() {
   const [campaigns, setCampaigns] = useState<any[]>([]);
   const [templates, setTemplates] = useState<any[]>([]);
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ name: "", template_id: "", subject: "", audience_role: "Realtor", scheduled_at: "" });
+  const [form, setForm] = useState({ name: "", template_id: "", subject: "", audience_role: "real_estate_agent", scheduled_at: "" });
   const [selected, setSelected] = useState<any | null>(null);
   const [recipients, setRecipients] = useState<any[]>([]);
   const [testTo, setTestTo] = useState("");
@@ -81,7 +80,7 @@ export default function EmailCampaigns() {
     });
     if (error) return toast({ title: "Could not create campaign", description: error.message, variant: "destructive" });
     setOpen(false);
-    setForm({ name: "", template_id: "", subject: "", audience_role: "Realtor", scheduled_at: "" });
+    setForm({ name: "", template_id: "", subject: "", audience_role: "real_estate_agent", scheduled_at: "" });
     toast({ title: form.scheduled_at ? "Campaign scheduled" : "Campaign saved as draft" });
     load();
   };
