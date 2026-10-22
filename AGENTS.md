@@ -1,0 +1,1 @@
+- Email campaigns are sent by the send-campaign function using the active SMTP provider; scheduled ones are picked up by an hourly job. Why: reuse existing mail setup and keep background checks cheap.
