@@ -18,22 +18,20 @@ const supabase = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPAB
 const FN_URL = `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-campaign`;
 
 async function buildRecipients(campaignId: string, role: string) {
-  const { data: roles } = await supabase.from("person_roles").select("person_id").eq("role_type", role);
-  const ids = [...new Set((roles ?? []).map((r: any) => r.person_id))];
-  if (!ids.length) return 0;
   const people: any[] = [];
-  for (let i = 0; i < ids.length; i += 200) {
-    const { data } = await supabase.from("people").select("id, email, first_name").in("id", ids.slice(i, i + 200));
+  for (let from = 0; ; from += 1000) {
+    const { data } = await supabase.from("contacts").select("email, first_name").eq("role", role)
+      .not("email", "is", null).range(from, from + 999);
     people.push(...(data ?? []));
+    if (!data || data.length < 1000) break;
   }
   const { data: unsubs } = await supabase.from("email_unsubscribes").select("email");
   const blocked = new Set((unsubs ?? []).map((u: any) => u.email));
   const seen = new Set<string>();
   const rows = people
-    .filter((p) => p.email)
     .map((p) => ({ ...p, email: String(p.email).trim().toLowerCase() }))
-    .filter((p) => !blocked.has(p.email) && !seen.has(p.email) && seen.add(p.email))
-    .map((p) => ({ campaign_id: campaignId, person_id: p.id, email: p.email, first_name: p.first_name }));
+    .filter((p) => /^\S+@\S+\.\S+$/.test(p.email) && !blocked.has(p.email) && !seen.has(p.email) && seen.add(p.email))
+    .map((p) => ({ campaign_id: campaignId, email: p.email, first_name: p.first_name }));
   if (rows.length) await supabase.from("email_campaign_recipients").upsert(rows, { onConflict: "campaign_id,email", ignoreDuplicates: true });
   return rows.length;
 }
