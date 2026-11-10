@@ -1,82 +1,93 @@
-# Audit Report: AI Referral Attribution into Mortgage Core (read-only)
+# Targeted Verification: Mortgage Attribution (read-only)
 
-No files, data, settings or deployments were changed. Only source code and column names were read. No borrower data was queried.
+Nothing was changed, deployed or created. Only source code and database definitions were read: Mortgage Core, plus a read-only snapshot of NexGen Foundation, which is nexgen-capital.com, commit b77d2b57. No borrower records were read.
 
-## 1. Executive summary
-**Status: partially working at the visitor level, missing at the lead level.**
-- First-touch `utm_source/medium/campaign` and `first_referrer` are saved for a website visitor (`website_visitors`). They reach a lead only indirectly, through the `vid` link.
-- The lead itself (`leads.source`) stores only the form name (`application_hub`, `contact_form`, `calculator`, `website`). It never stores the traffic channel.
-- No code anywhere identifies AI platforms. ChatGPT, Perplexity, Claude, Copilot and Gemini all show up as a raw referrer string at best.
-- The Mortgage Core site (ngcapital.net) never calls `track-visitor-activity` itself. Attribution exists only if nexgen-capital.com tracked the visitor and passed `?vid=`. That tracker was still listed as outstanding and is **not verified** in this audit.
+Each finding is labeled VERIFIED, NOT VERIFIED or NOT APPLICABLE.
 
-## 2. Current lead flow
-```text
-nexgen-capital.com (tracker, if installed) --track-visitor-activity--> website_visitors (first-touch UTM/referrer) + website_events
-        | link to ngcapital.net/?start=1&vid=XXXX
-ngcapital.net: captureVisitorIdFromUrl() -> localStorage ng_visitor_id
-        | ApplicationHub / ContactFormSection / MortgageCalculator submit {source, visitor_id}
-submit-lead -> leads.insert(source=form name) -> links website_visitors.lead_id + website_events.lead_id
-```
-| Entry point | Creates the lead | Receiving function | Attribution passed |
-|---|---|---|---|
-| Application hub `/?start=1` | Submit | `submit-lead` | `source="application_hub"` + `visitor_id` |
-| Contact form | Submit | `submit-lead` | `source="contact_form"` + `visitor_id` |
-| Calculator quote/email/print | Action | `submit-lead` | `source="calculator*"` + `visitor_id` |
-| Ask Cesar chat | Contact captured | `chat-lead-upsert` | `source_id = lead_sources "AI Chat"`. No `vid`, UTM or referrer |
-| Phone / email | Manual entry by staff | CRM UI | None |
-| Arive LOS | Webhook | `arive-webhook` | `metadata.source="arive-webhook"` only |
-| External calculator iframe (nexgen-capital.com) | Not in this project | n/a | Unknown |
+## 1. Website tracker and consent (NexGen Foundation)
 
-## 3. Attribution inventory
-| Field | Captured | Persisted | Passed to lead | Reportable |
-|---|---|---|---|---|
-| utm_source / medium / campaign | Yes (tracker body) | `website_visitors`, first touch only | Indirectly via `vid` | Visitors page only |
-| utm_content / utm_term | Kept in event `path` query only | `website_events.path` | No | No |
-| Referrer | Yes (`body.referrer`) | `website_visitors.first_referrer`, first touch | Indirectly | Hostname on visitors page |
-| Landing page | Event paths | `website_events.path` | Indirectly | Manual only |
-| First touch | Yes (insert only) | Yes | Indirectly | Partial |
-| Last touch | **No.** Updates never touch UTM or referrer | No | No | No |
-| Visitor ID | `vid` URL param → localStorage | `website_visitors.visitor_id` | Yes | Yes |
-| Lead source | Form name | `leads.source` / `source_id` | Yes | Yes, but means form, not channel |
-| AI platform | **No** | No | No | No |
+- **VERIFIED: the site calls `track-visitor-activity` from the browser.**
+  - The address is hard-coded in `src/lib/visitor-tracking.ts` (`TRACKING_ENDPOINT`).
+  - Requests go out with `credentials: "omit"` and `keepalive`.
+- **VERIFIED: every page loads the tracker.**
+  - `<VisitorTracking />` is mounted in `src/routes/__root.tsx` (line 159).
+  - It records one `page_view` per route change.
+  - `installJourneyTracking()` records `cta_click` for links to ngcapital.net, www.ngcapital.net and askcesar.ngcapital.net.
+- **VERIFIED: nothing is sent or stored until the visitor accepts Analytics cookies.**
+  - Every send path checks `hasAnalyticsConsent()` first. This reads `nexgen-cookie-consent-v1.analytics === true` from browser storage.
+  - `getVisitorId()` returns null and stores nothing without consent.
+  - If consent is granted later, the `cookie-consent-updated` event records the current page.
+  - If consent is withdrawn, the stored ID `nexgen-vid` is deleted and `vid` is removed from links.
+  - Tests in `visitor-tracking.test.ts` and `visitor-id.test.ts` cover this.
+- **VERIFIED: what gets captured.**
+  - Captured: the page path (query string dropped), the referrer reduced to its origin only (for example `https://chatgpt.com`), and `utm_source`, `utm_medium` and `utm_campaign`, each checked against `^[a-z0-9_-]{1,100}$`.
+  - Not captured: `utm_content`, `utm_term`, or the full landing URL.
+  - Values with dots fail that check. `utm_source=chatgpt.com` is **thrown away**. So is the site's own `utm_source=nexgen-capital.com` from `landing-pages.ts`. This is a real gap.
+  - The landing page itself does arrive, as the path of the first `page_view`.
+- **VERIFIED: links to `ngcapital.net/?start=1` keep the visitor ID.** `installVidLinkDecorator()` adds `vid` at click time, but only with consent.
+  - Campaign tags: the Florida landing-page buttons add fixed UTMs (`intakeHref`). Other buttons (home page, learning center, loan programs, Naples page) are a plain `?start=1` link, so the visitor's original UTMs are **not** passed on.
+  - **NOT VERIFIED:** whether `installVidLinkDecorator` is actually started at the app root. Its call site was not found in `__root.tsx`. Since your earlier end-to-end test worked, it is likely started elsewhere, but this needs one more check.
+- **VERIFIED: without consent, or with storage blocked, nothing is tracked.** Errors are caught, so the site keeps working. Those leads arrive with no attribution and must be labeled Unknown.
+- **VERIFIED: the Mortgage Core intake (ngcapital.net) never calls the tracker itself.**
+  - `src/lib/visitorTracking.ts` only reads `?vid` into `ng_visitor_id`.
+  - It saves that ID without a consent check on ngcapital.net. NexGen Foundation only sends the ID after consent, but this is still a privacy point to review.
+- **NOT VERIFIED:** live traffic volume and the deployed version of the site.
 
-When the referrer is missing, `WebsiteVisitors.tsx` shows **"Direct"**. That is the empty-referrer-equals-direct assumption you flagged. Without a `vid`, a ngcapital.net lead has no attribution at all.
+## 2. Ask Cesar (`supabase/functions/chat-lead-upsert/index.ts`)
 
-## 4. AI referral detection
-None is implemented. Reliability by platform, once a rule exists:
-- **Confirmed (referrer present):** chatgpt.com, chat.openai.com, perplexity.ai, claude.ai, copilot.microsoft.com, gemini.google.com. These are reliable only when the browser sends a referrer.
-- **Confirmed (tag present):** ChatGPT often adds `utm_source=chatgpt.com`. Manually tagged links (`utm_source=perplexity` etc.) would already be stored.
-- **Unknown:** AI apps and browsers that strip the referrer. These show up as empty and must be labeled "Unknown", not "Direct" or "AI".
-- Google, Bing, Facebook and Instagram are also not classified. Today they are raw hostnames only.
+- **VERIFIED: access is protected.** Calls need `Authorization: Bearer CHAT_INGEST_SECRET` (lines 12–16), so they come from the Ask Cesar server, not from browsers.
+- **VERIFIED: how it matches an existing lead (lines 85–100), in this order:**
+  1. `chat_session_id`
+  2. email, case-insensitive, with `maybeSingle`
+  3. phone, by loading **every** lead that has a phone and comparing digits in memory
+- **VERIFIED: what it updates (lines 105–114).** Only fields that are currently empty get filled.
+  - Fields it can fill: first_name, last_name, email, phone, loan_purpose, property_type, property_value, credit_range, employment_type, annual_income, timeline, intent_tag, notes, chat_session_id.
+  - **`source` and `source_id` are never in the update set, so the original source of an existing lead is kept.**
+- **VERIFIED: what a new lead gets (lines 118–123).** It sets `source_id` to the "AI Chat" lead source, `status=new_lead` and `lead_score=0`. It does **not** set `source`, so those leads show an empty source text.
+- **VERIFIED: it cannot link to a website visitor.** The request has no `visitor_id`, UTM or referrer, and nothing reads `website_visitors`.
+  - The Foundation site does add `vid` to askcesar.ngcapital.net links. Whether the Ask Cesar app reads it is **NOT VERIFIED**, because that app's code is not in either project.
+- **VERIFIED: the reply includes the internal `lead_id`.** Only the authenticated caller receives it, which is acceptable but worth noting.
 
-## 5. Reporting gaps
-- AI-referred lead count, per-platform breakdown: **not possible.**
-- Landing pages for AI leads: only by manually joining visitor events.
-- AI leads that completed an application: not possible, because no channel is stored on the lead.
-- Funded loans by channel: not possible. `pipeline_opportunities` has no channel and Arive exports carry no attribution.
+## 3. Duplicates, merges, imports and other updates
 
-## 6. Risks
-- **Overwrite and loss:** last touch is never kept. Ask Cesar leads lose all web attribution. Phone and email leads have none.
-- **Linking:** a lead is linked to a visitor only once (`.is("lead_id", null)`), which preserves the original link. Email-based linking in the tracker picks the most recent lead with that email, which could attach history to the wrong duplicate.
-- **Duplicates and merges:** `chat-lead-upsert` updates an existing lead. Whether that update rewrites `source_id` is unverified and needs a line-level check. Merge or import tools were not checked for `source` handling.
-- **Privacy:** good. Query strings are stripped except `utm_*` and `start`, calculator amounts are bucketed, and `vid` is random rather than a lead ID. One concern: the tracker accepts `email` in its request body, which is personal data in an analytics call. Whether the tracker respects cookie consent sits in the other project and is unverified.
-- **Mislabeling:** "Direct" is shown for missing referrers.
+- **`submit-lead`, VERIFIED:** it always creates a new lead, with no duplicate check. `source` is set to the form name. A visitor is linked only where it has no lead yet (`.is("lead_id", null)`), so the first link is kept.
+- **Manual create and edit (`src/lib/crm/leadIntake.ts`), VERIFIED:** saving writes `source_id: data.source_id || null` and `source: data.referral_source || undefined`.
+  - The form is pre-filled from the lead (lines 380–385), so values are kept unless staff change them.
+  - **Clearing the source dropdown blanks `source_id`, and choosing a new referral source replaces `source`.** This is a human overwrite, with no history of the original.
+- **Status changes (`Leads.tsx`, `RecordWorkspace.tsx`, `moveToPipeline.ts`), VERIFIED:** they update `status` only.
+- **Lead source rules (`applyLeadSourceRules`), VERIFIED:** they change `lead_score` and `assigned_to`, and add tags and tasks. They never touch the source.
+- **Arive webhook, VERIFIED:** it finds the lead by `crm_reference_id` and only sets `status`. Its event metadata says `source: "arive-webhook"`.
+- **Arive import (`src/lib/import/arive.ts`), VERIFIED by code comment and function at line 281:** it fills empty fields and never overwrites filled ones.
+- **People duplicate check (`DuplicateMatchModal`, `find_person_matches`) and People import, VERIFIED:** these work on people and contacts, not `leads.source`. NOT APPLICABLE to lead attribution.
+- **Database triggers on `leads`, VERIFIED by trigger list only:** `update_leads_updated_at`, `trg_notify_lead_created_email`, `trg_tl_lead_created`, `trg_ms_from_lead`. None are named as source writers. Their bodies were not read line by line, so this is NOT VERIFIED.
+- **Zapier (`src/lib/integrations/zapier.ts`):** the outgoing message has a fixed `source: "ngcapital-crm"`. Whether lead source or UTM fields are included is NOT VERIFIED.
+- **Arive export mappings:** no attribution field is known to be mapped. This is NOT VERIFIED, because the mappings are stored in the database and were not read.
+- **No lead-merge feature exists:** VERIFIED. No code merges two leads.
 
-## 7. Recommended minimum changes (not implemented)
-1. **`track-visitor-activity/index.ts` + `website_visitors`** (new nullable columns only): add `utm_content`, `utm_term`, `first_landing_path`, `last_utm_source/medium/campaign`, `last_referrer`, `last_seen_channel`, and `ai_platform`/`channel`, using a referrer-and-UTM classifier with a `confirmed | tagged | unknown` confidence. *Why:* gives first and last touch plus AI detection. *Impact:* tracking backend only, no visible change on the site.
-2. **`leads`** (new nullable columns): `attribution_channel`, `attribution_platform`, `attribution_confidence`, `first_touch` jsonb. `submit-lead` copies these from the linked visitor once, at insert, and never on update. *Why:* lets you report directly on leads and keeps the original source. *Impact:* lead intake writes extra fields. Existing workflows are unchanged.
-3. **ngcapital.net client (`visitorTracking.ts`)**: when no `vid` is present, capture `document.referrer`, UTMs and the landing path in first-party storage and send them with `submit-lead`. *Why:* covers visitors who land directly on Mortgage Core. *Impact:* public site, small, no visible UI change. Must respect the existing consent banner.
-4. **`chat-lead-upsert`**: accept `visitor_id` and referrer, and never overwrite an existing source. *Impact:* Ask Cesar intake.
-5. **`WebsiteVisitors.tsx`**: show "Unknown" instead of "Direct" when nothing is known. *Impact:* CRM display only.
-6. Optional: add the attribution fields to the Arive/Zapier export mappings, so funded-loan reporting is possible. *Impact:* LOS export.
+## 4. Additional risks
 
-## 8. Inspected
-- **Files:** `src/lib/visitorTracking.ts`, `src/components/landing/ApplicationHub.tsx`, `src/components/landing/ContactFormSection.tsx`, `src/components/calculator/MortgageCalculator.tsx`, `src/pages/WebsiteVisitors.tsx`, `src/components/crm/WebActivityPanel.tsx`
-- **Functions:** `submit-lead`, `track-visitor-activity`, `chat-lead-upsert`, `arive-webhook`. Zapier/Arive settings pages were checked by name only.
-- **Tables (columns only):** `leads` (`source`, `source_id`, `lead_score`), `lead_sources`, `lead_source_rules`, `lead_events` (`id`, `lead_id`, `event_type`, `points`, `metadata`, `created_at`), `website_visitors`, `website_events`, `contacts`, `pipeline_opportunities` (`source_system`).
+1. **Dropped campaign tags.** The UTM check rejects dots, which silently drops `chatgpt.com`, `perplexity.ai` and the site's own `nexgen-capital.com` tags.
+2. **Duplicate chat leads.** When two leads share an email, `maybeSingle` errors and `existing` becomes null. Ask Cesar then creates another duplicate lead.
+3. **Phone lookup loads every lead.** It reads all leads with a phone into memory. This is a performance and data-exposure concern inside the server.
+4. **Duplicate form leads.** `submit-lead` has no duplicate check, so the same person can create several leads, each with its own source.
+5. **No original-source history.** A manual edit can replace or blank the source with no record of what it was.
+6. **Ask Cesar leads have no source text.** They set `source_id` but leave `source` empty, so reports grouped by `source` miss them.
+7. **ngcapital.net stores `vid` without its own consent check.** NexGen Foundation only sends it after consent.
 
-## 9. Evidence
-- **Verified by code read and column query:** sections 2, 3 and 4, the missing AI logic, first-touch-only behavior, the "Direct" fallback, and that no `track-visitor-activity` caller exists in this project.
-- **Assumed or unknown:** whether the nexgen-capital.com tracker is live and consent-gated; whether `chat-lead-upsert` overwrites the source on update; how merge and import tools treat `source`; real AI referrer rates. No live traffic or production rows were examined.
+## 5. Recommended implementation order
 
-Approving this report does not start any changes. Tell me which recommendations to build, if any.
+1. Allow dots in the UTM check, add `utm_content` and `utm_term`, and pass the visitor's original UTMs on to ngcapital.net links. This is in NexGen Foundation and has the lowest risk.
+2. Classify referrers in `track-visitor-activity` into channel, platform and confidence (confirmed, tagged or unknown). Add last-touch fields while keeping first touch as it is.
+3. Copy attribution onto the lead **once, at creation**, in `submit-lead` and `chat-lead-upsert`, into new write-once columns. Never update them afterwards.
+4. Have Ask Cesar accept `vid` and referrer, and fix the email-match error and the full phone scan.
+5. In the CRM: show "Unknown" instead of "Direct", show the original attribution read-only on the lead, and optionally add it to the Zapier and Arive exports.
+
+## 6. What the eventual changes would affect
+
+- **NexGen Foundation:** `src/lib/visitor-tracking.ts` (`safeCampaign`, `buildTrackingPayload`), `src/lib/visitor-id.ts` (`withVid`), `src/lib/landing-pages.ts`
+- **Mortgage Core server functions:** `supabase/functions/track-visitor-activity/index.ts`, `supabase/functions/submit-lead/index.ts`, `supabase/functions/chat-lead-upsert/index.ts`
+- **Mortgage Core site and CRM screens:** `src/lib/visitorTracking.ts`, `src/pages/WebsiteVisitors.tsx`, `src/components/crm/WebActivityPanel.tsx`, `src/lib/crm/leadIntake.ts` (keep attribution read-only), and optionally `src/lib/integrations/zapier.ts` and the Arive export mappings
+- **Database (new nullable columns only):** `website_visitors` (utm_content, utm_term, first_landing_path, last_* fields, channel, ai_platform, confidence) and `leads` (attribution_channel, attribution_platform, attribution_confidence, first_touch)
+- **External, not in either project:** the Ask Cesar app, to forward `vid` and referrer
+
+Approving this report does not start any changes. Tell me which steps to build.
