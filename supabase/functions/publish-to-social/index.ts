@@ -61,8 +61,8 @@ function fullPostText(post: any): string {
   return [body, tags].filter(Boolean).join("\n\n");
 }
 
-function getMetaAccessToken(): string | undefined {
-  return Deno.env.get("META_PAGE_ACCESS_TOKEN") || Deno.env.get("META_ACCESS_TOKEN") || undefined;
+function getMetaAccessToken(post?: any): string | undefined {
+  return post?.meta_token || Deno.env.get("META_PAGE_ACCESS_TOKEN") || Deno.env.get("META_ACCESS_TOKEN") || undefined;
 }
 
 function getFacebookPageId(post: any): string | undefined {
@@ -128,7 +128,7 @@ async function ensurePublicImageUrl(
  */
 
 async function publishFacebook(post: any): Promise<PublishResult> {
-  const token = getMetaAccessToken();
+  const token = getMetaAccessToken(post);
   const pageId = getFacebookPageId(post);
   if (!token || !pageId) {
     return { success: false, error: "Facebook credentials not configured (META_PAGE_ACCESS_TOKEN or META_ACCESS_TOKEN, META_PAGE_ID)" };
@@ -158,7 +158,7 @@ async function publishFacebook(post: any): Promise<PublishResult> {
 }
 
 async function publishInstagram(post: any): Promise<PublishResult> {
-  const token = getMetaAccessToken();
+  const token = getMetaAccessToken(post);
   const igId = getInstagramBusinessId(post);
   if (!token || !igId) {
     return { success: false, error: "Instagram credentials not configured (META_PAGE_ACCESS_TOKEN or META_ACCESS_TOKEN, IG_BUSINESS_ACCOUNT_ID)" };
@@ -312,6 +312,9 @@ Deno.serve(async (req) => {
       .limit(1)
       .maybeSingle<SocialSettings>();
     post.social_settings = socialSettings || {};
+    const { data: metaCred } = await adminClient
+      .from("social_credentials").select("access_token").eq("provider", "meta").maybeSingle();
+    post.meta_token = metaCred?.access_token || null;
 
     // Ensure image_url is a public/https URL that Meta/LinkedIn can fetch.
     if (post.image_url && post.image_url.startsWith("data:")) {

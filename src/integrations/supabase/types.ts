@@ -6391,6 +6391,33 @@ export type Database = {
         }
         Relationships: []
       }
+      social_credentials: {
+        Row: {
+          access_token: string
+          account_name: string | null
+          provider: string
+          token_last4: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          access_token: string
+          account_name?: string | null
+          provider: string
+          token_last4?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          access_token?: string
+          account_name?: string | null
+          provider?: string
+          token_last4?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       social_debug_logs: {
         Row: {
           created_at: string

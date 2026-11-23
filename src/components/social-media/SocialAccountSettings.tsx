@@ -36,6 +36,34 @@ export function SocialAccountSettings() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const [metaToken, setMetaToken] = useState("");
+  const tokenStatus = useQuery({
+    queryKey: ["social-meta-token-status"],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("save-social-token", { body: { action: "status" } });
+      if (error) throw error;
+      return data?.meta as { token_last4: string; account_name: string | null; updated_at: string } | null;
+    },
+  });
+  const saveToken = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke("save-social-token", { body: { action: "save", token: metaToken } });
+      if (error) {
+        let msg = error.message;
+        try { msg = (await (error as any).context?.json())?.error || msg; } catch { /* ignore */ }
+        throw new Error(msg);
+      }
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: (d: any) => {
+      setMetaToken("");
+      qc.invalidateQueries({ queryKey: ["social-meta-token-status"] });
+      toast.success(`Token saved${d?.account_name ? ` for ${d.account_name}` : ""}`);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const set = (k: string, v: any) => setForm((f: any) => ({ ...f, [k]: v }));
 
   if (!data) return <Card><CardContent className="py-8 text-center text-muted-foreground">Loading…</CardContent></Card>;
@@ -53,6 +81,28 @@ export function SocialAccountSettings() {
               publishing permissions, not deprecated <code>publish_actions</code>. LinkedIn requires the LinkedIn connector or
               <code>LINKEDIN_ACCESS_TOKEN</code>, plus <code>LINKEDIN_ORG_URN</code>.
             </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Facebook & Instagram Access Token</CardTitle>
+          <CardDescription>
+            Paste a new Meta Page access token when the old one expires. It is checked with Meta, stored privately and used for publishing.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            {tokenStatus.data
+              ? `Current token: ••••${tokenStatus.data.token_last4}${tokenStatus.data.account_name ? ` (${tokenStatus.data.account_name})` : ""}, updated ${new Date(tokenStatus.data.updated_at).toLocaleString()}`
+              : "No token saved here yet — the older project token is used."}
+          </p>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Input type="password" autoComplete="off" placeholder="EAAG…" value={metaToken} onChange={(e) => setMetaToken(e.target.value)} />
+            <Button onClick={() => saveToken.mutate()} disabled={saveToken.isPending || metaToken.trim().length < 20}>
+              {saveToken.isPending ? "Checking…" : "Save Token"}
+            </Button>
           </div>
         </CardContent>
       </Card>
