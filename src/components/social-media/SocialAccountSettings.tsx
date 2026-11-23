@@ -74,9 +74,9 @@ export function SocialAccountSettings() {
         <CardContent className="flex gap-3 py-4">
           <AlertCircle className="h-5 w-5 shrink-0 text-primary" />
           <div className="text-sm">
-            <p className="font-medium">API tokens are stored as project secrets</p>
+            <p className="font-medium">Meta tokens can be pasted below; other API tokens are stored as project secrets</p>
             <p className="text-muted-foreground">
-              Add a Meta Page access token as <code>META_PAGE_ACCESS_TOKEN</code> or <code>META_ACCESS_TOKEN</code>, plus
+              A token saved in the card below takes priority. Otherwise add a Meta Page access token as <code>META_PAGE_ACCESS_TOKEN</code> or <code>META_ACCESS_TOKEN</code>, plus
               <code>META_PAGE_ID</code> and <code>IG_BUSINESS_ACCOUNT_ID</code>. The Meta token must use current Page and Instagram
               publishing permissions, not deprecated <code>publish_actions</code>. LinkedIn requires the LinkedIn connector or
               <code>LINKEDIN_ACCESS_TOKEN</code>, plus <code>LINKEDIN_ORG_URN</code>.

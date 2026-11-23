@@ -6,8 +6,9 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type",
 };
 
+let savedMetaToken = false;
 function hasMetaToken(): boolean {
-  return !!(Deno.env.get("META_PAGE_ACCESS_TOKEN") || Deno.env.get("META_ACCESS_TOKEN"));
+  return savedMetaToken || !!(Deno.env.get("META_PAGE_ACCESS_TOKEN") || Deno.env.get("META_ACCESS_TOKEN"));
 }
 
 type SocialSettings = {
@@ -72,6 +73,11 @@ Deno.serve(async (req) => {
       .select("facebook_page_id, instagram_business_id, linkedin_org_urn")
       .limit(1)
       .maybeSingle<SocialSettings>();
+
+    const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    const { data: metaCred } = await admin
+      .from("social_credentials").select("provider").eq("provider", "meta").maybeSingle();
+    savedMetaToken = !!metaCred;
 
     if (!post.post_text || post.post_text.includes("[") || post.post_text.includes("{{")) {
       log("VALIDATE_TEMPLATE", "fail", "Unresolved placeholders or empty text");
