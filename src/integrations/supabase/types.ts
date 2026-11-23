@@ -7412,7 +7412,9 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: never; Returns: boolean }
+      is_app_member: { Args: never; Returns: boolean }
       is_portal_user_for_deal: { Args: { _deal_id: string }; Returns: boolean }
+      is_staff: { Args: never; Returns: boolean }
       map_legacy_stage: { Args: { _raw: string }; Returns: string }
       normalize_email: { Args: { _email: string }; Returns: string }
       normalize_phone: { Args: { _phone: string }; Returns: string }

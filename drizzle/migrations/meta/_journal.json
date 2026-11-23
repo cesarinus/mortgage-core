@@ -15,6 +15,13 @@
       "when": 1792685173372,
       "tag": "0001_email_campaigns",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1795447655674,
+      "tag": "0002_tighten_staff_and_public_policies",
+      "breakpoints": true
     }
   ]
 }
